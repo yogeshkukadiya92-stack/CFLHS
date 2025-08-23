@@ -34,7 +34,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Card>
+      <Card className="shadow-md">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle>Employees</CardTitle>
@@ -47,17 +47,17 @@ export default function Dashboard() {
           </AddKraDialog>
         </CardHeader>
         <CardContent>
-           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {employees.map((employee) => (
                 <Link href={`/employees/${employee.id}`} key={employee.id}>
-                    <Card className="hover:bg-muted/50 transition-colors">
+                    <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
                         <CardHeader className="flex flex-row items-center gap-4">
                             <Avatar className="h-12 w-12">
                                 <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
                                 <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <CardTitle>{employee.name}</CardTitle>
+                                <CardTitle className="text-lg">{employee.name}</CardTitle>
                                 <CardDescription>View KRAs</CardDescription>
                             </div>
                         </CardHeader>

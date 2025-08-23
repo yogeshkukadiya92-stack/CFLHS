@@ -48,9 +48,9 @@ export default function EmployeeKraPage() {
             </Button>
         </Link>
         {employee && (
-            <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3">
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
                 <div className="lg:col-span-2">
-                    <Card>
+                    <Card className="shadow-md">
                         <CardHeader className="flex flex-row items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <Avatar className="h-12 w-12">
