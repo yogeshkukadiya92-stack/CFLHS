@@ -30,9 +30,11 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
     setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
   };
   
+  const { id } = params;
+  
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
-  const employeeKras = kras.filter((kra) => kra.employee.id === params.id);
-  const employee = employees.find(e => e.id === params.id);
+  const employeeKras = kras.filter((kra) => kra.employee.id === id);
+  const employee = employees.find(e => e.id === id);
 
   return (
     <div className="flex flex-col gap-4">
