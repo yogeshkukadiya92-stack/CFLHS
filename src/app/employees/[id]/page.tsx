@@ -1,4 +1,7 @@
 
+'use client';
+
+import * as React from 'react';
 import { KraTable } from '@/components/kra-table';
 import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,10 +9,30 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { KRA } from '@/lib/types';
+import { AddKraDialog } from '@/components/add-kra-dialog';
+
 
 export default function EmployeeKraPage({ params }: { params: { id: string } }) {
-  const employeeKras = mockKras.filter((kra) => kra.employee.id === params.id);
-  const employee = employeeKras.length > 0 ? employeeKras[0].employee : null;
+  const [kras, setKras] = React.useState<KRA[]>(mockKras);
+
+  const handleSaveKra = (kraToSave: KRA) => {
+    setKras((prevKras) => {
+      const exists = prevKras.some(k => k.id === kraToSave.id);
+      if (exists) {
+        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
+      }
+      // This page should only edit existing KRAs for the current employee, but adding is included for consistency.
+      return [...prevKras, kraToSave];
+    });
+  };
+
+  const handleDeleteKra = (kraId: string) => {
+    setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
+  };
+
+  const employeeKras = kras.filter((kra) => kra.employee.id === params.id);
+  const employee = employeeKras.length > 0 ? employeeKras[0].employee : mockKras.find(k => k.employee.id === params.id)?.employee;
 
   return (
     <div className="flex flex-col gap-4">
@@ -21,20 +44,29 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
         </Link>
         {employee && (
              <Card>
-                <CardHeader className="flex flex-row items-center gap-4">
-                    <Avatar className="h-12 w-12">
-                      <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                      <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <CardTitle>{employee.name}</CardTitle>
-                        <CardDescription>
-                            Key Result Areas
-                        </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                          <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <CardTitle>{employee.name}</CardTitle>
+                            <CardDescription>
+                                Key Result Areas
+                            </CardDescription>
+                        </div>
                     </div>
+                     <AddKraDialog onSave={handleSaveKra}>
+                        <Button>Add KRA</Button>
+                    </AddKraDialog>
                 </CardHeader>
                 <CardContent>
-                    <KraTable employeeId={params.id} />
+                    <KraTable 
+                        kras={employeeKras}
+                        onSave={handleSaveKra}
+                        onDelete={handleDeleteKra}
+                    />
                 </CardContent>
             </Card>
         )}

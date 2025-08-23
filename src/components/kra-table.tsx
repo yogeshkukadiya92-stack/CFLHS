@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -21,7 +22,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockKras } from '@/lib/data';
 import type { KRA, KRAStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, getMonth, getYear } from 'date-fns';
@@ -41,7 +41,9 @@ const statusStyles: Record<KRAStatus, string> = {
 };
 
 interface KraTableProps {
-    employeeId?: string;
+    kras: KRA[];
+    onSave: (kra: KRA) => void;
+    onDelete: (id: string) => void;
 }
 
 const calculateMonthlyScore = (kra: KRA): number | null => {
@@ -64,29 +66,8 @@ const calculateMonthlyScore = (kra: KRA): number | null => {
     return kra.score;
 }
 
-export function KraTable({ employeeId }: KraTableProps) {
-  const [kras, setKras] = React.useState<KRA[]>(() => {
-    if (employeeId) {
-        return mockKras.filter(kra => kra.employee.id === employeeId);
-    }
-    return mockKras;
-  });
-
-  const handleSaveKra = (kraToSave: KRA) => {
-    setKras((prevKras) => {
-      const exists = prevKras.some(k => k.id === kraToSave.id);
-      if (exists) {
-        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
-      }
-      return [...prevKras, kraToSave];
-    });
-  };
-
-  const handleDeleteKra = (kraId: string) => {
-    setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
-  };
-
-
+export function KraTable({ kras, onSave, onDelete }: KraTableProps) {
+  
   return (
      <TooltipProvider>
     <Table>
@@ -170,7 +151,7 @@ export function KraTable({ employeeId }: KraTableProps) {
                 )}
             </TableCell>
             <TableCell>
-               <AddKraDialog kra={kra} onSave={handleSaveKra}>
+               <AddKraDialog kra={kra} onSave={onSave}>
                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button aria-haspopup="true" size="icon" variant="ghost">
@@ -181,7 +162,7 @@ export function KraTable({ employeeId }: KraTableProps) {
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Edit</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteKra(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </AddKraDialog>
@@ -191,13 +172,6 @@ export function KraTable({ employeeId }: KraTableProps) {
         })}
       </TableBody>
     </Table>
-     <div className="hidden">
-        {/* This is a hack to allow adding new KRAs. The AddKraDialog for adding is not rendered visibly.
-            The button in the header will trigger this dialog. */}
-        <AddKraDialog onSave={handleSaveKra}>
-            <button id="add-kra-dialog-trigger-hack"></button>
-        </AddKraDialog>
-    </div>
     </TooltipProvider>
   );
 }

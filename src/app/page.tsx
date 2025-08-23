@@ -1,4 +1,7 @@
 
+'use client';
+
+import * as React from 'react';
 import {
   Card,
   CardContent,
@@ -7,22 +10,41 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { AddKraDialog } from '@/components/add-kra-dialog';
 import { mockKras } from '@/lib/data';
 import Link from 'next/link';
-import type { Employee } from '@/lib/types';
+import type { Employee, KRA } from '@/lib/types';
 
 
 export default function Dashboard() {
-  const employees: Employee[] = Array.from(new Map(mockKras.map(kra => [kra.employee.id, kra.employee])).values());
+  const [kras, setKras] = React.useState<KRA[]>(mockKras);
+
+  const handleSaveKra = (kraToSave: KRA) => {
+    setKras((prevKras) => {
+      const exists = prevKras.some(k => k.id === kraToSave.id);
+      if (exists) {
+        return prevKras.map((kra) => (kra.id === kraToSave.id ? kraToSave : kra));
+      }
+      return [...prevKras, kraToSave];
+    });
+  };
+
+  const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
 
   return (
     <div className="flex flex-col gap-4">
       <Card>
-        <CardHeader>
-          <CardTitle>Employees</CardTitle>
-          <CardDescription>
-            Select an employee to view their Key Result Areas.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Employees</CardTitle>
+            <CardDescription>
+              Select an employee to view their Key Result Areas.
+            </CardDescription>
+          </div>
+          <AddKraDialog onSave={handleSaveKra}>
+             <Button>Add KRA</Button>
+          </AddKraDialog>
         </CardHeader>
         <CardContent>
            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
