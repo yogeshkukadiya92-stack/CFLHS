@@ -2,6 +2,7 @@
 'use client';
 
 import * as React from 'react';
+import { useParams } from 'next/navigation';
 import { KraTable } from '@/components/kra-table';
 import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -13,7 +14,10 @@ import type { Employee, KRA } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
 
 
-export default function EmployeeKraPage({ params }: { params: { id: string } }) {
+export default function EmployeeKraPage() {
+  const params = useParams();
+  const id = params.id as string;
+  
   const [kras, setKras] = React.useState<KRA[]>(mockKras);
 
   const handleSaveKra = (kraToSave: KRA) => {
@@ -29,8 +33,6 @@ export default function EmployeeKraPage({ params }: { params: { id: string } }) 
   const handleDeleteKra = (kraId: string) => {
     setKras((prevKras) => prevKras.filter((kra) => kra.id !== kraId));
   };
-  
-  const { id } = params;
   
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
   const employeeKras = kras.filter((kra) => kra.employee.id === id);
