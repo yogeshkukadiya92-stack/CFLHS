@@ -18,7 +18,30 @@ import type { Employee, KRA } from '@/lib/types';
 
 
 export default function Dashboard() {
-  const [kras, setKras] = React.useState<KRA[]>(mockKras);
+  const [kras, setKras] = React.useState<KRA[]>(() => {
+    // In a real app, you'd fetch this data. Here we simulate it.
+    // We check for sessionStorage to persist state across reloads on the client.
+    if (typeof window !== 'undefined') {
+        const savedKras = sessionStorage.getItem('kraData');
+        if (savedKras) {
+            return JSON.parse(savedKras, (key, value) => {
+                if (key === 'startDate' || key === 'endDate' || key === 'date') {
+                    return new Date(value);
+                }
+                return value;
+            });
+        }
+    }
+    return mockKras;
+  });
+
+  // Persist state to sessionStorage whenever it changes
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+        sessionStorage.setItem('kraData', JSON.stringify(kras));
+    }
+  }, [kras]);
+
 
   const handleSaveKra = (kraToSave: KRA) => {
     setKras((prevKras) => {
