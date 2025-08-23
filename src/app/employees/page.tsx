@@ -11,6 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 interface EmployeeSummary {
@@ -20,20 +21,29 @@ interface EmployeeSummary {
 }
 
 export default function EmployeesPage() {
-    const [kras, setKras] = React.useState<KRA[]>(() => {
-        if (typeof window !== 'undefined') {
+    const [kras, setKras] = React.useState<KRA[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        try {
             const savedKras = sessionStorage.getItem('kraData');
             if (savedKras) {
-                return JSON.parse(savedKras, (key, value) => {
+                setKras(JSON.parse(savedKras, (key, value) => {
                     if (key === 'startDate' || key === 'endDate' || key === 'date') {
                         return new Date(value);
                     }
                     return value;
-                });
+                }));
+            } else {
+                setKras(mockKras);
             }
+        } catch (error) {
+            console.error("Failed to parse KRA data from sessionStorage", error);
+            setKras(mockKras);
+        } finally {
+            setLoading(false);
         }
-        return mockKras;
-    });
+    }, []);
 
     const employeeSummary = React.useMemo(() => {
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
@@ -88,34 +98,57 @@ export default function EmployeesPage() {
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {employeeSummary.map(({ employee, kraCount, averagePerformance }) => (
-                                <TableRow key={employee.id}>
+                            {loading ? (
+                                Array.from({ length: 5 }).map((_, i) => (
+                                <TableRow key={i}>
                                     <TableCell>
                                         <div className="flex items-center gap-3">
-                                            <Avatar className="h-10 w-10">
-                                            <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                                            <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="font-medium">{employee.name}</div>
+                                            <Skeleton className="h-10 w-10 rounded-full" />
+                                            <Skeleton className="h-4 w-32" />
                                         </div>
                                     </TableCell>
-                                    <TableCell>{kraCount}</TableCell>
+                                    <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                                     <TableCell>
                                         <div className="flex items-center gap-2">
-                                            <Progress value={averagePerformance} className="h-2" />
-                                            <span className="text-xs font-semibold text-muted-foreground">{averagePerformance}%</span>
+                                            <Skeleton className="h-2 w-full" />
+                                            <Skeleton className="h-4 w-8" />
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Link href={`/employees/${employee.id}`}>
-                                            <Button variant="outline" size="sm">
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                View
-                                            </Button>
-                                        </Link>
+                                        <Skeleton className="h-9 w-20" />
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                                ))
+                            ) : (
+                                employeeSummary.map(({ employee, kraCount, averagePerformance }) => (
+                                    <TableRow key={employee.id}>
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <Avatar className="h-10 w-10">
+                                                <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="font-medium">{employee.name}</div>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>{kraCount}</TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-2">
+                                                <Progress value={averagePerformance} className="h-2" />
+                                                <span className="text-xs font-semibold text-muted-foreground">{averagePerformance}%</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <Link href={`/employees/${employee.id}`}>
+                                                <Button variant="outline" size="sm">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    View
+                                                </Button>
+                                            </Link>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </div>

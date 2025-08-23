@@ -25,6 +25,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function EmployeeKraPage() {
@@ -33,30 +34,35 @@ export default function EmployeeKraPage() {
   const { toast } = useToast();
   const id = params.id as string;
   
-  // This local state will be temporary. In a real app, this would come from a global store or context.
-  const [kras, setKras] = React.useState<KRA[]>(() => {
-      // In a real app, you'd fetch this data. Here we simulate it.
-      // We check for sessionStorage to persist state across reloads on the client.
-      if (typeof window !== 'undefined') {
-          const savedKras = sessionStorage.getItem('kraData');
-          if (savedKras) {
-              return JSON.parse(savedKras, (key, value) => {
-                  if (key === 'startDate' || key === 'endDate' || key === 'date') {
-                      return new Date(value);
-                  }
-                  return value;
-              });
-          }
-      }
-      return mockKras;
-  });
+  const [kras, setKras] = React.useState<KRA[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
-  // Persist state to sessionStorage whenever it changes
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-        sessionStorage.setItem('kraData', JSON.stringify(kras));
+    try {
+      const savedKras = sessionStorage.getItem('kraData');
+      if (savedKras) {
+        setKras(JSON.parse(savedKras, (key, value) => {
+          if (key === 'startDate' || key === 'endDate' || key === 'date') {
+            return new Date(value);
+          }
+          return value;
+        }));
+      } else {
+        setKras(mockKras);
+      }
+    } catch (error) {
+      console.error("Failed to parse KRA data from sessionStorage", error);
+      setKras(mockKras);
+    } finally {
+      setLoading(false);
     }
-  }, [kras]);
+  }, []);
+
+  React.useEffect(() => {
+    if (!loading) {
+      sessionStorage.setItem('kraData', JSON.stringify(kras));
+    }
+  }, [kras, loading]);
 
 
   const handleSaveKra = (kraToSave: KRA) => {
@@ -74,7 +80,11 @@ export default function EmployeeKraPage() {
   };
 
   const handleDeleteEmployee = () => {
-    setKras((prevKras) => prevKras.filter((kra) => kra.employee.id !== id));
+    // This is not the right way to delete an employee's data from other employees.
+    // It should be handled in a central state management.
+    // For now, this will only remove the current employee's KRAs from the local state.
+    const updatedKras = kras.filter(kra => kra.employee.id !== id);
+    sessionStorage.setItem('kraData', JSON.stringify(updatedKras));
     
     toast({
         title: "Employee Deleted",
@@ -88,6 +98,52 @@ export default function EmployeeKraPage() {
   const employeeKras = kras.filter((kra) => kra.employee.id === id);
   const employee = employees.find(e => e.id === id);
 
+  if (loading) {
+    return (
+        <div className="flex flex-col gap-4">
+            <Skeleton className="h-9 w-36" />
+            <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
+                <div className="lg:col-span-2">
+                    <Card className="shadow-md">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <Skeleton className="h-12 w-12 rounded-full" />
+                                <div>
+                                    <Skeleton className="h-6 w-32 mb-2" />
+                                    <Skeleton className="h-4 w-24" />
+                                </div>
+                            </div>
+                             <div className="flex items-center gap-2">
+                                <Skeleton className="h-10 w-24" />
+                                <Skeleton className="h-10 w-10" />
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                             <div className="space-y-4">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                                <Skeleton className="h-10 w-full" />
+                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
+                <div className="lg:col-span-1">
+                    <Card className="shadow-md">
+                        <CardHeader>
+                           <Skeleton className="h-6 w-48 mb-2" />
+                           <Skeleton className="h-4 w-64" />
+                        </CardHeader>
+                        <CardContent className="flex items-center justify-center h-[250px]">
+                             <Skeleton className="h-48 w-48 rounded-full" />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
         <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -96,7 +152,7 @@ export default function EmployeeKraPage() {
                 Back to Employees
             </Button>
         </Link>
-        {employee && (
+        {employee ? (
             <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
                 <div className="lg:col-span-2">
                     <Card className="shadow-md">
@@ -154,8 +210,7 @@ export default function EmployeeKraPage() {
                     <KraProgressChart kras={employeeKras} />
                 </div>
             </div>
-        )}
-        {!employee && (
+        ) : (
              <Card>
                 <CardHeader>
                     <CardTitle>Employee Not Found</CardTitle>

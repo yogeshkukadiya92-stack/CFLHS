@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface EmployeePerformance {
     employee: Employee;
@@ -19,22 +20,29 @@ interface EmployeePerformance {
 }
 
 export default function IncrementsPage() {
-    const [kras, setKras] = React.useState<KRA[]>(() => {
-        // In a real app, you'd fetch this data. Here we simulate it.
-        // We check for sessionStorage to persist state across reloads on the client.
-        if (typeof window !== 'undefined') {
+    const [kras, setKras] = React.useState<KRA[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        try {
             const savedKras = sessionStorage.getItem('kraData');
             if (savedKras) {
-                return JSON.parse(savedKras, (key, value) => {
+                setKras(JSON.parse(savedKras, (key, value) => {
                     if (key === 'startDate' || key === 'endDate' || key === 'date') {
                         return new Date(value);
                     }
                     return value;
-                });
+                }));
+            } else {
+                setKras(mockKras);
             }
+        } catch (error) {
+            console.error("Failed to parse KRA data from sessionStorage", error);
+            setKras(mockKras);
+        } finally {
+            setLoading(false);
         }
-        return mockKras;
-    });
+    }, []);
 
     const performanceData = React.useMemo(() => {
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
@@ -92,22 +100,38 @@ export default function IncrementsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {performanceData.map(({ employee, totalWeightage, totalMarksAchieved, performanceScore }) => (
-                                    <TableRow key={employee.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8">
-                                                <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                                                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <div className="font-medium">{employee.name}</div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right">{totalWeightage}</TableCell>
-                                        <TableCell className="text-right">{totalMarksAchieved.toFixed(2)}</TableCell>
-                                        <TableCell className="text-right font-semibold">{performanceScore}%</TableCell>
-                                    </TableRow>
-                                ))}
+                                {loading ? (
+                                    Array.from({ length: 5 }).map((_, i) => (
+                                        <TableRow key={i}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Skeleton className="h-8 w-8 rounded-full" />
+                                                    <Skeleton className="h-4 w-24" />
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-12 ml-auto" /></TableCell>
+                                            <TableCell className="text-right"><Skeleton className="h-4 w-10 ml-auto" /></TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    performanceData.map(({ employee, totalWeightage, totalMarksAchieved, performanceScore }) => (
+                                        <TableRow key={employee.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-8 w-8">
+                                                    <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div className="font-medium">{employee.name}</div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell className="text-right">{totalWeightage}</TableCell>
+                                            <TableCell className="text-right">{totalMarksAchieved.toFixed(2)}</TableCell>
+                                            <TableCell className="text-right font-semibold">{performanceScore}%</TableCell>
+                                        </TableRow>
+                                    ))
+                                )}
                             </TableBody>
                         </Table>
                     </div>
@@ -115,25 +139,29 @@ export default function IncrementsPage() {
                  <div>
                     <h2 className="text-lg font-semibold mb-2">Performance Comparison</h2>
                      <div className="h-[400px]">
-                        <ChartContainer config={{
-                            performance: { label: 'Performance', color: 'hsl(var(--primary))' },
-                        }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={performanceData} layout="vertical" margin={{ left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" domain={[0, 100]} tickSuffix="%" />
-                                <YAxis dataKey="employee.name" type="category" width={80} tick={{ fontSize: 12 }} />
-                                <Tooltip
-                                    cursor={{fill: 'hsl(var(--muted))'}}
-                                    content={<ChartTooltipContent 
-                                        formatter={(value) => `${value}%`}
-                                        indicator="dot" 
-                                    />}
-                                />
-                                <Bar dataKey="performanceScore" name="Performance" radius={4} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                        </ChartContainer>
+                        {loading ? (
+                            <Skeleton className="h-full w-full" />
+                        ) : (
+                            <ChartContainer config={{
+                                performance: { label: 'Performance', color: 'hsl(var(--primary))' },
+                            }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={performanceData} layout="vertical" margin={{ left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" domain={[0, 100]} tickSuffix="%" />
+                                    <YAxis dataKey="employee.name" type="category" width={80} tick={{ fontSize: 12 }} />
+                                    <Tooltip
+                                        cursor={{fill: 'hsl(var(--muted))'}}
+                                        content={<ChartTooltipContent 
+                                            formatter={(value) => `${value}%`}
+                                            indicator="dot" 
+                                        />}
+                                    />
+                                    <Bar dataKey="performanceScore" name="Performance" radius={4} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                            </ChartContainer>
+                        )}
                     </div>
                  </div>
             </CardContent>

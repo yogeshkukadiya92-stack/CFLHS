@@ -15,32 +15,39 @@ import { AddKraDialog } from '@/components/add-kra-dialog';
 import { mockKras } from '@/lib/data';
 import Link from 'next/link';
 import type { Employee, KRA } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 
 export default function Dashboard() {
-  const [kras, setKras] = React.useState<KRA[]>(() => {
-    // In a real app, you'd fetch this data. Here we simulate it.
-    // We check for sessionStorage to persist state across reloads on the client.
-    if (typeof window !== 'undefined') {
+  const [kras, setKras] = React.useState<KRA[]>([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    try {
         const savedKras = sessionStorage.getItem('kraData');
         if (savedKras) {
-            return JSON.parse(savedKras, (key, value) => {
+            setKras(JSON.parse(savedKras, (key, value) => {
                 if (key === 'startDate' || key === 'endDate' || key === 'date') {
                     return new Date(value);
                 }
                 return value;
-            });
+            }));
+        } else {
+            setKras(mockKras);
         }
+    } catch (error) {
+        console.error("Failed to parse KRA data from sessionStorage", error);
+        setKras(mockKras);
+    } finally {
+        setLoading(false);
     }
-    return mockKras;
-  });
+  }, []);
 
-  // Persist state to sessionStorage whenever it changes
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
+    if (!loading) {
         sessionStorage.setItem('kraData', JSON.stringify(kras));
     }
-  }, [kras]);
+  }, [kras, loading]);
 
 
   const handleSaveKra = (kraToSave: KRA) => {
@@ -70,24 +77,38 @@ export default function Dashboard() {
           </AddKraDialog>
         </CardHeader>
         <CardContent>
-           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {employees.map((employee) => (
-                <Link href={`/employees/${employee.id}`} key={employee.id}>
-                    <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
-                        <CardHeader className="flex flex-row items-center gap-4">
-                            <Avatar className="h-12 w-12">
-                                <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                                <CardTitle className="text-lg">{employee.name}</CardTitle>
-                                <CardDescription>View KRAs</CardDescription>
+            {loading ? (
+                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                        <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                            <Skeleton className="h-12 w-12 rounded-full" />
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-[150px]" />
+                                <Skeleton className="h-4 w-[100px]" />
                             </div>
-                        </CardHeader>
-                    </Card>
-                </Link>
-              ))}
-           </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {employees.map((employee) => (
+                    <Link href={`/employees/${employee.id}`} key={employee.id}>
+                        <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <Avatar className="h-12 w-12">
+                                    <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <CardTitle className="text-lg">{employee.name}</CardTitle>
+                                    <CardDescription>View KRAs</CardDescription>
+                                </div>
+                            </CardHeader>
+                        </Card>
+                    </Link>
+                  ))}
+               </div>
+            )}
         </CardContent>
       </Card>
     </div>
