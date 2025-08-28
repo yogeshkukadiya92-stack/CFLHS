@@ -80,7 +80,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeBranch: kra?.employee.branch || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
-      weeklyScores: kra?.weeklyScores || [],
+      weeklyScores: [],
     },
   });
 
@@ -112,7 +112,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
   React.useEffect(() => {
     if (open) {
-      setShowNewEmployeeFields(false);
+      const isEditingNewEmployee = kra && !employees.some(e => e.id === kra.employee.id);
+      setShowNewEmployeeFields(isEditingNewEmployee);
       setCurrentEmployees(employees);
       reset({
         taskDescription: kra?.taskDescription || '',
@@ -130,6 +131,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     const selectedEmployee = currentEmployees.find(e => e.id === employeeId);
     if(selectedEmployee) {
         setValue("employeeBranch", selectedEmployee.branch || '');
+        setValue("employeeName", selectedEmployee.name);
+        setShowNewEmployeeFields(false);
     }
   }, [employeeId, currentEmployees, setValue]);
 
@@ -173,12 +176,14 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     const progress = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : (kra?.progress || 0);
     
     const selectedEmployee = currentEmployees.find(e => e.id === data.employeeId);
+    
+    const finalEmployeeId = showNewEmployeeFields ? uuidv4() : data.employeeId;
 
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
       employee: {
-        id: data.employeeId,
+        id: finalEmployeeId,
         name: data.employeeName,
         branch: data.employeeBranch,
         avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
@@ -230,7 +235,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             className="w-full justify-between"
                           >
                             {field.value
-                              ? currentEmployees.find((employee) => employee.id === field.value)?.name
+                              ? employees.find((employee) => employee.id === field.value)?.name
                               : "Select employee..."}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           </Button>
@@ -247,6 +252,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                      <CommandItem
                                       onSelect={() => {
                                         setValue("employeeName", newEmployeeName.trim());
+                                        setValue("employeeId", newEmployeeName.trim()); // Temporary ID
                                         setShowNewEmployeeFields(true);
                                         setEmployeeComboboxOpen(false);
                                       }}
@@ -256,15 +262,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     </CommandItem>
                                 </CommandEmpty>
                                 <CommandGroup>
-                                  {currentEmployees.map((employee) => (
+                                  {employees.map((employee) => (
                                     <CommandItem
                                       key={employee.id}
                                       value={employee.name}
                                       onSelect={() => {
-                                        setValue("employeeId", employee.id);
-                                        setValue("employeeName", employee.name);
-                                        setValue("employeeBranch", employee.branch || '');
-                                        setShowNewEmployeeFields(false);
+                                        field.onChange(employee.id)
                                         setEmployeeComboboxOpen(false);
                                       }}
                                     >
@@ -296,11 +299,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             New Employee
                         </Label>
                         <div className="col-span-3">
-                            <Controller
-                                name="employeeName"
-                                control={control}
-                                render={({ field }) => <Input id="newEmployeeName" {...field} disabled />}
-                            />
+                             <Input id="newEmployeeName" value={watch('employeeName')} disabled />
                         </div>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">

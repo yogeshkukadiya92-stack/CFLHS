@@ -25,3 +25,8 @@ export interface KRA {
   endDate: Date;
   weeklyScores?: WeeklyScore[];
 }
+
+export interface Branch {
+    id: string;
+    name: string;
+}
