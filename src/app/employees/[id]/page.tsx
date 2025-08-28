@@ -8,9 +8,9 @@ import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import type { Employee, KRA } from '@/lib/types';
+import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
 import { KraProgressChart } from '@/components/kra-progress-chart';
 import {
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
 
 
 export default function EmployeeKraPage() {
@@ -35,6 +37,7 @@ export default function EmployeeKraPage() {
   const id = params.id as string;
   
   const [kras, setKras] = React.useState<KRA[]>([]);
+  const [branches, setBranches] = React.useState<Branch[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -50,6 +53,10 @@ export default function EmployeeKraPage() {
       } else {
         setKras(mockKras);
       }
+      const savedBranches = sessionStorage.getItem('branchData');
+        if (savedBranches) {
+            setBranches(JSON.parse(savedBranches));
+        }
     } catch (error) {
       console.error("Failed to parse KRA data from sessionStorage", error);
       setKras(mockKras);
@@ -94,6 +101,10 @@ export default function EmployeeKraPage() {
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
   const employeeKras = kras.filter((kra) => kra.employee.id === id);
   const employee = employees.find(e => e.id === id);
+
+  const isManager = React.useMemo(() => {
+    return branches.some(b => b.managerId === id);
+  }, [branches, id]);
 
   if (loading) {
     return (
@@ -142,6 +153,7 @@ export default function EmployeeKraPage() {
   }
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col gap-4">
         <Link href="/employees" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <Button variant="outline" size="sm" className='gap-2'>
@@ -160,7 +172,22 @@ export default function EmployeeKraPage() {
                                 <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <div>
-                                    <CardTitle>{employee.name}</CardTitle>
+                                    <div className='flex items-center gap-2'>
+                                     <CardTitle>{employee.name}</CardTitle>
+                                       {isManager && (
+                                            <Tooltip>
+                                                <TooltipTrigger>
+                                                    <Badge variant="secondary" className="gap-1">
+                                                        <ShieldCheck className="h-3.5 w-3.5" />
+                                                        Manager
+                                                    </Badge>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>Branch Manager</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        )}
+                                    </div>
                                     <CardDescription>
                                         {employee.branch ? `${employee.branch} Branch` : 'Key Result Areas'}
                                     </CardDescription>
@@ -218,5 +245,6 @@ export default function EmployeeKraPage() {
             </Card>
         )}
     </div>
+    </TooltipProvider>
   );
 }

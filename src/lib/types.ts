@@ -7,6 +7,7 @@ export interface Employee {
   name: string;
   avatarUrl: string;
   branch?: string;
+  isManager?: boolean;
 }
 
 export interface ActionItem {
@@ -34,6 +35,7 @@ export interface KRA {
 export interface Branch {
     id: string;
     name: string;
+    managerId?: string;
 }
 
 export type RoutineTaskStatus = 'To Do' | 'In Progress' | 'Completed';

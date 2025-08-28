@@ -3,9 +3,9 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Eye } from "lucide-react";
+import { Users, Eye, ShieldCheck } from "lucide-react";
 import { mockKras } from '@/lib/data';
-import type { Employee, KRA } from '@/lib/types';
+import type { Employee, KRA, Branch } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
 interface EmployeeSummary {
@@ -29,6 +31,7 @@ interface EmployeeSummary {
 
 export default function EmployeesPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
+    const [branches, setBranches] = React.useState<Branch[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [selectedBranch, setSelectedBranch] = React.useState('all');
 
@@ -45,6 +48,10 @@ export default function EmployeesPage() {
             } else {
                 setKras(mockKras);
             }
+            const savedBranches = sessionStorage.getItem('branchData');
+             if (savedBranches) {
+                setBranches(JSON.parse(savedBranches));
+            }
         } catch (error) {
             console.error("Failed to parse KRA data from sessionStorage", error);
             setKras(mockKras);
@@ -53,12 +60,15 @@ export default function EmployeesPage() {
         }
     }, []);
 
-    const { employeeSummary, branches } = React.useMemo(() => {
+    const { employeeSummary, branchOptions } = React.useMemo(() => {
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
+        const managerIds = new Set(branches.map(b => b.managerId));
 
         kras.forEach(kra => {
+            const isManager = managerIds.has(kra.employee.id);
+            const employeeWithRole = {...kra.employee, isManager };
             if (!employeeMap.has(kra.employee.id)) {
-                employeeMap.set(kra.employee.id, { employee: kra.employee, kras: [] });
+                employeeMap.set(kra.employee.id, { employee: employeeWithRole, kras: [] });
             }
             employeeMap.get(kra.employee.id)!.kras.push(kra);
         });
@@ -77,13 +87,13 @@ export default function EmployeesPage() {
             });
         });
 
-        const sortedSummary = summaryData.sort((a, b) => a.employee.name.localeCompare(b.employee.name));
+        const sortedSummary = summaryData.sort((a, b) => a.employee.name.localeCompare(b.name));
         const allEmployees: Employee[] = Array.from(employeeMap.values()).map(e => e.employee);
         const uniqueBranches = ['all', ...Array.from(new Set(allEmployees.map(e => e.branch).filter(Boolean)))];
 
-        return { employeeSummary: sortedSummary, branches: uniqueBranches };
+        return { employeeSummary: sortedSummary, branchOptions: uniqueBranches };
 
-    }, [kras]);
+    }, [kras, branches]);
 
     const filteredEmployeeSummary = selectedBranch === 'all'
         ? employeeSummary
@@ -91,6 +101,7 @@ export default function EmployeesPage() {
 
 
   return (
+     <TooltipProvider>
     <div className="flex flex-col gap-4">
         <h1 className="text-2xl font-semibold">Employee Management</h1>
         <Card>
@@ -109,7 +120,7 @@ export default function EmployeesPage() {
                         <SelectValue placeholder="Filter by Branch" />
                     </SelectTrigger>
                     <SelectContent>
-                        {branches.map(branch => (
+                        {branchOptions.map(branch => (
                         <SelectItem key={branch} value={branch}>
                             {branch === 'all' ? 'All Branches' : branch}
                         </SelectItem>
@@ -162,6 +173,19 @@ export default function EmployeesPage() {
                                                 <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
                                                 </Avatar>
                                                 <div className="font-medium">{employee.name}</div>
+                                                {employee.isManager && (
+                                                    <Tooltip>
+                                                        <TooltipTrigger>
+                                                            <Badge variant="secondary" className="gap-1">
+                                                                <ShieldCheck className="h-3.5 w-3.5" />
+                                                                Manager
+                                                            </Badge>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p>Branch Manager</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                )}
                                             </div>
                                         </TableCell>
                                         <TableCell>{employee.branch || 'N/A'}</TableCell>
@@ -189,5 +213,6 @@ export default function EmployeesPage() {
             </CardContent>
         </Card>
     </div>
+    </TooltipProvider>
   )
 }
