@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import type { KRA } from './types';
 
 export const mockKras: KRA[] = [
@@ -10,15 +11,16 @@ export const mockKras: KRA[] = [
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Engineering',
     },
-    progress: 75,
+    progress: 67,
     status: 'On Track',
     weightage: 15,
-    marksAchieved: 11,
+    marksAchieved: 10,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
-    weeklyScores: [
-      { date: new Date('2024-07-07'), achieved: 80, target: 100 },
-      { date: new Date('2024-07-14'), achieved: 85, target: 100 },
+    actions: [
+      { id: uuidv4(), description: 'Finalize UI mockups', dueDate: new Date('2024-07-15'), isCompleted: true },
+      { id: uuidv4(), description: 'Develop backend APIs', dueDate: new Date('2024-08-10'), isCompleted: true },
+      { id: uuidv4(), description: 'Frontend implementation', dueDate: new Date('2024-09-01'), isCompleted: false },
     ]
   },
   {
@@ -30,15 +32,17 @@ export const mockKras: KRA[] = [
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Marketing',
     },
-    progress: 40,
+    progress: 25,
     status: 'At Risk',
     weightage: 20,
-    marksAchieved: 8,
+    marksAchieved: 5,
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
-    weeklyScores: [
-      { date: new Date('2024-08-21'), achieved: 50, target: 100 },
-      { date: new Date('2024-08-28'), achieved: 55, target: 100 },
+     actions: [
+      { id: uuidv4(), description: 'Keyword research', dueDate: new Date('2024-08-25'), isCompleted: true },
+      { id: uuidv4(), description: 'Create 10 blog posts', dueDate: new Date('2024-09-25'), isCompleted: false },
+      { id: uuidv4(), description: 'Build 20 backlinks', dueDate: new Date('2024-10-25'), isCompleted: false },
+      { id: uuidv4(), description: 'Optimize on-page SEO', dueDate: new Date('2024-11-05'), isCompleted: false },
     ]
   },
   {
@@ -56,7 +60,7 @@ export const mockKras: KRA[] = [
     marksAchieved: 9,
     startDate: new Date('2024-07-10'),
     endDate: new Date('2024-10-10'),
-    weeklyScores: []
+    actions: []
   },
   {
     id: 'KRA-004',
@@ -73,7 +77,7 @@ export const mockKras: KRA[] = [
     marksAchieved: 15,
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
-    weeklyScores: []
+    actions: []
   },
   {
     id: 'KRA-005',
@@ -84,13 +88,16 @@ export const mockKras: KRA[] = [
       avatarUrl: 'https://placehold.co/32x32.png',
       branch: 'Sales',
     },
-    progress: 10,
+    progress: 20,
     status: 'On Track',
     weightage: 25,
-    marksAchieved: 2.5,
+    marksAchieved: 5,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
-    weeklyScores: []
+    actions: [
+        { id: uuidv4(), description: 'Identify 50 potential leads', dueDate: new Date('2024-09-30'), isCompleted: true },
+        { id: uuidv4(), description: 'Conduct 20 product demos', dueDate: new Date('2024-11-30'), isCompleted: false },
+    ]
   },
   {
     id: 'KRA-006',
@@ -107,7 +114,7 @@ export const mockKras: KRA[] = [
     marksAchieved: 0,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-10-31'),
-    weeklyScores: []
+    actions: []
   },
   {
     id: 'KRA-007',
@@ -124,12 +131,7 @@ export const mockKras: KRA[] = [
     marksAchieved: 14,
     startDate: new Date('2024-09-01'),
     endDate: new Date('2024-12-31'),
-    weeklyScores: [
-      { date: new Date('2024-09-07'), achieved: 300, target: 375 },
-      { date: new Date('2024-09-14'), achieved: 400, target: 375 },
-      { date: new Date('2024-09-21'), achieved: 350, target: 375 },
-      { date: new Date('2024-09-28'), achieved: 350, target: 375 },
-    ]
+    actions: []
   },
    {
     id: 'KRA-008',
@@ -146,6 +148,6 @@ export const mockKras: KRA[] = [
     marksAchieved: 5,
     startDate: new Date('2024-10-01'),
     endDate: new Date('2024-12-31'),
-    weeklyScores: []
+    actions: []
   },
 ];

@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2 } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -59,7 +59,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           <TableHead className='w-[250px]'>Task</TableHead>
           <TableHead>Progress</TableHead>
           <TableHead>Weightage</TableHead>
-          <TableHead>Weekly</TableHead>
+          <TableHead>Actions</TableHead>
           <TableHead>Marks Achieved</TableHead>
           <TableHead>
             <span className="sr-only">Actions</span>
@@ -68,7 +68,8 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
       </TableHeader>
       <TableBody>
         {kras.map((kra) => {
-          const weeklyScores = kra.weeklyScores || [];
+          const totalActions = kra.actions?.length || 0;
+          const completedActions = kra.actions?.filter(a => a.isCompleted).length || 0;
           return (
           <TableRow key={kra.id}>
             <TableCell>
@@ -98,25 +99,21 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 )}
             </TableCell>
             <TableCell>
-                 {weeklyScores.length > 0 ? (
-                    <div className="flex flex-wrap items-center gap-1">
-                      {weeklyScores.map((ws, index) => (
-                        <Tooltip key={index}>
-                          <TooltipTrigger asChild>
-                            <Badge variant="secondary">
-                                {ws.achieved}
-                                {ws.target && <span className='text-muted-foreground'>/{ws.target}</span>}
+                {totalActions > 0 ? (
+                    <Tooltip>
+                        <TooltipTrigger>
+                            <Badge variant="outline" className="flex items-center gap-1">
+                                <CalendarCheck2 className="h-3 w-3" />
+                                <span>{completedActions}/{totalActions}</span>
                             </Badge>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>{format(new Date(ws.date), 'MMM d, yyyy')}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ))}
-                    </div>
-                  ) : (
+                        </TooltipTrigger>
+                        <TooltipContent>
+                           <p>{completedActions} of {totalActions} actions completed</p>
+                        </TooltipContent>
+                    </Tooltip>
+                ) : (
                     <span className="text-muted-foreground">-</span>
-                  )}
+                )}
             </TableCell>
             <TableCell>
                 {kra.marksAchieved !== null ? (

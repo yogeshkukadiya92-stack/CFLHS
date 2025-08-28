@@ -14,13 +14,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, WeeklyScore, Employee } from '@/lib/types';
+import type { KRA, ActionItem, Employee } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -28,10 +29,11 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { cn } from '@/lib/utils';
 
 
-const weeklyScoreSchema = z.object({
-  date: z.date(),
-  achieved: z.number().nullable(),
-  target: z.number().nullable(),
+const actionItemSchema = z.object({
+  id: z.string(),
+  description: z.string().min(1, "Action description cannot be empty."),
+  dueDate: z.date(),
+  isCompleted: z.boolean(),
 });
 
 const kraSchema = z.object({
@@ -41,7 +43,7 @@ const kraSchema = z.object({
   employeeBranch: z.string().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
-  weeklyScores: z.array(weeklyScoreSchema).optional(),
+  actions: z.array(actionItemSchema).optional(),
 });
 
 type KraFormValues = z.infer<typeof kraSchema>;
@@ -80,35 +82,40 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeBranch: kra?.employee.branch || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
-      weeklyScores: [],
+      actions: [],
     },
   });
 
   const { fields, append, remove } = useFieldArray({
     control,
-    name: "weeklyScores",
+    name: "actions",
   });
 
-  const weeklyScores = watch('weeklyScores');
+  const actions = watch('actions');
   const weightage = watch('weightage');
   const employeeId = watch('employeeId');
 
   React.useEffect(() => {
-    if (weeklyScores && weeklyScores.length > 0 && weightage) {
-        const totalAchieved = weeklyScores.reduce((sum, score) => sum + (score.achieved || 0), 0);
-        const totalTarget = weeklyScores.reduce((sum, score) => sum + (score.target || 0), 0);
+    if (actions && actions.length > 0 && weightage) {
+        const completedActions = actions.filter(action => action.isCompleted).length;
+        const totalActions = actions.length;
         
-        if (totalTarget > 0) {
-            const calculatedMarks = (totalAchieved / totalTarget) * weightage;
+        if (totalActions > 0) {
+            const calculatedMarks = (completedActions / totalActions) * weightage;
             setValue('marksAchieved', Math.round(Math.min(calculatedMarks, weightage)), { shouldValidate: true });
+            
+            const progress = Math.round((completedActions / totalActions) * 100);
+            // This is a proxy for progress, will be set on the KRA object later.
         } else {
-            setValue('marksAchieved', null);
+            setValue('marksAchieved', 0);
         }
 
+    } else if (weightage) {
+        setValue('marksAchieved', 0);
     } else {
         setValue('marksAchieved', kra?.marksAchieved || null);
     }
-  }, [weeklyScores, weightage, setValue, kra]);
+  }, [actions, weightage, setValue, kra]);
 
   React.useEffect(() => {
     if (open) {
@@ -122,7 +129,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeBranch: kra?.employee.branch || '',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
-        weeklyScores: kra?.weeklyScores?.map(ws => ({...ws, date: new Date(ws.date)})) || [],
+        actions: kra?.actions?.map(a => ({...a, dueDate: new Date(a.dueDate)})) || [],
       });
     }
   }, [open, kra, reset, employees]);
@@ -171,9 +178,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   };
   
   const onSubmit = (data: KraFormValues) => {
-    const totalAchieved = data.weeklyScores?.reduce((sum, score) => sum + (score.achieved || 0), 0) || 0;
-    const totalTarget = data.weeklyScores?.reduce((sum, score) => sum + (score.target || 0), 0) || 0;
-    const progress = totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 100) : (kra?.progress || 0);
+    const totalActions = data.actions?.length || 0;
+    const completedActions = data.actions?.filter(a => a.isCompleted).length || 0;
+    const progress = totalActions > 0 ? Math.round((completedActions / totalActions) * 100) : (kra?.progress || 0);
     
     const selectedEmployee = currentEmployees.find(e => e.id === data.employeeId);
     
@@ -194,7 +201,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       marksAchieved: data.marksAchieved,
       startDate: kra?.startDate || new Date(),
       endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
-      weeklyScores: data.weeklyScores,
+      actions: data.actions,
     };
     onSave?.(newKra);
     toast({
@@ -325,7 +332,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                 <Controller
                     name="taskDescription"
                     control={control}
-                    render={({ field }) => <Textarea id="taskDescription" {...field} rows={4} />}
+                    render={({ field }) => <Textarea id="taskDescription" {...field} rows={3} />}
                 />
                  {errors.taskDescription && <p className="text-xs text-destructive mt-1">{errors.taskDescription.message}</p>}
                 <Button
@@ -368,12 +375,34 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
               </div>
             </div>
              <div className="grid grid-cols-4 items-start gap-4">
-                <Label className="text-right pt-2">Weekly Progress</Label>
+                <Label className="text-right pt-2">Action Items</Label>
                 <div className="col-span-3 space-y-2">
                     {fields.map((field, index) => (
-                    <div key={field.id} className="flex items-center gap-2">
+                    <div key={field.id} className="flex items-center gap-2 p-2 border rounded-md">
                         <Controller
-                            name={`weeklyScores.${index}.date`}
+                            name={`actions.${index}.isCompleted`}
+                            control={control}
+                            render={({ field }) => (
+                                <Checkbox
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                />
+                            )}
+                        />
+                         <Controller
+                            name={`actions.${index}.description`}
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    type="text"
+                                    placeholder="Action item description"
+                                    className="flex-1"
+                                    {...field}
+                                />
+                            )}
+                        />
+                        <Controller
+                            name={`actions.${index}.dueDate`}
                             control={control}
                             render={({ field }) => (
                                 <Input 
@@ -384,40 +413,14 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 />
                             )}
                         />
-                        <Controller
-                            name={`weeklyScores.${index}.achieved`}
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    type="number"
-                                    placeholder="Achieved"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                />
-                            )}
-                        />
-                        <Controller
-                            name={`weeklyScores.${index}.target`}
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    type="number"
-                                    placeholder="Target"
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                />
-                            )}
-                        />
                         <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}>
                             <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                     </div>
                     ))}
-                    <Button type="button" size="sm" variant="outline" onClick={() => append({ date: new Date(), achieved: null, target: null })}>
+                    <Button type="button" size="sm" variant="outline" onClick={() => append({ id: uuidv4(), description: '', dueDate: new Date(), isCompleted: false })}>
                         <PlusCircle className="mr-2 h-4 w-4" />
-                        Add Weekly Entry
+                        Add Action Item
                     </Button>
                 </div>
             </div>

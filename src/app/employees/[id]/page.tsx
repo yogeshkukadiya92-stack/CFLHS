@@ -42,7 +42,7 @@ export default function EmployeeKraPage() {
       const savedKras = sessionStorage.getItem('kraData');
       if (savedKras) {
         setKras(JSON.parse(savedKras, (key, value) => {
-          if (key === 'startDate' || key === 'endDate' || key === 'date') {
+          if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
             return new Date(value);
           }
           return value;
@@ -81,7 +81,7 @@ export default function EmployeeKraPage() {
 
   const handleDeleteEmployee = () => {
     const updatedKras = kras.filter(kra => kra.employee.id !== id);
-    sessionStorage.setItem('kraData', JSON.stringify(updatedKras));
+    setKras(updatedKras);
     
     toast({
         title: "Employee Deleted",

@@ -7,10 +7,11 @@ export interface Employee {
   branch?: string;
 }
 
-export interface WeeklyScore {
-  date: Date;
-  achieved: number | null;
-  target: number | null;
+export interface ActionItem {
+  id: string;
+  description: string;
+  dueDate: Date;
+  isCompleted: boolean;
 }
 
 export interface KRA {
@@ -23,7 +24,7 @@ export interface KRA {
   marksAchieved: number | null;
   startDate: Date;
   endDate: Date;
-  weeklyScores?: WeeklyScore[];
+  actions?: ActionItem[];
 }
 
 export interface Branch {

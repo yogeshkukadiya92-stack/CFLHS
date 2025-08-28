@@ -35,7 +35,7 @@ export default function Dashboard() {
         const savedKras = sessionStorage.getItem('kraData');
         if (savedKras) {
             setKras(JSON.parse(savedKras, (key, value) => {
-                if (key === 'startDate' || key === 'endDate' || key === 'date') {
+                if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
                     return new Date(value);
                 }
                 return value;

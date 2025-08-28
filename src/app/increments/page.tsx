@@ -37,7 +37,7 @@ export default function IncrementsPage() {
             const savedKras = sessionStorage.getItem('kraData');
             if (savedKras) {
                 setKras(JSON.parse(savedKras, (key, value) => {
-                    if (key === 'startDate' || key === 'endDate' || key === 'date') {
+                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
                         return new Date(value);
                     }
                     return value;
@@ -65,8 +65,9 @@ export default function IncrementsPage() {
         
         const data: EmployeePerformance[] = [];
         employeeMap.forEach(({ employee, kras }) => {
-            const totalWeightage = kras.reduce((sum, kra) => sum + (kra.weightage || 0), 0);
-            const totalMarksAchieved = kras.reduce((sum, kra) => sum + (kra.marksAchieved || 0), 0);
+            const relevantKras = kras.filter(k => k.marksAchieved !== null && k.weightage !== null && k.weightage > 0);
+            const totalWeightage = relevantKras.reduce((sum, kra) => sum + (kra.weightage || 0), 0);
+            const totalMarksAchieved = relevantKras.reduce((sum, kra) => sum + (kra.marksAchieved || 0), 0);
             const performanceScore = totalWeightage > 0 ? Math.round((totalMarksAchieved / totalWeightage) * 100) : 0;
             
             data.push({
