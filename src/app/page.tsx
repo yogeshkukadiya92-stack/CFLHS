@@ -16,11 +16,19 @@ import { mockKras } from '@/lib/data';
 import Link from 'next/link';
 import type { Employee, KRA } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 export default function Dashboard() {
   const [kras, setKras] = React.useState<KRA[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [selectedBranch, setSelectedBranch] = React.useState('all');
 
   React.useEffect(() => {
     try {
@@ -61,6 +69,11 @@ export default function Dashboard() {
   };
 
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
+  const branches = ['all', ...Array.from(new Set(employees.map(e => e.branch).filter(Boolean)))];
+
+  const filteredEmployees = selectedBranch === 'all' 
+    ? employees 
+    : employees.filter(e => e.branch === selectedBranch);
 
   return (
     <div className="flex flex-col gap-4">
@@ -72,9 +85,23 @@ export default function Dashboard() {
               Select an employee to view their Key Result Areas.
             </CardDescription>
           </div>
-          <AddKraDialog onSave={handleSaveKra} employees={employees}>
-             <Button>Add KRA</Button>
-          </AddKraDialog>
+          <div className="flex items-center gap-2">
+            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filter by Branch" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map(branch => (
+                  <SelectItem key={branch} value={branch}>
+                    {branch === 'all' ? 'All Branches' : branch}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <AddKraDialog onSave={handleSaveKra} employees={employees}>
+               <Button>Add KRA</Button>
+            </AddKraDialog>
+          </div>
         </CardHeader>
         <CardContent>
             {loading ? (
@@ -91,7 +118,7 @@ export default function Dashboard() {
                 </div>
             ) : (
                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {employees.map((employee) => (
+                  {filteredEmployees.map((employee) => (
                     <Link href={`/employees/${employee.id}`} key={employee.id}>
                         <Card className="hover:bg-muted/50 transition-all transform hover:-translate-y-1 shadow-sm hover:shadow-lg">
                             <CardHeader className="flex flex-row items-center gap-4">
@@ -101,7 +128,7 @@ export default function Dashboard() {
                                 </Avatar>
                                 <div>
                                     <CardTitle className="text-lg">{employee.name}</CardTitle>
-                                    <CardDescription>View KRAs</CardDescription>
+                                    <CardDescription>{employee.branch || 'No Branch'}</CardDescription>
                                 </div>
                             </CardHeader>
                         </Card>

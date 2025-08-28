@@ -80,9 +80,6 @@ export default function EmployeeKraPage() {
   };
 
   const handleDeleteEmployee = () => {
-    // This is not the right way to delete an employee's data from other employees.
-    // It should be handled in a central state management.
-    // For now, this will only remove the current employee's KRAs from the local state.
     const updatedKras = kras.filter(kra => kra.employee.id !== id);
     sessionStorage.setItem('kraData', JSON.stringify(updatedKras));
     
@@ -91,7 +88,7 @@ export default function EmployeeKraPage() {
         description: "The employee and all their associated KRAs have been removed.",
     });
 
-    router.push('/');
+    router.push('/employees');
   };
   
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -146,7 +143,7 @@ export default function EmployeeKraPage() {
 
   return (
     <div className="flex flex-col gap-4">
-        <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+        <Link href="/employees" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
             <Button variant="outline" size="sm" className='gap-2'>
                 <ArrowLeft className="h-4 w-4" />
                 Back to Employees
@@ -165,7 +162,7 @@ export default function EmployeeKraPage() {
                                 <div>
                                     <CardTitle>{employee.name}</CardTitle>
                                     <CardDescription>
-                                        Key Result Areas
+                                        {employee.branch ? `${employee.branch} Branch` : 'Key Result Areas'}
                                     </CardDescription>
                                 </div>
                             </div>

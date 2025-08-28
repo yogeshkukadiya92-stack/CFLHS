@@ -38,6 +38,7 @@ const kraSchema = z.object({
   taskDescription: z.string().min(10, 'Task description must be at least 10 characters.'),
   employeeId: z.string().min(1, 'Employee is required.'),
   employeeName: z.string().min(2, 'Employee name is required.'),
+  employeeBranch: z.string().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   weeklyScores: z.array(weeklyScoreSchema).optional(),
@@ -58,6 +59,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
   const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
   const [newEmployeeName, setNewEmployeeName] = React.useState('');
+  const [showNewEmployeeFields, setShowNewEmployeeFields] = React.useState(false);
 
 
   const { toast } = useToast();
@@ -75,6 +77,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       taskDescription: kra?.taskDescription || '',
       employeeId: kra?.employee.id || '',
       employeeName: kra?.employee.name || '',
+      employeeBranch: kra?.employee.branch || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       weeklyScores: kra?.weeklyScores || [],
@@ -88,6 +91,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
   const weeklyScores = watch('weeklyScores');
   const weightage = watch('weightage');
+  const employeeId = watch('employeeId');
 
   React.useEffect(() => {
     if (weeklyScores && weeklyScores.length > 0 && weightage) {
@@ -108,17 +112,26 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
   React.useEffect(() => {
     if (open) {
+      setShowNewEmployeeFields(false);
       setCurrentEmployees(employees);
       reset({
         taskDescription: kra?.taskDescription || '',
         employeeId: kra?.employee.id || '',
         employeeName: kra?.employee.name || '',
+        employeeBranch: kra?.employee.branch || '',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         weeklyScores: kra?.weeklyScores?.map(ws => ({...ws, date: new Date(ws.date)})) || [],
       });
     }
   }, [open, kra, reset, employees]);
+
+  React.useEffect(() => {
+    const selectedEmployee = currentEmployees.find(e => e.id === employeeId);
+    if(selectedEmployee) {
+        setValue("employeeBranch", selectedEmployee.branch || '');
+    }
+  }, [employeeId, currentEmployees, setValue]);
 
 
   const taskDescription = watch('taskDescription');
@@ -167,6 +180,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employee: {
         id: data.employeeId,
         name: data.employeeName,
+        branch: data.employeeBranch,
         avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
       },
       progress: Math.min(100, progress),
@@ -224,28 +238,17 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                           <Command>
                             <CommandInput 
-                              placeholder="Search employee or add new"
+                              placeholder="Search employee or add new..."
                               onValueChange={setNewEmployeeName}
                               value={newEmployeeName}
                             />
                             <CommandList>
                                 <CommandEmpty>
-                                    <CommandItem
+                                     <CommandItem
                                       onSelect={() => {
-                                        const newId = uuidv4();
-                                        const newName = newEmployeeName.trim();
-                                        if (newName) {
-                                          const newEmployee: Employee = {
-                                              id: newId,
-                                              name: newName,
-                                              avatarUrl: `https://placehold.co/32x32.png?text=${newName.charAt(0)}`
-                                          };
-                                          setCurrentEmployees(prev => [...prev, newEmployee]);
-                                          setValue("employeeId", newId);
-                                          setValue("employeeName", newName);
-                                          setNewEmployeeName('');
-                                          setEmployeeComboboxOpen(false);
-                                        }
+                                        setValue("employeeName", newEmployeeName.trim());
+                                        setShowNewEmployeeFields(true);
+                                        setEmployeeComboboxOpen(false);
                                       }}
                                     >
                                        <PlusCircle className="mr-2 h-4 w-4" />
@@ -260,6 +263,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                       onSelect={() => {
                                         setValue("employeeId", employee.id);
                                         setValue("employeeName", employee.name);
+                                        setValue("employeeBranch", employee.branch || '');
+                                        setShowNewEmployeeFields(false);
                                         setEmployeeComboboxOpen(false);
                                       }}
                                     >
@@ -283,6 +288,36 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                  <Controller name="employeeName" control={control} render={({field}) => <input type="hidden" {...field} />} />
               </div>
             </div>
+
+            {showNewEmployeeFields && (
+                <>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="newEmployeeName" className="text-right">
+                            New Employee
+                        </Label>
+                        <div className="col-span-3">
+                            <Controller
+                                name="employeeName"
+                                control={control}
+                                render={({ field }) => <Input id="newEmployeeName" {...field} disabled />}
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="employeeBranch" className="text-right">
+                            Branch
+                        </Label>
+                        <div className="col-span-3">
+                            <Controller
+                                name="employeeBranch"
+                                control={control}
+                                render={({ field }) => <Input id="employeeBranch" {...field} placeholder="e.g. Engineering" />}
+                            />
+                        </div>
+                    </div>
+                </>
+            )}
+
             <div className="grid grid-cols-4 items-start gap-4">
               <Label htmlFor="taskDescription" className="text-right pt-2">
                 Task

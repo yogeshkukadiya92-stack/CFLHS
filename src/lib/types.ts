@@ -4,6 +4,7 @@ export interface Employee {
   id: string;
   name: string;
   avatarUrl: string;
+  branch?: string;
 }
 
 export interface WeeklyScore {
