@@ -17,12 +17,15 @@ import {
 } from "@/components/ui/select"
 import { LeaveRequestsTable } from '@/components/leave-requests-table';
 import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
+import { getMonth, getYear } from 'date-fns';
 
 export default function LeaveManagementPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
     const [leaves, setLeaves] = React.useState<Leave[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
+    const [yearFilter, setYearFilter] = React.useState<string>('all');
+    const [monthFilter, setMonthFilter] = React.useState<string>('all');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -44,12 +47,13 @@ export default function LeaveManagementPage() {
 
             const savedLeaves = sessionStorage.getItem('leaveData');
             if (savedLeaves) {
-                setLeaves(JSON.parse(savedLeaves, (key, value) => {
+                const parsedLeaves = JSON.parse(savedLeaves, (key, value) => {
                     if (['startDate', 'endDate'].includes(key) && value) {
                         return new Date(value);
                     }
                     return value;
-                }));
+                })
+                setLeaves(parsedLeaves);
             } else {
                 setLeaves(mockLeaves);
             }
@@ -83,12 +87,29 @@ export default function LeaveManagementPage() {
         setLeaves((prevLeaves) => prevLeaves.filter((leave) => leave.id !== leaveId));
     };
 
+    const { availableYears, availableMonths } = React.useMemo(() => {
+        const years = new Set<number>();
+        leaves.forEach(leave => {
+            years.add(getYear(new Date(leave.startDate)));
+        });
+        const monthMap = [
+            'January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return {
+            availableYears: Array.from(years).sort((a,b) => b - a),
+            availableMonths: monthMap
+        };
+    }, [leaves]);
+
     const filteredLeaves = React.useMemo(() => {
         return leaves.filter(leave => {
             const statusMatch = statusFilter === 'all' || leave.status === statusFilter;
-            return statusMatch;
-        }).sort((a, b) => b.startDate.getTime() - a.startDate.getTime());
-    }, [leaves, statusFilter]);
+            const yearMatch = yearFilter === 'all' || getYear(new Date(leave.startDate)) === parseInt(yearFilter);
+            const monthMatch = monthFilter === 'all' || getMonth(new Date(leave.startDate)) === parseInt(monthFilter);
+            return statusMatch && yearMatch && monthMatch;
+        }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+    }, [leaves, statusFilter, yearFilter, monthFilter]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -105,6 +126,28 @@ export default function LeaveManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Select value={yearFilter} onValueChange={setYearFilter}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Years</SelectItem>
+                                {availableYears.map(year => (
+                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         <Select value={monthFilter} onValueChange={setMonthFilter}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Months</SelectItem>
+                                {availableMonths.map((month, index) => (
+                                    <SelectItem key={index} value={String(index)}>{month}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                          <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Filter by Status" />

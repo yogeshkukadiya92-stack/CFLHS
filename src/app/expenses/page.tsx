@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import { ExpenseClaimsTable } from '@/components/expense-claims-table';
 import { AddExpenseClaimDialog } from '@/components/add-expense-claim-dialog';
+import { getMonth, getYear } from 'date-fns';
 
 
 export default function ExpenseManagementPage() {
@@ -24,6 +25,8 @@ export default function ExpenseManagementPage() {
     const [expenses, setExpenses] = React.useState<Expense[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
+    const [yearFilter, setYearFilter] = React.useState<string>('all');
+    const [monthFilter, setMonthFilter] = React.useState<string>('all');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -84,12 +87,29 @@ export default function ExpenseManagementPage() {
         setExpenses((prevExpenses) => prevExpenses.filter((expense) => expense.id !== expenseId));
     };
 
+    const { availableYears, availableMonths } = React.useMemo(() => {
+        const years = new Set<number>();
+        expenses.forEach(exp => {
+            years.add(getYear(new Date(exp.date)));
+        });
+        const monthMap = [
+            'January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return {
+            availableYears: Array.from(years).sort((a,b) => b - a),
+            availableMonths: monthMap
+        };
+    }, [expenses]);
+
     const filteredExpenses = React.useMemo(() => {
         return expenses.filter(expense => {
             const statusMatch = statusFilter === 'all' || expense.status === statusFilter;
-            return statusMatch;
-        }).sort((a, b) => b.date.getTime() - a.date.getTime());
-    }, [expenses, statusFilter]);
+            const yearMatch = yearFilter === 'all' || getYear(new Date(expense.date)) === parseInt(yearFilter);
+            const monthMatch = monthFilter === 'all' || getMonth(new Date(expense.date)) === parseInt(monthFilter);
+            return statusMatch && yearMatch && monthMatch;
+        }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }, [expenses, statusFilter, yearFilter, monthFilter]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -106,6 +126,28 @@ export default function ExpenseManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Select value={yearFilter} onValueChange={setYearFilter}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Years</SelectItem>
+                                {availableYears.map(year => (
+                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         <Select value={monthFilter} onValueChange={setMonthFilter}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Months</SelectItem>
+                                {availableMonths.map((month, index) => (
+                                    <SelectItem key={index} value={String(index)}>{month}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                          <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Filter by Status" />

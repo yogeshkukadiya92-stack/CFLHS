@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/select"
 import { RoutineTasksTable } from '@/components/routine-tasks-table';
 import { AddRoutineTaskDialog } from '@/components/add-routine-task-dialog';
+import { getMonth, getYear } from 'date-fns';
 
 
 export default function RoutineTasksPage() {
@@ -25,6 +26,8 @@ export default function RoutineTasksPage() {
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [priorityFilter, setPriorityFilter] = React.useState('all');
+    const [yearFilter, setYearFilter] = React.useState<string>('all');
+    const [monthFilter, setMonthFilter] = React.useState<string>('all');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -86,13 +89,30 @@ export default function RoutineTasksPage() {
         setRoutineTasks((prevTasks) => prevTasks.filter((task) => task.id !== taskId));
     };
 
+    const { availableYears, availableMonths } = React.useMemo(() => {
+        const years = new Set<number>();
+        routineTasks.forEach(task => {
+            years.add(getYear(new Date(task.dueDate)));
+        });
+        const monthMap = [
+            'January', 'February', 'March', 'April', 'May', 'June', 
+            'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        return {
+            availableYears: Array.from(years).sort((a,b) => b - a),
+            availableMonths: monthMap
+        };
+    }, [routineTasks]);
+
     const filteredTasks = React.useMemo(() => {
         return routineTasks.filter(task => {
             const statusMatch = statusFilter === 'all' || task.status === statusFilter;
             const priorityMatch = priorityFilter === 'all' || task.priority === priorityFilter;
-            return statusMatch && priorityMatch;
-        });
-    }, [routineTasks, statusFilter, priorityFilter]);
+            const yearMatch = yearFilter === 'all' || getYear(new Date(task.dueDate)) === parseInt(yearFilter);
+            const monthMatch = monthFilter === 'all' || getMonth(new Date(task.dueDate)) === parseInt(monthFilter);
+            return statusMatch && priorityMatch && yearMatch && monthMatch;
+        }).sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+    }, [routineTasks, statusFilter, priorityFilter, yearFilter, monthFilter]);
 
     return (
         <div className="flex flex-col gap-4">
@@ -109,6 +129,28 @@ export default function RoutineTasksPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <Select value={yearFilter} onValueChange={setYearFilter}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Years</SelectItem>
+                                {availableYears.map(year => (
+                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                         <Select value={monthFilter} onValueChange={setMonthFilter}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Months</SelectItem>
+                                {availableMonths.map((month, index) => (
+                                    <SelectItem key={index} value={String(index)}>{month}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                          <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-[160px]">
                                 <SelectValue placeholder="Filter by Status" />
