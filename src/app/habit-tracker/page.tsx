@@ -46,7 +46,7 @@ export default function HabitTrackerPage() {
             const savedHabits = sessionStorage.getItem('habitData');
             if (savedHabits) {
                 setHabits(JSON.parse(savedHabits, (key, value) => {
-                    if (['startDate', 'checkIns'].includes(key) && Array.isArray(value)) {
+                    if (key === 'checkIns' && Array.isArray(value)) {
                         return value.map(d => new Date(d));
                     }
                      if (key === 'startDate' && value) {
