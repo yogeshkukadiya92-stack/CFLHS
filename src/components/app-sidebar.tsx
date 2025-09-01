@@ -19,9 +19,7 @@ export function AppSidebar() {
   const { user } = useAuth();
 
   const navItems = useMemo(() => [
-    { href: '/', label: 'Dashboard', icon: Home, show: true },
-    { href: '/increments', label: 'Increments', icon: TrendingUp, show: true },
-    { href: '/employees', label: 'Employees', icon: Users, show: true },
+    { href: '/', label: 'Employees', icon: Users, show: true },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, show: true },
     { href: '/leaves', label: 'Leave Management', icon: Plane, show: true },
     { href: '/attendance', label: 'Attendance', icon: UserCheck, show: true },
