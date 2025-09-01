@@ -19,15 +19,15 @@ export function AppSidebar() {
   const { user } = useAuth();
 
   const navItems = useMemo(() => [
-    { href: '/', label: 'Dashboard', icon: Home, show: user },
-    { href: '/increments', label: 'Increments', icon: TrendingUp, show: user },
-    { href: '/employees', label: 'Employees', icon: Users, show: user },
-    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, show: user },
-    { href: '/leaves', label: 'Leave Management', icon: Plane, show: user },
-    { href: '/attendance', label: 'Attendance', icon: UserCheck, show: user },
-    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, show: user },
-    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: user },
-  ], [user]);
+    { href: '/', label: 'Dashboard', icon: Home, show: true },
+    { href: '/increments', label: 'Increments', icon: TrendingUp, show: true },
+    { href: '/employees', label: 'Employees', icon: Users, show: true },
+    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, show: true },
+    { href: '/leaves', label: 'Leave Management', icon: Plane, show: true },
+    { href: '/attendance', label: 'Attendance', icon: UserCheck, show: true },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, show: true },
+    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: true },
+  ], []);
 
 
   if (!user) {
