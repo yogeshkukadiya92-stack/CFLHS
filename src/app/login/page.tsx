@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,8 +13,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('connect@luvfitnessworld.com');
+  const [password, setPassword] = useState('drluv@777');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -38,7 +39,7 @@ export default function LoginPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       toast({ title: 'Sign Up Successful', description: 'Redirecting to dashboard...' });
       router.push('/');
-    } catch (error: any) {
+    } catch (error: any) => {
       toast({ title: 'Sign Up Failed', description: error.message, variant: 'destructive' });
       setLoading(false);
     }
