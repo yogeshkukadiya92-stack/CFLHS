@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare, Link as LinkIcon, MapPin, GraduationCap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,6 +18,7 @@ import type { Recruit, RecruitmentStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddRecruitDialog } from './add-recruit-dialog';
+import Link from 'next/link';
 
 const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.ElementType }> = {
   'Applied': { className: 'bg-blue-100 text-blue-800 border-blue-200', icon: Send },
@@ -78,15 +79,31 @@ export function RecruitCard({ recruit, isAdmin, onSave, onDelete }: RecruitCardP
         </div>
       </CardHeader>
       <CardContent className="flex-grow space-y-2 text-sm text-muted-foreground">
-        <p>{recruit.email}</p>
-        <p>{recruit.phone}</p>
+        <div className='flex items-center gap-2'>
+            <MapPin className="h-4 w-4" />
+            <span>{recruit.location || 'N/A'}</span>
+        </div>
+        <div className='flex items-center gap-2'>
+            <GraduationCap className="h-4 w-4" />
+            <span>{recruit.qualification || 'N/A'}</span>
+        </div>
+         <div className='flex items-center gap-2'>
+            <Briefcase className="h-4 w-4" />
+            <span>{recruit.workExperience || 'N/A'}</span>
+        </div>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
         <Badge variant="outline" className={cn('gap-1.5', statusConfig[recruit.status]?.className)}>
             <StatusIcon className="h-3.5 w-3.5" />
             {recruit.status}
         </Badge>
-        <span className="text-xs text-muted-foreground">Applied: {format(new Date(recruit.appliedDate), 'MMM d, yyyy')}</span>
+         {recruit.resumeUrl && (
+            <Button variant="outline" size="sm" asChild>
+                <Link href={recruit.resumeUrl} target="_blank" rel="noopener noreferrer">
+                    <LinkIcon className="mr-2 h-4 w-4" /> Resume
+                </Link>
+            </Button>
+        )}
       </CardFooter>
     </Card>
   );

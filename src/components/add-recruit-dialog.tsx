@@ -40,6 +40,11 @@ const recruitSchema = z.object({
   status: z.enum(['Applied', 'Screening', 'Interview', 'Second Round', 'Offered', 'Hired', 'Rejected', 'Comment']),
   notes: z.string().optional(),
   comment: z.string().optional(),
+  expectedSalary: z.coerce.number().optional(),
+  workExperience: z.string().optional(),
+  qualification: z.string().optional(),
+  location: z.string().optional(),
+  resumeUrl: z.string().url().optional().or(z.literal('')),
 });
 
 type RecruitFormValues = z.infer<typeof recruitSchema>;
@@ -71,6 +76,11 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
       status: recruit?.status || 'Applied',
       notes: recruit?.notes || '',
       comment: recruit?.comment || '',
+      expectedSalary: recruit?.expectedSalary || undefined,
+      workExperience: recruit?.workExperience || '',
+      qualification: recruit?.qualification || '',
+      location: recruit?.location || '',
+      resumeUrl: recruit?.resumeUrl || '',
     },
   });
 
@@ -86,6 +96,11 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
         status: recruit?.status || 'Applied',
         notes: recruit?.notes || '',
         comment: recruit?.comment || '',
+        expectedSalary: recruit?.expectedSalary || undefined,
+        workExperience: recruit?.workExperience || '',
+        qualification: recruit?.qualification || '',
+        location: recruit?.location || '',
+        resumeUrl: recruit?.resumeUrl || '',
       });
     }
   }, [open, recruit, reset]);
@@ -108,7 +123,7 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl">
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>{recruit ? 'Edit Candidate Data' : 'Add New Candidate'}</DialogTitle>
@@ -116,152 +131,166 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
               {recruit ? 'Update the details for this candidate.' : 'Fill in the details for a new candidate.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto pr-4 grid-cols-1 md:grid-cols-2">
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Full Name
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="name"
-                  control={control}
-                  render={({ field }) => <Input id="name" {...field} placeholder="e.g., Sunil Kumar" />}
-                />
-                {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field }) => <Input id="name" {...field} placeholder="e.g., Sunil Kumar" />}
+              />
+              {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="email" className="text-right">
-                Email
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="email"
-                  control={control}
-                  render={({ field }) => <Input id="email" type="email" {...field} placeholder="sunil.k@example.com" />}
-                />
-                {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
-              </div>
+             <div className="space-y-2">
+              <Label htmlFor="position">Position Applied For</Label>
+              <Controller
+                name="position"
+                control={control}
+                render={({ field }) => <Input id="position" {...field} placeholder="e.g., Marketing Head" />}
+              />
+              {errors.position && <p className="text-xs text-destructive mt-1">{errors.position.message}</p>}
             </div>
 
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="phone" className="text-right">
-                Phone
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="phone"
-                  control={control}
-                  render={({ field }) => <Input id="phone" type="tel" {...field} placeholder="9876543210" />}
-                />
-                {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field }) => <Input id="email" type="email" {...field} placeholder="sunil.k@example.com" />}
+              />
+              {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
             </div>
 
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="position" className="text-right">
-                Position
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="position"
-                  control={control}
-                  render={({ field }) => <Input id="position" {...field} placeholder="e.g., Marketing Head" />}
-                />
-                {errors.position && <p className="text-xs text-destructive mt-1">{errors.position.message}</p>}
-              </div>
+             <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field }) => <Input id="phone" type="tel" {...field} placeholder="9876543210" />}
+              />
+              {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone.message}</p>}
             </div>
             
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="branch" className="text-right">
-                Branch
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="branch"
-                  control={control}
-                  render={({ field }) => <Input id="branch" {...field} placeholder="e.g., Marketing" />}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="location">Location</Label>
+              <Controller
+                name="location"
+                control={control}
+                render={({ field }) => <Input id="location" {...field} placeholder="e.g., Pune" />}
+              />
+               {errors.location && <p className="text-xs text-destructive mt-1">{errors.location.message}</p>}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="appliedDate" className="text-right">
-                Applied On
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="appliedDate"
+            <div className="space-y-2">
+              <Label htmlFor="qualification">Qualification</Label>
+              <Controller
+                name="qualification"
+                control={control}
+                render={({ field }) => <Input id="qualification" {...field} placeholder="e.g., B.Tech in CS" />}
+              />
+               {errors.qualification && <p className="text-xs text-destructive mt-1">{errors.qualification.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="workExperience">Work Experience</Label>
+              <Controller
+                name="workExperience"
+                control={control}
+                render={({ field }) => <Input id="workExperience" {...field} placeholder="e.g., 5 Years or Fresher" />}
+              />
+               {errors.workExperience && <p className="text-xs text-destructive mt-1">{errors.workExperience.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expectedSalary">Expected Salary (LPA)</Label>
+              <Controller
+                name="expectedSalary"
+                control={control}
+                render={({ field }) => <Input id="expectedSalary" type="number" {...field} onChange={e => field.onChange(e.target.valueAsNumber)} placeholder="e.g., 12.5" />}
+              />
+               {errors.expectedSalary && <p className="text-xs text-destructive mt-1">{errors.expectedSalary.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="appliedDate">Applied On</Label>
+              <Controller
+                name="appliedDate"
+                control={control}
+                render={({ field }) => (
+                  <Input
+                    id="appliedDate"
+                    type="date"
+                    value={format(new Date(field.value), 'yyyy-MM-dd')}
+                    onChange={e => field.onChange(new Date(e.target.value))}
+                  />
+                )}
+              />
+              {errors.appliedDate && <p className="text-xs text-destructive mt-1">{errors.appliedDate.message}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="status">Status</Label>
+               <Controller
+                  name="status"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      id="appliedDate"
-                      type="date"
-                      className="w-auto"
-                      value={format(new Date(field.value), 'yyyy-MM-dd')}
-                      onChange={e => field.onChange(new Date(e.target.value))}
-                    />
+                       <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="Applied">Applied</SelectItem>
+                              <SelectItem value="Screening">Screening</SelectItem>
+                              <SelectItem value="Interview">Interview</SelectItem>
+                              <SelectItem value="Second Round">Second Round</SelectItem>
+                              <SelectItem value="Offered">Offered</SelectItem>
+                              <SelectItem value="Hired">Hired</SelectItem>
+                              <SelectItem value="Rejected">Rejected</SelectItem>
+                              <SelectItem value="Comment">Comment</SelectItem>
+                          </SelectContent>
+                      </Select>
                   )}
-                />
-                {errors.appliedDate && <p className="text-xs text-destructive mt-1">{errors.appliedDate.message}</p>}
-              </div>
+              />
+               {errors.status && <p className="text-xs text-destructive mt-1">{errors.status.message}</p>}
+            </div>
+            
+             <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="branch">Branch/Department</Label>
+              <Controller
+                name="branch"
+                control={control}
+                render={({ field }) => <Input id="branch" {...field} placeholder="e.g., Marketing" />}
+              />
+            </div>
+            
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="resumeUrl">Resume Link (Google Drive)</Label>
+              <Controller
+                name="resumeUrl"
+                control={control}
+                render={({ field }) => <Input id="resumeUrl" {...field} placeholder="https://docs.google.com/document/..." />}
+              />
+               {errors.resumeUrl && <p className="text-xs text-destructive mt-1">{errors.resumeUrl.message}</p>}
             </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <div className="col-span-3">
-                 <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Applied">Applied</SelectItem>
-                                <SelectItem value="Screening">Screening</SelectItem>
-                                <SelectItem value="Interview">Interview</SelectItem>
-                                <SelectItem value="Second Round">Second Round</SelectItem>
-                                <SelectItem value="Offered">Offered</SelectItem>
-                                <SelectItem value="Hired">Hired</SelectItem>
-                                <SelectItem value="Rejected">Rejected</SelectItem>
-                                <SelectItem value="Comment">Comment</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                 {errors.status && <p className="text-xs text-destructive mt-1">{errors.status.message}</p>}
-              </div>
+             <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="notes">Notes</Label>
+              <Controller
+                name="notes"
+                control={control}
+                render={({ field }) => <Textarea id="notes" {...field} placeholder="Add any notes about the candidate..." />}
+              />
             </div>
 
-             <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="notes" className="text-right pt-2">
-                Notes
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="notes"
-                  control={control}
-                  render={({ field }) => <Textarea id="notes" {...field} placeholder="Add any notes about the candidate..." />}
-                />
-              </div>
-            </div>
-             <div className="grid grid-cols-4 items-start gap-4">
-              <Label htmlFor="comment" className="text-right pt-2">
-                Comment
-              </Label>
-              <div className="col-span-3">
-                <Controller
-                  name="comment"
-                  control={control}
-                  render={({ field }) => <Textarea id="comment" {...field} placeholder="Add a final comment..." />}
-                />
-              </div>
+             <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="comment">Comment</Label>
+              <Controller
+                name="comment"
+                control={control}
+                render={({ field }) => <Textarea id="comment" {...field} placeholder="Add a final comment..." />}
+              />
             </div>
 
           </div>

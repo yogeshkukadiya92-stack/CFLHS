@@ -128,4 +128,9 @@ export interface Recruit {
     notes?: string;
     avatarUrl: string;
     comment?: string;
+    expectedSalary?: number;
+    workExperience?: string;
+    qualification?: string;
+    location?: string;
+    resumeUrl?: string;
 }

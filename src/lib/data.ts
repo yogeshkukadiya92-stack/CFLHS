@@ -1,4 +1,5 @@
 
+
 import { v4 as uuidv4 } from 'uuid';
 import type { KRA, RoutineTask, Leave, Attendance, Expense, Habit, Holiday, Recruit } from './types';
 
@@ -407,6 +408,12 @@ export const mockRecruits: Recruit[] = [
         status: 'Interview',
         notes: 'Strong portfolio, good communication skills.',
         avatarUrl: 'https://placehold.co/32x32.png',
+        location: 'Pune',
+        qualification: 'B.Tech in Computer Science',
+        workExperience: '3 Years',
+        expectedSalary: 1200000,
+        resumeUrl: '#',
+        branch: 'Engineering'
     },
     {
         id: uuidv4(),
@@ -418,6 +425,12 @@ export const mockRecruits: Recruit[] = [
         status: 'Offered',
         notes: 'Excellent problem solver, team player.',
         avatarUrl: 'https://placehold.co/32x32.png',
+        location: 'Mumbai',
+        qualification: 'M.Tech in Computer Science',
+        workExperience: '5 Years',
+        expectedSalary: 1800000,
+        resumeUrl: '#',
+        branch: 'Engineering'
     },
     {
         id: uuidv4(),
@@ -429,5 +442,11 @@ export const mockRecruits: Recruit[] = [
         status: 'Applied',
         notes: '',
         avatarUrl: 'https://placehold.co/32x32.png',
+        location: 'Bangalore',
+        qualification: 'B.Des',
+        workExperience: '2 Years',
+        expectedSalary: 900000,
+        resumeUrl: '#',
+        branch: 'Design'
     }
 ];

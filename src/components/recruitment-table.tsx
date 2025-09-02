@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare, Link as LinkIcon } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -25,6 +25,9 @@ import type { Recruit, RecruitmentStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddRecruitDialog } from './add-recruit-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import Link from 'next/link';
+
 
 const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.ElementType }> = {
   'Applied': { className: 'bg-blue-100 text-blue-800 border-blue-200', icon: Send },
@@ -47,6 +50,7 @@ interface RecruitmentTableProps {
 export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: RecruitmentTableProps) {
   
   return (
+    <TooltipProvider>
       <div className="border rounded-lg">
         <Table>
           <TableHeader>
@@ -54,8 +58,9 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
               <TableHead>Candidate</TableHead>
               <TableHead>Contact</TableHead>
               <TableHead>Position Applied</TableHead>
-              <TableHead>Applied On</TableHead>
+              <TableHead>Experience</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Resume</TableHead>
               {isAdmin && (
                 <TableHead>
                     <span className="sr-only">Actions</span>
@@ -66,7 +71,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
           <TableBody>
             {recruits.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={isAdmin ? 6 : 5} className="h-24 text-center">
+                    <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
                         No candidates found.
                     </TableCell>
                 </TableRow>
@@ -81,20 +86,47 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
                       <AvatarImage src={recruit.avatarUrl} alt={recruit.name} data-ai-hint="people" />
                       <AvatarFallback>{recruit.name.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <div className="font-medium">{recruit.name}</div>
+                    <div>
+                        <div className="font-medium">{recruit.name}</div>
+                        <div className="text-xs text-muted-foreground">{recruit.location}</div>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell>
                     <div className="text-sm text-muted-foreground">{recruit.email}</div>
                     <div className="text-sm text-muted-foreground">{recruit.phone}</div>
                 </TableCell>
-                <TableCell className="font-medium">{recruit.position}</TableCell>
-                <TableCell>{format(new Date(recruit.appliedDate), 'MMM d, yyyy')}</TableCell>
+                <TableCell>
+                    <div className="font-medium">{recruit.position}</div>
+                    <div className="text-xs text-muted-foreground">{recruit.branch}</div>
+                </TableCell>
+                <TableCell>
+                    <div className="font-medium">{recruit.workExperience}</div>
+                    <div className="text-xs text-muted-foreground">{recruit.qualification}</div>
+                </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={cn('gap-1.5 w-32 justify-center', statusConfig[recruit.status]?.className)}>
                     <StatusIcon className="h-3.5 w-3.5" />
                     {recruit.status}
                   </Badge>
+                </TableCell>
+                 <TableCell>
+                    {recruit.resumeUrl ? (
+                         <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="ghost" size="icon" asChild>
+                                    <Link href={recruit.resumeUrl} target="_blank" rel="noopener noreferrer">
+                                        <LinkIcon className="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                               <p>View Resume</p>
+                            </TooltipContent>
+                        </Tooltip>
+                    ) : (
+                        <span className='text-xs text-muted-foreground'>N/A</span>
+                    )}
                 </TableCell>
                 {isAdmin && (
                     <TableCell className="text-right">
@@ -126,5 +158,6 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
           </TableBody>
         </Table>
       </div>
+    </TooltipProvider>
   );
 }
