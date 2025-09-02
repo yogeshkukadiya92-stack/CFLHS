@@ -2,7 +2,7 @@
 
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 export type UserRole = 'Admin' | 'Manager' | 'Employee';
-export type PermissionLevel = 'none' | 'view' | 'edit' | 'download';
+export type PermissionLevel = 'none' | 'view' | 'edit' | 'download' | 'employee_only';
 
 export interface EmployeePermissions {
     employees: PermissionLevel;

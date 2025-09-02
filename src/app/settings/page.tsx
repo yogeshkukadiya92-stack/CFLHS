@@ -48,6 +48,7 @@ const navItems = [
 
 const permissionLevels: {value: PermissionLevel, label: string}[] = [
     { value: 'none', label: 'No Access'},
+    { value: 'employee_only', label: 'Employee Only'},
     { value: 'view', label: 'View Only'},
     { value: 'edit', label: 'Edit'},
     { value: 'download', label: 'Download'},
@@ -63,18 +64,19 @@ const PermissionDialog = ({
     children: React.ReactNode
 }) => {
     const [open, setOpen] = React.useState(false);
+    const { currentUser } = useAuth();
     const [permissions, setPermissions] = React.useState<EmployeePermissions>(
         employee.permissions || {
-            employees: 'edit', routine_tasks: 'edit', leaves: 'edit', attendance: 'edit', 
-            expenses: 'edit', habit_tracker: 'edit', holidays: 'edit', recruitment: 'edit', hr_calendar: 'view', settings: 'none'
+            employees: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
+            expenses: 'edit', habit_tracker: 'edit', holidays: 'view', recruitment: 'view', hr_calendar: 'view', settings: 'none'
         }
     );
 
     React.useEffect(() => {
         if(open) {
              setPermissions(employee.permissions || {
-                employees: 'edit', routine_tasks: 'edit', leaves: 'edit', attendance: 'edit', 
-                expenses: 'edit', habit_tracker: 'edit', holidays: 'edit', recruitment: 'edit', hr_calendar: 'view', settings: 'none'
+                employees: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
+                expenses: 'edit', habit_tracker: 'edit', holidays: 'view', recruitment: 'view', hr_calendar: 'view', settings: 'none'
             });
         }
     }, [open, employee.permissions]);
@@ -240,7 +242,7 @@ export default function SettingsPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
-    const { currentUser, getPermission } = useAuth();
+    const { getPermission } = useAuth();
     const pagePermission = getPermission('settings');
 
 

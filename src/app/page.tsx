@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -34,6 +35,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
+import { useAuth } from '@/components/auth-provider';
 
 
 interface EmployeeSummary {
@@ -56,6 +58,8 @@ function DashboardContent() {
   const [loading, setLoading] = React.useState(true);
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [view, setView] = React.useState<'list' | 'grid'>('list');
+  const { currentUser, getPermission } = useAuth();
+  const pagePermission = getPermission('employees');
 
   React.useEffect(() => {
     try {
@@ -105,10 +109,15 @@ function DashboardContent() {
   };
 
   const { employeeSummary, branchOptions, performanceData } = React.useMemo(() => {
+        let krasToProcess = kras;
+        if (pagePermission === 'employee_only' && currentUser) {
+            krasToProcess = kras.filter(k => k.employee.id === currentUser.id);
+        }
+
         const employeeMap = new Map<string, { employee: Employee; kras: KRA[] }>();
         const managerIds = new Set(branches.map(b => b.managerId));
 
-        kras.forEach(kra => {
+        krasToProcess.forEach(kra => {
             const isManager = managerIds.has(kra.employee.id);
             const employeeWithRole = {...kra.employee, isManager };
             if (!employeeMap.has(kra.employee.id)) {
@@ -143,12 +152,12 @@ function DashboardContent() {
         const sortedSummary = summaryData.sort((a, b) => a.employee.name.localeCompare(b.name));
         const sortedPerfData = perfData.sort((a, b) => b.performanceScore - a.performanceScore);
 
-        const allEmployees: Employee[] = Array.from(employeeMap.values()).map(e => e.employee);
+        const allEmployees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
         const uniqueBranches = ['all', ...Array.from(new Set(allEmployees.map(e => e.branch).filter(Boolean)))];
 
         return { employeeSummary: sortedSummary, branchOptions: uniqueBranches, performanceData: sortedPerfData };
 
-    }, [kras, branches]);
+    }, [kras, branches, pagePermission, currentUser]);
 
 
   const employees: Employee[] = Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -159,7 +168,7 @@ function DashboardContent() {
 
   const filteredPerformanceData = selectedBranch === 'all'
         ? performanceData
-        : performanceData.filter(data => data.employee.branch === selectedBranch);
+        : performanceData.filter(data => data.employee.branch === data.employee.branch);
     
     const handleViewChange = (newView: 'list' | 'grid') => {
         setView(newView);
@@ -179,22 +188,26 @@ function DashboardContent() {
                     </CardDescription>
                 </div>
                 <div className="flex items-center gap-2">
-                    <ViewSwitcher view={view} onViewChange={handleViewChange} />
-                    <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by Branch" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {branchOptions.map(branch => (
-                        <SelectItem key={branch} value={branch}>
-                            {branch === 'all' ? 'All Branches' : branch}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                    <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                    <Button>Add KRA</Button>
-                    </AddKraDialog>
+                    {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
+                    {pagePermission !== 'employee_only' && (
+                        <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by Branch" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {branchOptions.map(branch => (
+                                <SelectItem key={branch} value={branch}>
+                                    {branch === 'all' ? 'All Branches' : branch}
+                                </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    )}
+                    {pagePermission === 'edit' || pagePermission === 'download' && (
+                        <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                            <Button>Add KRA</Button>
+                        </AddKraDialog>
+                    )}
                 </div>
                 </CardHeader>
                 <CardContent>
@@ -204,7 +217,7 @@ function DashboardContent() {
                             <TabsTrigger value="performance" className='gap-2'><TrendingUp /> Performance Chart</TabsTrigger>
                         </TabsList>
                         <TabsContent value="list" className="mt-4">
-                             {view === 'list' ? (
+                             {view === 'list' || pagePermission === 'employee_only' ? (
                                 <div className="border rounded-lg">
                                     <Table>
                                         <TableHeader>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -20,6 +21,7 @@ import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
 import { getMonth, getYear } from 'date-fns';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { LeaveCard } from '@/components/leave-card';
+import { useAuth } from '@/components/auth-provider';
 
 export default function LeaveManagementPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
@@ -29,6 +31,8 @@ export default function LeaveManagementPage() {
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
     const [view, setView] = React.useState<'list' | 'grid'>('list');
+    const { currentUser, getPermission } = useAuth();
+    const pagePermission = getPermission('leaves');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -111,13 +115,17 @@ export default function LeaveManagementPage() {
     }, [leaves]);
 
     const filteredLeaves = React.useMemo(() => {
-        return leaves.filter(leave => {
+        let leavesToFilter = leaves;
+        if (pagePermission === 'employee_only' && currentUser) {
+            leavesToFilter = leaves.filter(l => l.employee.id === currentUser.id);
+        }
+        return leavesToFilter.filter(leave => {
             const statusMatch = statusFilter === 'all' || leave.status === statusFilter;
             const yearMatch = yearFilter === 'all' || getYear(new Date(leave.startDate)) === parseInt(yearFilter);
             const monthMatch = monthFilter === 'all' || getMonth(new Date(leave.startDate)) === parseInt(monthFilter);
             return statusMatch && yearMatch && monthMatch;
         }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-    }, [leaves, statusFilter, yearFilter, monthFilter]);
+    }, [leaves, statusFilter, yearFilter, monthFilter, pagePermission, currentUser]);
     
     const handleViewChange = (newView: 'list' | 'grid') => {
         setView(newView);
@@ -139,7 +147,7 @@ export default function LeaveManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
-                        <ViewSwitcher view={view} onViewChange={handleViewChange} />
+                        {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Year" />
@@ -189,7 +197,7 @@ export default function LeaveManagementPage() {
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                          </div>
-                    ) : view === 'list' ? (
+                    ) : view === 'list' || pagePermission === 'employee_only' ? (
                         <LeaveRequestsTable 
                             leaves={filteredLeaves} 
                             onSave={handleSaveLeave}

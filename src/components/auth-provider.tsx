@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
@@ -16,14 +17,14 @@ interface AuthContextType {
 }
 
 const defaultPermissions: EmployeePermissions = {
-    employees: 'edit',
-    routine_tasks: 'edit',
-    leaves: 'edit',
-    attendance: 'edit',
+    employees: 'employee_only',
+    routine_tasks: 'view',
+    leaves: 'employee_only',
+    attendance: 'view',
     expenses: 'edit',
     habit_tracker: 'edit',
-    holidays: 'edit',
-    recruitment: 'edit',
+    holidays: 'view',
+    recruitment: 'view',
     hr_calendar: 'view',
     settings: 'none',
 };
