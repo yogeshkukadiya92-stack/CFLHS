@@ -68,7 +68,7 @@ export interface Leave {
     status: LeaveStatus;
 }
 
-export type AttendanceStatus = 'Present' | 'Absent' | 'Half-day' | 'On Leave';
+export type AttendanceStatus = 'Present' | 'Absent' | 'Half-day';
 
 export interface Attendance {
     id: string;

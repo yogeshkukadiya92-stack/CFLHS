@@ -33,9 +33,6 @@ const statusConfig: Record<AttendanceStatus, { className: string }> = {
   'Half-day': {
     className: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   },
-  'On Leave': {
-    className: 'bg-blue-100 text-blue-800 border-blue-200',
-  },
 };
 
 interface AttendanceTableProps {
@@ -111,7 +108,6 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave }
                     <SelectItem value="Present">Present</SelectItem>
                     <SelectItem value="Absent">Absent</SelectItem>
                     <SelectItem value="Half-day">Half-day</SelectItem>
-                    <SelectItem value="On Leave">On Leave</SelectItem>
                   </SelectContent>
                 </Select>
               </TableCell>
