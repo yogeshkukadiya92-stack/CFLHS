@@ -11,20 +11,25 @@ import { SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, Sidebar
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, currentUser } = useAuth();
 
   const navItems = useMemo(() => [
-    { href: '/', label: 'Employees', icon: Users, show: true },
-    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, show: true },
-    { href: '/leaves', label: 'Leave Management', icon: Plane, show: true },
-    { href: '/attendance', label: 'Attendance', icon: UserCheck, show: true },
-    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, show: true },
-    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, show: true },
-    { href: '/holidays', label: 'Holidays', icon: CalendarDays, show: true },
-    { href: '/recruitment', label: 'Recruitment', icon: Briefcase, show: true },
-    { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, show: true },
+    { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' },
+    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' },
+    { href: '/leaves', label: 'Leave Management', icon: Plane, permissionKey: 'leaves' },
+    { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' },
+    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, permissionKey: 'habit_tracker' },
+    { href: '/holidays', label: 'Holidays', icon: CalendarDays, permissionKey: 'holidays' },
+    { href: '/recruitment', label: 'Recruitment', icon: Briefcase, permissionKey: 'recruitment' },
+    { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, permissionKey: 'hr_calendar' },
   ], []);
-
+  
+  const hasPermission = (permissionKey: string) => {
+    if (currentUser?.role === 'Admin') return true;
+    if (!currentUser?.permissions) return false;
+    return currentUser.permissions[permissionKey as keyof typeof currentUser.permissions];
+  }
 
   if (!user) {
     return null;
@@ -41,30 +46,34 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
-             <SidebarMenuItem key={item.href}>
-                <Link href={item.href}>
-                  <SidebarMenuButton 
-                    isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
-                    tooltip={item.label}
-                   >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                </Link>
-             </SidebarMenuItem>
+             hasPermission(item.permissionKey) && (
+                 <SidebarMenuItem key={item.href}>
+                    <Link href={item.href}>
+                      <SidebarMenuButton 
+                        isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+                        tooltip={item.label}
+                       >
+                        <item.icon />
+                        <span>{item.label}</span>
+                      </SidebarMenuButton>
+                    </Link>
+                 </SidebarMenuItem>
+             )
           ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-            <SidebarMenuItem>
-                <Link href="/settings">
-                    <SidebarMenuButton isActive={pathname.startsWith('/settings')} tooltip="Settings">
-                        <Settings />
-                        <span>Settings</span>
-                    </SidebarMenuButton>
-                </Link>
-            </SidebarMenuItem>
+            {hasPermission('settings') && (
+                <SidebarMenuItem>
+                    <Link href="/settings">
+                        <SidebarMenuButton isActive={pathname.startsWith('/settings')} tooltip="Settings">
+                            <Settings />
+                            <span>Settings</span>
+                        </SidebarMenuButton>
+                    </Link>
+                </SidebarMenuItem>
+            )}
         </SidebarMenu>
       </SidebarFooter>
     </>

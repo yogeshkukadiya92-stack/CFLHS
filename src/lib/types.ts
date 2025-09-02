@@ -3,6 +3,19 @@
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 export type UserRole = 'Admin' | 'Manager' | 'Employee';
 
+export interface EmployeePermissions {
+    employees: boolean;
+    routine_tasks: boolean;
+    leaves: boolean;
+    attendance: boolean;
+    expenses: boolean;
+    habit_tracker: boolean;
+    holidays: boolean;
+    recruitment: boolean;
+    hr_calendar: boolean;
+    settings: boolean;
+}
+
 export interface Employee {
   id: string;
   name: string;
@@ -14,6 +27,7 @@ export interface Employee {
   address?: string;
   joiningDate?: Date;
   birthDate?: Date;
+  permissions?: EmployeePermissions;
 }
 
 export interface ActionItem {

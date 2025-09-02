@@ -7,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
-import type { Branch, Employee, KRA, UserRole } from '@/lib/types';
+import type { Branch, Employee, KRA, UserRole, EmployeePermissions } from '@/lib/types';
 import { mockKras } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +30,86 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/components/auth-provider';
+import { Checkbox } from '@/components/ui/checkbox';
+
+
+const navItems = [
+    { id: 'employees', label: 'Employees' },
+    { id: 'routine_tasks', label: 'Routine Tasks' },
+    { id: 'leaves', label: 'Leave Management' },
+    { id: 'attendance', label: 'Attendance' },
+    { id: 'expenses', label: 'Expense Claims' },
+    { id: 'habit_tracker', label: 'Habit Tracker' },
+    { id: 'holidays', label: 'Holidays' },
+    { id: 'recruitment', label: 'Recruitment' },
+    { id: 'hr_calendar', label: 'HR Calendar' },
+    { id: 'settings', label: 'Settings' },
+] as const;
+
+const PermissionDialog = ({
+    employee,
+    onSave,
+    children
+}: {
+    employee: Employee,
+    onSave: (employeeId: string, permissions: EmployeePermissions) => void,
+    children: React.ReactNode
+}) => {
+    const [open, setOpen] = React.useState(false);
+    const [permissions, setPermissions] = React.useState<EmployeePermissions>(
+        employee.permissions || {
+            employees: true, routine_tasks: true, leaves: true, attendance: true, 
+            expenses: true, habit_tracker: true, holidays: true, recruitment: true, hr_calendar: true, settings: false
+        }
+    );
+
+    React.useEffect(() => {
+        if(open) {
+             setPermissions(employee.permissions || {
+                employees: true, routine_tasks: true, leaves: true, attendance: true, 
+                expenses: true, habit_tracker: true, holidays: true, recruitment: true, hr_calendar: true, settings: false
+            });
+        }
+    }, [open, employee.permissions]);
+
+    const handleSave = () => {
+        onSave(employee.id, permissions);
+        setOpen(false);
+    }
+    
+    const handleCheckedChange = (permissionKey: keyof EmployeePermissions, checked: boolean) => {
+        setPermissions(prev => ({ ...prev, [permissionKey]: checked }));
+    };
+    
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{children}</DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Edit Permissions for {employee.name}</DialogTitle>
+                    <DialogDescription>
+                        Select the pages this employee can access.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4 grid-cols-2">
+                    {navItems.map(item => (
+                        <div key={item.id} className="flex items-center space-x-2">
+                            <Checkbox 
+                                id={item.id} 
+                                checked={permissions[item.id]}
+                                onCheckedChange={(checked) => handleCheckedChange(item.id, !!checked)}
+                            />
+                            <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                        </div>
+                    ))}
+                </div>
+                <DialogFooter>
+                    <Button onClick={handleSave}>Save Permissions</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
+}
 
 
 const BranchDialog = ({ 
@@ -145,7 +225,8 @@ export default function SettingsPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
-    const { currentUserRole } = useAuth();
+    const { currentUser } = useAuth();
+    const isAdmin = currentUser?.role === 'Admin';
 
 
     const employees: Employee[] = React.useMemo(() => {
@@ -257,9 +338,23 @@ export default function SettingsPage() {
             description: `Role has been changed to ${role}.`
         })
     };
-    
-    const isAdmin = currentUserRole === 'Admin';
 
+    const handlePermissionChange = (employeeId: string, permissions: EmployeePermissions) => {
+         const updatedKras = kras.map(kra => {
+            if (kra.employee.id === employeeId) {
+                return {
+                    ...kra,
+                    employee: { ...kra.employee, permissions: permissions }
+                };
+            }
+            return kra;
+        });
+        setKras(updatedKras);
+        toast({
+            title: "Permissions Updated",
+            description: `Permissions have been updated for the user.`
+        })
+    };
 
     return (
         <div className="flex flex-col gap-6">
@@ -362,7 +457,7 @@ export default function SettingsPage() {
                 <CardHeader>
                     <CardTitle>User & Permission Management</CardTitle>
                     <CardDescription>
-                        Assign roles to users to control their access levels.
+                        Assign roles and page access to users.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -373,11 +468,12 @@ export default function SettingsPage() {
                                     <TableHead>Employee</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead className="w-[200px]">Role</TableHead>
+                                    <TableHead className="w-[150px]">Permissions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={3} className="text-center">Loading users...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={4} className="text-center">Loading users...</TableCell></TableRow>
                                 ) : employees.map(employee => (
                                     <TableRow key={employee.id}>
                                         <TableCell>
@@ -405,6 +501,14 @@ export default function SettingsPage() {
                                                     <SelectItem value="Employee">Employee</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        </TableCell>
+                                         <TableCell>
+                                            <PermissionDialog employee={employee} onSave={handlePermissionChange}>
+                                                 <Button variant="outline" size="sm" disabled={!isAdmin || employee.email === 'connect@luvfitnessworld.com'}>
+                                                    <KeySquare className="mr-2 h-4 w-4" />
+                                                    Edit Permissions
+                                                </Button>
+                                            </PermissionDialog>
                                         </TableCell>
                                     </TableRow>
                                 ))}

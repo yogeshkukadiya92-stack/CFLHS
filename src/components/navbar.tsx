@@ -12,7 +12,7 @@ import { Badge } from './ui/badge';
 import { SidebarTrigger } from './ui/sidebar';
 
 export const Navbar = () => {
-  const { user, currentUserRole } = useAuth();
+  const { user, currentUser } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -20,7 +20,7 @@ export const Navbar = () => {
     router.push('/login');
   };
 
-  const isAdmin = currentUserRole === 'Admin';
+  const isAdmin = currentUser?.role === 'Admin';
 
   return (
     <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
@@ -28,7 +28,7 @@ export const Navbar = () => {
       {user && (
         <div className="ml-auto flex items-center gap-4">
             <div className='flex items-center gap-2'>
-              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user.email}</span>
+              <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {currentUser?.name || user.email}</span>
               {isAdmin && (
                 <Badge variant="secondary" className="gap-1">
                   <ShieldCheck className="h-3.5 w-3.5" />
