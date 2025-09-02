@@ -6,10 +6,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Calendar } from "@/components/ui/calendar";
 import type { Habit } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { differenceInDays, format, isSameDay, addDays } from 'date-fns';
+import { isSameDay, addDays, isAfter, setHours, setMinutes, setSeconds, isBefore } from 'date-fns';
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
 import { Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface HabitCardProps {
   habit: Habit;
@@ -18,31 +19,51 @@ interface HabitCardProps {
 
 export function HabitCard({ habit, onSave }: HabitCardProps) {
   const [month, setMonth] = React.useState<Date>(habit.startDate);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+    return () => clearInterval(timer);
+  }, []);
 
   const handleDayClick = (day: Date, modifiers: { selected: boolean }) => {
-    if (day < habit.startDate || day > addDays(habit.startDate, habit.goalDays -1)) {
+     if (isBefore(day, habit.startDate) || isAfter(day, addDays(habit.startDate, habit.goalDays -1))) {
         return;
     }
     
     let updatedCheckIns: Date[];
     if (modifiers.selected) {
       // Deselect the day
-      updatedCheckIns = habit.checkIns.filter(
+      updatedCheckIns = habit.checkIns.map(d => new Date(d)).filter(
         (checkedInDate) => !isSameDay(checkedInDate, day)
       );
     } else {
       // Select the day
-      updatedCheckIns = [...habit.checkIns, day];
+      updatedCheckIns = [...habit.checkIns.map(d => new Date(d)), day];
     }
     onSave({ ...habit, checkIns: updatedCheckIns });
   };
   
-  const completedDays = habit.checkIns.filter(d => d >= habit.startDate && d <= addDays(habit.startDate, habit.goalDays - 1)).length;
+  const completedDays = habit.checkIns.filter(d => {
+    const checkInDate = new Date(d);
+    return checkInDate >= habit.startDate && checkInDate <= addDays(habit.startDate, habit.goalDays - 1)
+  }).length;
+
   const progress = Math.round((completedDays / habit.goalDays) * 100);
   const daysLeft = habit.goalDays - completedDays;
 
+  const todayCheckedIn = habit.checkIns.some(d => isSameDay(new Date(d), currentTime));
+  const deadlineTime = habit.deadline || '14:30';
+  const [hours, minutes] = deadlineTime.split(':').map(Number);
+  const deadline = setSeconds(setMinutes(setHours(new Date(), hours), minutes), 0);
+
+  const isOverdue = isAfter(currentTime, deadline) && !todayCheckedIn && isSameDay(currentTime, new Date());
+
+
   return (
-    <Card className="flex flex-col">
+    <Card className={cn("flex flex-col transition-colors", isOverdue && "border-destructive")}>
       <CardHeader>
         <div className="flex items-start justify-between">
             <div>
@@ -63,12 +84,12 @@ export function HabitCard({ habit, onSave }: HabitCardProps) {
       <CardContent className="flex-grow">
         <Calendar
           mode="multiple"
-          selected={habit.checkIns}
+          selected={habit.checkIns.map(d => new Date(d))}
           onDayClick={handleDayClick}
           month={month}
           onMonthChange={setMonth}
-          fromDate={habit.startDate}
-          toDate={addDays(habit.startDate, habit.goalDays - 1)}
+          fromDate={new Date(habit.startDate)}
+          toDate={addDays(new Date(habit.startDate), habit.goalDays - 1)}
           className="rounded-md border p-0"
           classNames={{
              day_selected: "bg-primary text-primary-foreground hover:bg-primary/90 focus:bg-primary/90",
@@ -98,4 +119,3 @@ export function HabitCard({ habit, onSave }: HabitCardProps) {
     </Card>
   );
 }
-

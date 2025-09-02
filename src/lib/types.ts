@@ -101,6 +101,7 @@ export interface Habit {
   checkIns: Date[];
   goalDays: number; // e.g., 30 for a 30-day challenge
   startDate: Date;
+  deadline?: string; // e.g. "14:30"
 }
 
 export type HolidayType = 'Full Day' | 'Half Day';
