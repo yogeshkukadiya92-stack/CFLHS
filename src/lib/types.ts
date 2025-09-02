@@ -30,7 +30,6 @@ export interface Employee {
   birthDate?: Date;
   permissions?: EmployeePermissions;
   familyMobileNumber?: string;
-  leaveBalance?: number;
   extraLeaves?: number;
 }
 

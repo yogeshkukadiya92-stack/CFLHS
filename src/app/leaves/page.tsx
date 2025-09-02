@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/select"
 import { LeaveRequestsTable } from '@/components/leave-requests-table';
 import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
-import { getMonth, getYear, differenceInMonths, startOfMonth } from 'date-fns';
+import { getMonth, getYear } from 'date-fns';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { LeaveCard } from '@/components/leave-card';
 import { useAuth } from '@/components/auth-provider';
@@ -33,7 +33,7 @@ import { Label } from '@/components/ui/label';
 
 interface LeaveBalance {
     employeeId: string;
-    totalAccrued: number;
+    totalLeaves: number;
     leavesTaken: number;
     balance: number;
 }
@@ -122,12 +122,7 @@ export default function LeaveManagementPage() {
 
     const leaveBalances: LeaveBalance[] = React.useMemo(() => {
         return employees.map(emp => {
-            const today = new Date();
-            const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : today;
-            const monthsOfService = differenceInMonths(today, startOfMonth(joiningDate));
-            const accrued = monthsOfService >= 0 ? monthsOfService + 1 : 0;
-            const extra = emp.extraLeaves || 0;
-            const totalAccrued = accrued + extra;
+            const totalLeaves = emp.extraLeaves || 0;
 
             const leavesTaken = leaves
                 .filter(l => l.employee.id === emp.id && l.status === 'Approved')
@@ -135,9 +130,9 @@ export default function LeaveManagementPage() {
 
             return {
                 employeeId: emp.id,
-                totalAccrued,
+                totalLeaves,
                 leavesTaken,
-                balance: totalAccrued - leavesTaken,
+                balance: totalLeaves - leavesTaken,
             };
         });
     }, [employees, leaves]);
@@ -217,7 +212,7 @@ export default function LeaveManagementPage() {
                                         <TableHeader className='sticky top-0 bg-background'>
                                             <TableRow>
                                                 <TableHead>Employee</TableHead>
-                                                <TableHead>Total Accrued</TableHead>
+                                                <TableHead>Total Leaves</TableHead>
                                                 <TableHead>Leaves Taken</TableHead>
                                                 <TableHead>Balance</TableHead>
                                             </TableRow>
@@ -236,7 +231,7 @@ export default function LeaveManagementPage() {
                                                                 <span className="font-medium">{emp.name}</span>
                                                             </div>
                                                         </TableCell>
-                                                        <TableCell>{balance?.totalAccrued.toFixed(1)}</TableCell>
+                                                        <TableCell>{balance?.totalLeaves.toFixed(1)}</TableCell>
                                                         <TableCell>{balance?.leavesTaken.toFixed(1)}</TableCell>
                                                         <TableCell className='font-semibold'>{balance?.balance.toFixed(1)}</TableCell>
                                                     </TableRow>
