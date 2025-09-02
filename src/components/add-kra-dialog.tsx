@@ -49,6 +49,7 @@ const kraSchema = z.object({
   employeeAddress: z.string().optional(),
   employeeJoiningDate: z.date().optional(),
   employeeBirthDate: z.date().optional(),
+  employeeFamilyMobileNumber: z.string().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   bonus: z.number().min(0).nullable(),
@@ -84,7 +85,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
   const [newEmployeeName, setNewEmployeeName] = React.useState('');
   const [showNewEmployeeFields, setShowNewEmployeeFields] = React.useState(false);
-  const { currentUser, getPermission } = useAuth();
+  const { getPermission } = useAuth();
   const isAdmin = getPermission('employees') === 'download';
 
 
@@ -108,6 +109,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       employeeAddress: kra?.employee.address || '',
       employeeJoiningDate: kra?.employee.joiningDate || new Date(),
       employeeBirthDate: kra?.employee.birthDate || new Date(),
+      employeeFamilyMobileNumber: kra?.employee.familyMobileNumber || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       bonus: kra?.bonus || null,
@@ -122,7 +124,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   });
 
   const actions = watch('actions');
-  const weightage = watch('weightage');
   const employeeId = watch('employeeId');
 
   React.useEffect(() => {
@@ -134,8 +135,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         setValue('marksAchieved', completedMarks, { shouldValidate: true });
 
         const totalActionMarks = actions.reduce((sum, action) => sum + (action.marks || 0), 0);
-        const progress = totalActionMarks > 0 ? Math.round((completedMarks / totalActionMarks) * 100) : 0;
-         // This is a proxy for progress, will be set on the KRA object later.
+        // This is a proxy for progress, will be set on the KRA object later.
     } else {
         setValue('marksAchieved', 0);
     }
@@ -155,6 +155,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         employeeAddress: kra?.employee.address || '',
         employeeJoiningDate: kra?.employee.joiningDate ? new Date(kra.employee.joiningDate) : new Date(),
         employeeBirthDate: kra?.employee.birthDate ? new Date(kra.employee.birthDate) : new Date(),
+        employeeFamilyMobileNumber: kra?.employee.familyMobileNumber || '',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
@@ -173,6 +174,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         setValue("employeeAddress", selectedEmployee.address || '');
         setValue("employeeJoiningDate", selectedEmployee.joiningDate ? new Date(selectedEmployee.joiningDate) : new Date());
         setValue("employeeBirthDate", selectedEmployee.birthDate ? new Date(selectedEmployee.birthDate) : new Date());
+        setValue("employeeFamilyMobileNumber", selectedEmployee.familyMobileNumber || '');
         setShowNewEmployeeFields(false);
     }
   }, [employeeId, currentEmployees, setValue]);
@@ -231,7 +233,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         role: data.employeeRole || 'Employee',
         address: data.employeeAddress,
         joiningDate: data.employeeJoiningDate,
-        birthDate: data.employeeBirthDate
+        birthDate: data.employeeBirthDate,
+        familyMobileNumber: data.employeeFamilyMobileNumber,
       },
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
@@ -389,7 +392,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 </div>
                             </div>
                         )}
-                        <div className="grid grid-cols-4 items-center gap-4">
+                        <div className="grid grid-cols-4 items-start gap-4">
                             <Label htmlFor="employeeAddress" className="text-right">
                                 Address
                             </Label>
@@ -398,6 +401,18 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     name="employeeAddress"
                                     control={control}
                                     render={({ field }) => <Textarea id="employeeAddress" {...field} placeholder="Employee's current address" />}
+                                />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                             <Label htmlFor="familyMobileNumber" className="text-right">
+                                Family Contact
+                            </Label>
+                            <div className="col-span-3">
+                                <Controller
+                                    name="employeeFamilyMobileNumber"
+                                    control={control}
+                                    render={({ field }) => <Input id="familyMobileNumber" {...field} placeholder="Family member's contact number" />}
                                 />
                             </div>
                         </div>

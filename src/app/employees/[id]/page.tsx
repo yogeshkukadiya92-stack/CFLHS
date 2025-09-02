@@ -8,7 +8,7 @@ import { mockKras } from '@/lib/data';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -273,6 +273,10 @@ export default function EmployeeKraPage() {
                             <div className='flex items-start gap-3'>
                                 <Home className="h-4 w-4 text-muted-foreground mt-1" />
                                 <span>{employee.address || 'Not provided'}</span>
+                            </div>
+                            <div className='flex items-center gap-3'>
+                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                <span>{`Family: ${employee.familyMobileNumber || 'Not provided'}`}</span>
                             </div>
                             <div className='flex items-center gap-3'>
                                 <CalendarIcon className="h-4 w-4 text-muted-foreground" />

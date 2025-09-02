@@ -32,6 +32,7 @@ const employeeSchema = z.object({
     joiningDate: z.date().optional(),
     birthDate: z.date().optional(),
     email: z.string().email().optional(),
+    familyMobileNumber: z.string().optional(),
 });
 
 type EmployeeFormValues = z.infer<typeof employeeSchema>;
@@ -45,8 +46,9 @@ interface EditEmployeeDialogProps {
 export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeDialogProps) {
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
-  const { currentUserRole } = useAuth();
-  const isAdmin = currentUserRole === 'Admin';
+  const { getPermission } = useAuth();
+  const isAdmin = getPermission('settings') === 'download';
+
 
   const {
     control,
@@ -67,6 +69,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
         joiningDate: employee.joiningDate ? new Date(employee.joiningDate) : undefined,
         birthDate: employee.birthDate ? new Date(employee.birthDate) : undefined,
         email: employee.email || '',
+        familyMobileNumber: employee.familyMobileNumber || '',
       });
     }
   }, [open, employee, reset]);
@@ -138,6 +141,19 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
                         render={({ field }) => <Input id="email" type="email" {...field} placeholder="employee@example.com" />}
                     />
                      {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="familyMobileNumber" className="text-right">
+                    Family Contact
+                </Label>
+                <div className="col-span-3">
+                    <Controller
+                        name="familyMobileNumber"
+                        control={control}
+                        render={({ field }) => <Input id="familyMobileNumber" {...field} placeholder="Family member's number" />}
+                    />
                 </div>
             </div>
             

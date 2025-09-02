@@ -29,6 +29,7 @@ export interface Employee {
   joiningDate?: Date;
   birthDate?: Date;
   permissions?: EmployeePermissions;
+  familyMobileNumber?: string;
 }
 
 export interface ActionItem {
