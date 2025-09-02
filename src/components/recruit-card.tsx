@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -33,12 +34,12 @@ const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.E
 
 interface RecruitCardProps {
     recruit: Recruit;
-    isAdmin: boolean;
+    canEdit: boolean;
     onSave: (recruit: Recruit) => void;
     onDelete: (id: string) => void;
 }
 
-export function RecruitCard({ recruit, isAdmin, onSave, onDelete }: RecruitCardProps) {
+export function RecruitCard({ recruit, canEdit, onSave, onDelete }: RecruitCardProps) {
     const StatusIcon = statusConfig[recruit.status]?.icon || Send;
 
   return (
@@ -55,7 +56,7 @@ export function RecruitCard({ recruit, isAdmin, onSave, onDelete }: RecruitCardP
                     <CardDescription className='text-xs'>{recruit.position}</CardDescription>
                 </div>
             </div>
-             {isAdmin && (
+             {canEdit && (
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                     <Button aria-haspopup="true" size="icon" variant="ghost">

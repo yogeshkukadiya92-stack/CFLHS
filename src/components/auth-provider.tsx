@@ -5,19 +5,47 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Skeleton } from './ui/skeleton';
-import type { Employee, KRA } from '@/lib/types';
+import type { Employee, KRA, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { mockKras } from '@/lib/data';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   currentUser: Employee | null;
+  getPermission: (page: keyof EmployeePermissions) => PermissionLevel;
 }
+
+const defaultPermissions: EmployeePermissions = {
+    employees: 'edit',
+    routine_tasks: 'edit',
+    leaves: 'edit',
+    attendance: 'edit',
+    expenses: 'edit',
+    habit_tracker: 'edit',
+    holidays: 'edit',
+    recruitment: 'edit',
+    hr_calendar: 'view',
+    settings: 'none',
+};
+
+const adminPermissions: EmployeePermissions = {
+    employees: 'download',
+    routine_tasks: 'download',
+    leaves: 'download',
+    attendance: 'download',
+    expenses: 'download',
+    habit_tracker: 'download',
+    holidays: 'download',
+    recruitment: 'download',
+    hr_calendar: 'download',
+    settings: 'download',
+};
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   currentUser: null,
+  getPermission: () => 'none',
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -29,8 +57,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        // In a real app, you'd fetch this from your database.
-        // For now, we'll find it from mock data.
         const kraData = sessionStorage.getItem('kraData');
         const kras : KRA[] = kraData ? JSON.parse(kraData, (key, value) => {
              if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
@@ -39,28 +65,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             return value;
         }) : mockKras;
 
-        const employeeData = kras.find((k:any) => k.employee.email === user.email);
+        let employeeData = kras.find((k:any) => k.employee.email === user.email)?.employee;
         
         if (employeeData) {
-            setCurrentUser(employeeData.employee);
+             if (employeeData.role === 'Admin') {
+                employeeData.permissions = adminPermissions;
+            } else if (!employeeData.permissions) {
+                employeeData.permissions = defaultPermissions;
+            }
+            setCurrentUser(employeeData);
         } else {
-             // Fallback for users not in KRA data (e.g., new sign-ups)
-            const mockAdmin = mockKras.find(k => k.employee.email === 'connect@luvfitnessworld.com');
-            if (user.email === 'connect@luvfitnessworld.com' && mockAdmin) {
-                setCurrentUser(mockAdmin.employee);
-            } else {
+             const isMockAdmin = user.email === 'connect@luvfitnessworld.com';
+             const mockAdminData = mockKras.find(k => k.employee.email === 'connect@luvfitnessworld.com')?.employee;
+
+             if(isMockAdmin && mockAdminData) {
+                 setCurrentUser({
+                     ...mockAdminData,
+                     permissions: adminPermissions,
+                 });
+             } else {
                  setCurrentUser({
                     id: user.uid,
                     name: user.displayName || 'New User',
                     email: user.email!,
                     avatarUrl: user.photoURL || `https://placehold.co/32x32.png?text=${user.email![0].toUpperCase()}`,
                     role: 'Employee',
-                    permissions: {
-                        employees: true, routine_tasks: true, leaves: true, attendance: true, 
-                        expenses: true, habit_tracker: true, holidays: true, recruitment: true, hr_calendar: true, settings: false
-                    }
+                    permissions: defaultPermissions,
                 });
-            }
+             }
         }
       } else {
         setCurrentUser(null);
@@ -70,6 +102,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => unsubscribe();
   }, []);
+
+  const getPermission = (page: keyof EmployeePermissions): PermissionLevel => {
+    if (loading || !currentUser) return 'none';
+    if (currentUser.role === 'Admin') return 'download';
+    return currentUser.permissions?.[page] || 'none';
+  };
+
 
   if (loading) {
     return (
@@ -87,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     )
   }
 
-  return <AuthContext.Provider value={{ user, loading, currentUser }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, loading, currentUser, getPermission }}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);

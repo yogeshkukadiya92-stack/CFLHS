@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -26,12 +27,12 @@ import { AddHolidayDialog } from './add-holiday-dialog';
 
 interface HolidaysTableProps {
     holidays: Holiday[];
-    isAdmin: boolean;
+    canEdit: boolean;
     onSave: (holiday: Holiday) => void;
     onDelete: (id: string) => void;
 }
 
-export function HolidaysTable({ holidays, isAdmin, onSave, onDelete }: HolidaysTableProps) {
+export function HolidaysTable({ holidays, canEdit, onSave, onDelete }: HolidaysTableProps) {
   
   const sortedHolidays = [...holidays].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
@@ -44,7 +45,7 @@ export function HolidaysTable({ holidays, isAdmin, onSave, onDelete }: HolidaysT
               <TableHead>Day</TableHead>
               <TableHead>Holiday Name</TableHead>
               <TableHead>Type</TableHead>
-              {isAdmin && (
+              {canEdit && (
                 <TableHead>
                     <span className="sr-only">Actions</span>
                 </TableHead>
@@ -54,7 +55,7 @@ export function HolidaysTable({ holidays, isAdmin, onSave, onDelete }: HolidaysT
           <TableBody>
             {sortedHolidays.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={isAdmin ? 5 : 4} className="h-24 text-center">
+                    <TableCell colSpan={canEdit ? 5 : 4} className="h-24 text-center">
                         No holidays found for this year.
                     </TableCell>
                 </TableRow>
@@ -70,7 +71,7 @@ export function HolidaysTable({ holidays, isAdmin, onSave, onDelete }: HolidaysT
                     {holiday.type}
                   </Badge>
                 </TableCell>
-                {isAdmin && (
+                {canEdit && (
                     <TableCell className="text-right">
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -102,4 +103,3 @@ export function HolidaysTable({ holidays, isAdmin, onSave, onDelete }: HolidaysT
       </div>
   );
 }
-

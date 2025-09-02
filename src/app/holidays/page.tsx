@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -20,8 +21,8 @@ import { useToast } from '@/hooks/use-toast';
 export default function HolidaysPage() {
     const [holidays, setHolidays] = React.useState<Holiday[]>([]);
     const [loading, setLoading] = React.useState(true);
-    const { currentUserRole } = useAuth();
-    const isAdmin = currentUserRole === 'Admin';
+    const { getPermission } = useAuth();
+    const pagePermission = getPermission('holidays');
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -207,7 +208,7 @@ export default function HolidaysPage() {
                                 ))}
                             </SelectContent>
                         </Select>
-                         {isAdmin && (
+                         {pagePermission === 'download' && (
                             <>
                             <input
                                 type="file"
@@ -224,13 +225,15 @@ export default function HolidaysPage() {
                                 <Download className="mr-2 h-4 w-4" />
                                 Export
                             </Button>
+                            </>
+                         )}
+                         {(pagePermission === 'edit' || pagePermission === 'download') && (
                             <AddHolidayDialog onSave={handleSaveHoliday}>
                                 <Button>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Add Holiday
                                 </Button>
                             </AddHolidayDialog>
-                            </>
                         )}
                     </div>
                 </CardHeader>
@@ -247,7 +250,7 @@ export default function HolidaysPage() {
                             holidays={filteredHolidays}
                             onSave={handleSaveHoliday}
                             onDelete={handleDeleteHoliday}
-                            isAdmin={isAdmin}
+                            canEdit={pagePermission === 'edit' || pagePermission === 'download'}
                         />
                     )}
                 </CardContent>

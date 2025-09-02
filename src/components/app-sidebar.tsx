@@ -8,27 +8,26 @@ import { useAuth } from './auth-provider';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
 import { SidebarHeader, SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarContent, SidebarFooter } from './ui/sidebar';
+import type { EmployeePermissions } from '@/lib/types';
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { user, currentUser } = useAuth();
+  const { user, currentUser, getPermission } = useAuth();
 
   const navItems = useMemo(() => [
-    { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' },
-    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' },
-    { href: '/leaves', label: 'Leave Management', icon: Plane, permissionKey: 'leaves' },
-    { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' },
-    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' },
-    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, permissionKey: 'habit_tracker' },
-    { href: '/holidays', label: 'Holidays', icon: CalendarDays, permissionKey: 'holidays' },
-    { href: '/recruitment', label: 'Recruitment', icon: Briefcase, permissionKey: 'recruitment' },
-    { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, permissionKey: 'hr_calendar' },
+    { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
+    { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' as keyof EmployeePermissions },
+    { href: '/leaves', label: 'Leave Management', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
+    { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' as keyof EmployeePermissions },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' as keyof EmployeePermissions },
+    { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, permissionKey: 'habit_tracker' as keyof EmployeePermissions },
+    { href: '/holidays', label: 'Holidays', icon: CalendarDays, permissionKey: 'holidays' as keyof EmployeePermissions },
+    { href: '/recruitment', label: 'Recruitment', icon: Briefcase, permissionKey: 'recruitment' as keyof EmployeePermissions },
+    { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, permissionKey: 'hr_calendar' as keyof EmployeePermissions },
   ], []);
   
-  const hasPermission = (permissionKey: string) => {
-    if (currentUser?.role === 'Admin') return true;
-    if (!currentUser?.permissions) return false;
-    return currentUser.permissions[permissionKey as keyof typeof currentUser.permissions];
+  const hasAccess = (permissionKey: keyof EmployeePermissions) => {
+    return getPermission(permissionKey) !== 'none';
   }
 
   if (!user) {
@@ -46,7 +45,7 @@ export function AppSidebar() {
       <SidebarContent>
         <SidebarMenu>
           {navItems.map((item) => (
-             hasPermission(item.permissionKey) && (
+             hasAccess(item.permissionKey) && (
                  <SidebarMenuItem key={item.href}>
                     <Link href={item.href}>
                       <SidebarMenuButton 
@@ -64,7 +63,7 @@ export function AppSidebar() {
       </SidebarContent>
       <SidebarFooter>
         <SidebarMenu>
-            {hasPermission('settings') && (
+            {hasAccess('settings') && (
                 <SidebarMenuItem>
                     <Link href="/settings">
                         <SidebarMenuButton isActive={pathname.startsWith('/settings')} tooltip="Settings">

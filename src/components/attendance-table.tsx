@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -40,9 +41,10 @@ interface AttendanceTableProps {
     attendances: Attendance[];
     selectedDate: Date;
     onSave: (attendance: Attendance) => void;
+    canEdit: boolean;
 }
 
-export function AttendanceTable({ employees, attendances, selectedDate, onSave }: AttendanceTableProps) {
+export function AttendanceTable({ employees, attendances, selectedDate, onSave, canEdit }: AttendanceTableProps) {
   
   const getAttendanceForEmployee = (employeeId: string, date: Date): Attendance | undefined => {
     return attendances.find(
@@ -100,6 +102,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave }
                 <Select
                   value={currentStatus}
                   onValueChange={(value: AttendanceStatus) => handleStatusChange(employee, value)}
+                  disabled={!canEdit}
                 >
                   <SelectTrigger className={cn("w-[150px]", config?.className)}>
                     <SelectValue placeholder="Select status" />

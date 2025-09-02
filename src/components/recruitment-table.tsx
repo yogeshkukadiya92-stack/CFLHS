@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -42,12 +43,12 @@ const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.E
 
 interface RecruitmentTableProps {
     recruits: Recruit[];
-    isAdmin: boolean;
+    canEdit: boolean;
     onSave: (recruit: Recruit) => void;
     onDelete: (id: string) => void;
 }
 
-export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: RecruitmentTableProps) {
+export function RecruitmentTable({ recruits, canEdit, onSave, onDelete }: RecruitmentTableProps) {
   
   return (
     <TooltipProvider>
@@ -61,7 +62,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
               <TableHead>Experience</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Resume</TableHead>
-              {isAdmin && (
+              {canEdit && (
                 <TableHead>
                     <span className="sr-only">Actions</span>
                 </TableHead>
@@ -71,7 +72,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
           <TableBody>
             {recruits.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={isAdmin ? 7 : 6} className="h-24 text-center">
+                    <TableCell colSpan={canEdit ? 7 : 6} className="h-24 text-center">
                         No candidates found.
                     </TableCell>
                 </TableRow>
@@ -128,7 +129,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
                         <span className='text-xs text-muted-foreground'>N/A</span>
                     )}
                 </TableCell>
-                {isAdmin && (
+                {canEdit && (
                     <TableCell className="text-right">
                         <DropdownMenu>
                         <DropdownMenuTrigger asChild>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -28,8 +29,8 @@ export default function RecruitmentPage() {
     const [recruits, setRecruits] = React.useState<Recruit[]>([]);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
-    const { currentUserRole } = useAuth();
-    const isAdmin = currentUserRole === 'Admin';
+    const { getPermission } = useAuth();
+    const pagePermission = getPermission('recruitment');
     const [view, setView] = React.useState<'list' | 'grid'>('list');
     const { toast } = useToast();
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -203,7 +204,7 @@ export default function RecruitmentPage() {
                                 <SelectItem value="Comment">Comment</SelectItem>
                             </SelectContent>
                         </Select>
-                        {isAdmin && (
+                        {pagePermission === 'download' && (
                             <>
                                 <input
                                     type="file"
@@ -220,13 +221,15 @@ export default function RecruitmentPage() {
                                     <Download className="mr-2 h-4 w-4" />
                                     Export
                                 </Button>
-                                <AddRecruitDialog onSave={handleSaveRecruit}>
-                                    <Button>
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        Add Candidate
-                                    </Button>
-                                </AddRecruitDialog>
                             </>
+                        )}
+                        {(pagePermission === 'edit' || pagePermission === 'download') && (
+                            <AddRecruitDialog onSave={handleSaveRecruit}>
+                                <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Add Candidate
+                                </Button>
+                            </AddRecruitDialog>
                         )}
                     </div>
                 </CardHeader>
@@ -243,7 +246,7 @@ export default function RecruitmentPage() {
                             recruits={filteredRecruits}
                             onSave={handleSaveRecruit}
                             onDelete={handleDeleteRecruit}
-                            isAdmin={isAdmin}
+                            canEdit={pagePermission === 'edit' || pagePermission === 'download'}
                         />
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -253,7 +256,7 @@ export default function RecruitmentPage() {
                                     recruit={recruit}
                                     onSave={handleSaveRecruit}
                                     onDelete={handleDeleteRecruit}
-                                    isAdmin={isAdmin}
+                                    canEdit={pagePermission === 'edit' || pagePermission === 'download'}
                                 />
                            ))}
                         </div>

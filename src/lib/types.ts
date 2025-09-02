@@ -2,18 +2,19 @@
 
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
 export type UserRole = 'Admin' | 'Manager' | 'Employee';
+export type PermissionLevel = 'none' | 'view' | 'edit' | 'download';
 
 export interface EmployeePermissions {
-    employees: boolean;
-    routine_tasks: boolean;
-    leaves: boolean;
-    attendance: boolean;
-    expenses: boolean;
-    habit_tracker: boolean;
-    holidays: boolean;
-    recruitment: boolean;
-    hr_calendar: boolean;
-    settings: boolean;
+    employees: PermissionLevel;
+    routine_tasks: PermissionLevel;
+    leaves: PermissionLevel;
+    attendance: PermissionLevel;
+    expenses: PermissionLevel;
+    habit_tracker: PermissionLevel;
+    holidays: PermissionLevel;
+    recruitment: PermissionLevel;
+    hr_calendar: PermissionLevel;
+    settings: PermissionLevel;
 }
 
 export interface Employee {

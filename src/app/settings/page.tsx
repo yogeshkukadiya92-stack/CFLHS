@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
-import type { Branch, Employee, KRA, UserRole, EmployeePermissions } from '@/lib/types';
+import type { Branch, Employee, KRA, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { mockKras } from '@/lib/data';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare } from 'lucide-react';
@@ -30,7 +31,6 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/components/auth-provider';
-import { Checkbox } from '@/components/ui/checkbox';
 
 
 const navItems = [
@@ -46,6 +46,13 @@ const navItems = [
     { id: 'settings', label: 'Settings' },
 ] as const;
 
+const permissionLevels: {value: PermissionLevel, label: string}[] = [
+    { value: 'none', label: 'No Access'},
+    { value: 'view', label: 'View Only'},
+    { value: 'edit', label: 'Edit'},
+    { value: 'download', label: 'Download'},
+]
+
 const PermissionDialog = ({
     employee,
     onSave,
@@ -58,16 +65,16 @@ const PermissionDialog = ({
     const [open, setOpen] = React.useState(false);
     const [permissions, setPermissions] = React.useState<EmployeePermissions>(
         employee.permissions || {
-            employees: true, routine_tasks: true, leaves: true, attendance: true, 
-            expenses: true, habit_tracker: true, holidays: true, recruitment: true, hr_calendar: true, settings: false
+            employees: 'edit', routine_tasks: 'edit', leaves: 'edit', attendance: 'edit', 
+            expenses: 'edit', habit_tracker: 'edit', holidays: 'edit', recruitment: 'edit', hr_calendar: 'view', settings: 'none'
         }
     );
 
     React.useEffect(() => {
         if(open) {
              setPermissions(employee.permissions || {
-                employees: true, routine_tasks: true, leaves: true, attendance: true, 
-                expenses: true, habit_tracker: true, holidays: true, recruitment: true, hr_calendar: true, settings: false
+                employees: 'edit', routine_tasks: 'edit', leaves: 'edit', attendance: 'edit', 
+                expenses: 'edit', habit_tracker: 'edit', holidays: 'edit', recruitment: 'edit', hr_calendar: 'view', settings: 'none'
             });
         }
     }, [open, employee.permissions]);
@@ -77,29 +84,37 @@ const PermissionDialog = ({
         setOpen(false);
     }
     
-    const handleCheckedChange = (permissionKey: keyof EmployeePermissions, checked: boolean) => {
-        setPermissions(prev => ({ ...prev, [permissionKey]: checked }));
+    const handlePermissionChange = (permissionKey: keyof EmployeePermissions, value: PermissionLevel) => {
+        setPermissions(prev => ({ ...prev, [permissionKey]: value }));
     };
     
     return (
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>{children}</DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>Edit Permissions for {employee.name}</DialogTitle>
                     <DialogDescription>
-                        Select the pages this employee can access.
+                        Set the access level for each page for this employee.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="grid gap-4 py-4 grid-cols-2">
+                <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
                     {navItems.map(item => (
-                        <div key={item.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                                id={item.id} 
-                                checked={permissions[item.id]}
-                                onCheckedChange={(checked) => handleCheckedChange(item.id, !!checked)}
-                            />
+                        <div key={item.id} className="flex items-center justify-between">
                             <Label htmlFor={item.id} className="font-normal">{item.label}</Label>
+                            <Select
+                                value={permissions[item.id]}
+                                onValueChange={(value: PermissionLevel) => handlePermissionChange(item.id, value)}
+                            >
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Select level" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {permissionLevels.map(level => (
+                                        <SelectItem key={level.value} value={level.value}>{level.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
                     ))}
                 </div>
@@ -225,8 +240,8 @@ export default function SettingsPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
-    const { currentUser } = useAuth();
-    const isAdmin = currentUser?.role === 'Admin';
+    const { currentUser, getPermission } = useAuth();
+    const pagePermission = getPermission('settings');
 
 
     const employees: Employee[] = React.useMemo(() => {
@@ -367,7 +382,7 @@ export default function SettingsPage() {
                             Add, view, or manage branches and assign managers.
                         </CardDescription>
                     </div>
-                    {isAdmin && (
+                    {pagePermission === 'download' && (
                         <BranchDialog onSave={handleSaveBranch} employees={employees}>
                             <Button>
                                 <PlusCircle className="mr-2 h-4 w-4" />
@@ -383,7 +398,7 @@ export default function SettingsPage() {
                                 <TableRow>
                                     <TableHead>Branch Name</TableHead>
                                     <TableHead>Manager</TableHead>
-                                    {isAdmin && <TableHead className="text-right w-[100px]">Actions</TableHead>}
+                                    {pagePermission === 'download' && <TableHead className="text-right w-[100px]">Actions</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -410,7 +425,7 @@ export default function SettingsPage() {
                                                     <span className="text-muted-foreground">Not Assigned</span>
                                                 )}
                                             </TableCell>
-                                            {isAdmin && (
+                                            {pagePermission === 'download' && (
                                             <TableCell className="text-right">
                                                  <div className="flex items-center justify-end gap-2">
                                                      <BranchDialog branch={branch} onSave={handleSaveBranch} employees={employees}>
@@ -444,7 +459,7 @@ export default function SettingsPage() {
                                     )})
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={isAdmin ? 3 : 2} className="text-center">No branches found. Add one to get started.</TableCell>
+                                        <TableCell colSpan={pagePermission === 'download' ? 3 : 2} className="text-center">No branches found. Add one to get started.</TableCell>
                                     </TableRow>
                                 )}
                             </TableBody>
@@ -490,7 +505,7 @@ export default function SettingsPage() {
                                             <Select 
                                                 value={employee.role || 'Employee'}
                                                 onValueChange={(value: UserRole) => handleRoleChange(employee.id, value)}
-                                                disabled={!isAdmin || employee.email === 'connect@luvfitnessworld.com'}
+                                                disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}
                                             >
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Select role" />
@@ -504,7 +519,7 @@ export default function SettingsPage() {
                                         </TableCell>
                                          <TableCell>
                                             <PermissionDialog employee={employee} onSave={handlePermissionChange}>
-                                                 <Button variant="outline" size="sm" disabled={!isAdmin || employee.email === 'connect@luvfitnessworld.com'}>
+                                                 <Button variant="outline" size="sm" disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}>
                                                     <KeySquare className="mr-2 h-4 w-4" />
                                                     Edit Permissions
                                                 </Button>

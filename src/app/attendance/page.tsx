@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -21,6 +22,7 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Responsive
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/components/auth-provider';
 
 
 interface MonthlyStat {
@@ -39,6 +41,8 @@ export default function AttendancePage() {
     const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+    const { getPermission } = useAuth();
+    const pagePermission = getPermission('attendance');
 
     const [selectedYear, setSelectedYear] = React.useState<number>(getYear(new Date()));
     const [selectedMonth, setSelectedMonth] = React.useState<number>(getMonth(new Date()));
@@ -254,21 +258,25 @@ export default function AttendancePage() {
                         </div>
                     </div>
                     <div className='flex items-center gap-2'>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImport}
-                            className="hidden"
-                            accept=".xlsx, .xls"
-                        />
-                        <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-                            <Upload className="mr-2 h-4 w-4" />
-                            Import
-                        </Button>
-                        <Button variant="outline" onClick={handleExport}>
-                            <Download className="mr-2 h-4 w-4" />
-                            Export
-                        </Button>
+                        {pagePermission === 'download' && (
+                            <>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleImport}
+                                    className="hidden"
+                                    accept=".xlsx, .xls"
+                                />
+                                <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Import
+                                </Button>
+                                <Button variant="outline" onClick={handleExport}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export
+                                </Button>
+                            </>
+                        )}
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -312,6 +320,7 @@ export default function AttendancePage() {
                             attendances={attendances}
                             selectedDate={selectedDate}
                             onSave={handleSaveAttendance}
+                            canEdit={pagePermission === 'edit' || pagePermission === 'download'}
                         />
                     )}
                 </CardContent>
