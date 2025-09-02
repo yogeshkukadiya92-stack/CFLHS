@@ -18,7 +18,7 @@ import {
 import { ExpenseClaimsTable } from '@/components/expense-claims-table';
 import { AddExpenseClaimDialog } from '@/components/add-expense-claim-dialog';
 import { getMonth, getYear } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
