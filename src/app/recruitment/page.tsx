@@ -18,6 +18,8 @@ import {
 import { RecruitmentTable } from '@/components/recruitment-table';
 import { AddRecruitDialog } from '@/components/add-recruit-dialog';
 import { useAuth } from '@/components/auth-provider';
+import { ViewSwitcher } from '@/components/view-switcher';
+import { RecruitCard } from '@/components/recruit-card';
 
 export default function RecruitmentPage() {
     const [recruits, setRecruits] = React.useState<Recruit[]>([]);
@@ -25,6 +27,7 @@ export default function RecruitmentPage() {
     const [statusFilter, setStatusFilter] = React.useState('all');
     const { currentUserRole } = useAuth();
     const isAdmin = currentUserRole === 'Admin';
+    const [view, setView] = React.useState<'list' | 'grid'>('list');
 
     React.useEffect(() => {
         try {
@@ -38,6 +41,10 @@ export default function RecruitmentPage() {
                 }));
             } else {
                 setRecruits(mockRecruits);
+            }
+             const savedView = localStorage.getItem('recruitView');
+            if (savedView === 'grid' || savedView === 'list') {
+                setView(savedView);
             }
 
         } catch (error) {
@@ -75,6 +82,11 @@ export default function RecruitmentPage() {
         });
     }, [recruits, statusFilter]);
 
+    const handleViewChange = (newView: 'list' | 'grid') => {
+        setView(newView);
+        localStorage.setItem('recruitView', newView);
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Recruitment Data Bank</h1>
@@ -90,6 +102,7 @@ export default function RecruitmentPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ViewSwitcher view={view} onViewChange={handleViewChange} />
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Filter by Status" />
@@ -122,13 +135,25 @@ export default function RecruitmentPage() {
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                          </div>
-                    ) : (
+                    ) : view === 'list' ? (
                         <RecruitmentTable
                             recruits={filteredRecruits}
                             onSave={handleSaveRecruit}
                             onDelete={handleDeleteRecruit}
                             isAdmin={isAdmin}
                         />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                           {filteredRecruits.map(recruit => (
+                                <RecruitCard 
+                                    key={recruit.id}
+                                    recruit={recruit}
+                                    onSave={handleSaveRecruit}
+                                    onDelete={handleDeleteRecruit}
+                                    isAdmin={isAdmin}
+                                />
+                           ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>

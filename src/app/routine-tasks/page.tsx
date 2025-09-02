@@ -18,6 +18,8 @@ import {
 import { RoutineTasksTable } from '@/components/routine-tasks-table';
 import { AddRoutineTaskDialog } from '@/components/add-routine-task-dialog';
 import { getMonth, getYear } from 'date-fns';
+import { ViewSwitcher } from '@/components/view-switcher';
+import { RoutineTaskCard } from '@/components/routine-task-card';
 
 
 export default function RoutineTasksPage() {
@@ -28,6 +30,7 @@ export default function RoutineTasksPage() {
     const [priorityFilter, setPriorityFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
+    const [view, setView] = React.useState<'list' | 'grid'>('list');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -57,6 +60,10 @@ export default function RoutineTasksPage() {
                 }));
             } else {
                 setRoutineTasks(mockRoutineTasks);
+            }
+             const savedView = localStorage.getItem('routineTaskView');
+            if (savedView === 'grid' || savedView === 'list') {
+                setView(savedView);
             }
 
         } catch (error) {
@@ -114,6 +121,11 @@ export default function RoutineTasksPage() {
         }).sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
     }, [routineTasks, statusFilter, priorityFilter, yearFilter, monthFilter]);
 
+    const handleViewChange = (newView: 'list' | 'grid') => {
+        setView(newView);
+        localStorage.setItem('routineTaskView', newView);
+    };
+
     return (
         <div className="flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Routine Tasks</h1>
@@ -129,6 +141,7 @@ export default function RoutineTasksPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ViewSwitcher view={view} onViewChange={handleViewChange} />
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Year" />
@@ -189,13 +202,25 @@ export default function RoutineTasksPage() {
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                          </div>
-                    ) : (
+                    ) : view === 'list' ? (
                         <RoutineTasksTable 
                             tasks={filteredTasks} 
                             onSave={handleSaveTask}
                             onDelete={handleDeleteTask}
                             employees={employees}
                         />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                           {filteredTasks.map(task => (
+                                <RoutineTaskCard 
+                                    key={task.id}
+                                    task={task}
+                                    onSave={handleSaveTask}
+                                    onDelete={handleDeleteTask}
+                                    employees={employees}
+                                />
+                           ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>

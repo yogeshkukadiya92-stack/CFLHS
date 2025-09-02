@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReceiptText, PlusCircle, TrendingUp, Wallet, Utensils, Car, BedDouble } from "lucide-react";
+import { ReceiptText, PlusCircle, TrendingUp } from "lucide-react";
 import { mockKras, mockExpenses } from '@/lib/data';
 import type { Employee, Expense, KRA, ExpenseType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,10 +18,12 @@ import {
 import { ExpenseClaimsTable } from '@/components/expense-claims-table';
 import { AddExpenseClaimDialog } from '@/components/add-expense-claim-dialog';
 import { getMonth, getYear } from 'date-fns';
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartLegend, ChartLegendContent } from '@/components/ui/chart';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
+import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { ViewSwitcher } from '@/components/view-switcher';
+import { ExpenseCard } from '@/components/expense-card';
 
 
 interface MonthlyExpenseStat {
@@ -49,6 +51,7 @@ export default function ExpenseManagementPage() {
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>(String(getYear(new Date())));
     const [monthFilter, setMonthFilter] = React.useState<string>(String(getMonth(new Date())));
+    const [view, setView] = React.useState<'list' | 'grid'>('list');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values())
@@ -80,6 +83,10 @@ export default function ExpenseManagementPage() {
             } else {
                 setExpenses(mockExpenses);
             }
+             const savedView = localStorage.getItem('expenseView');
+            if (savedView === 'grid' || savedView === 'list') {
+                setView(savedView);
+            }
 
         } catch (error) {
             console.error("Failed to parse data from sessionStorage", error);
@@ -102,7 +109,7 @@ export default function ExpenseManagementPage() {
             if (exists) {
                 return prevExpenses.map((expense) => (expense.id === expenseToSave.id ? expenseToSave : expense));
             }
-            return [expenseToSave, ...prevExpenses].sort((a,b) => b.date.getTime() - a.date.getTime());
+            return [expenseToSave, ...prevExpenses].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         });
     };
 
@@ -138,6 +145,7 @@ export default function ExpenseManagementPage() {
         const monthExpenses = expenses.filter(e => {
             const year = parseInt(yearFilter);
             const month = parseInt(monthFilter);
+            if(isNaN(year) || isNaN(month)) return false;
             return getYear(e.date) === year && getMonth(e.date) === month;
         });
 
@@ -173,6 +181,11 @@ export default function ExpenseManagementPage() {
 
     }, [expenses, employees, yearFilter, monthFilter]);
 
+     const handleViewChange = (newView: 'list' | 'grid') => {
+        setView(newView);
+        localStorage.setItem('expenseView', newView);
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Expense Management</h1>
@@ -188,6 +201,7 @@ export default function ExpenseManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ViewSwitcher view={view} onViewChange={handleViewChange} />
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Year" />
@@ -238,13 +252,25 @@ export default function ExpenseManagementPage() {
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                          </div>
-                    ) : (
+                    ) : view === 'list' ? (
                         <ExpenseClaimsTable
                             expenses={filteredExpenses} 
                             onSave={handleSaveExpense}
                             onDelete={handleDeleteExpense}
                             employees={employees}
                         />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                           {filteredExpenses.map(expense => (
+                                <ExpenseCard 
+                                    key={expense.id}
+                                    expense={expense}
+                                    onSave={handleSaveExpense}
+                                    onDelete={handleDeleteExpense}
+                                    employees={employees}
+                                />
+                           ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>
@@ -257,7 +283,7 @@ export default function ExpenseManagementPage() {
                              <div>
                                 <CardTitle>Monthly Expense Dashboard</CardTitle>
                                 <CardDescription>
-                                    An overview of expenses for {availableMonths[parseInt(monthFilter)]} {yearFilter}.
+                                     An overview of expenses for {!isNaN(parseInt(monthFilter)) ? `${availableMonths[parseInt(monthFilter)]} ${yearFilter}` : yearFilter}.
                                 </CardDescription>
                             </div>
                         </div>

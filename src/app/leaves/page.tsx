@@ -18,6 +18,8 @@ import {
 import { LeaveRequestsTable } from '@/components/leave-requests-table';
 import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
 import { getMonth, getYear } from 'date-fns';
+import { ViewSwitcher } from '@/components/view-switcher';
+import { LeaveCard } from '@/components/leave-card';
 
 export default function LeaveManagementPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
@@ -26,6 +28,7 @@ export default function LeaveManagementPage() {
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
+    const [view, setView] = React.useState<'list' | 'grid'>('list');
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -58,6 +61,11 @@ export default function LeaveManagementPage() {
                 setLeaves(mockLeaves);
             }
 
+            const savedView = localStorage.getItem('leaveView');
+            if (savedView === 'grid' || savedView === 'list') {
+                setView(savedView);
+            }
+
         } catch (error) {
             console.error("Failed to parse data from sessionStorage", error);
             setKras(mockKras);
@@ -79,7 +87,7 @@ export default function LeaveManagementPage() {
             if (exists) {
                 return prevLeaves.map((leave) => (leave.id === leaveToSave.id ? leaveToSave : leave));
             }
-            return [leaveToSave, ...prevLeaves].sort((a,b) => b.startDate.getTime() - a.startDate.getTime());
+            return [leaveToSave, ...prevLeaves].sort((a,b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
         });
     };
 
@@ -110,6 +118,11 @@ export default function LeaveManagementPage() {
             return statusMatch && yearMatch && monthMatch;
         }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
     }, [leaves, statusFilter, yearFilter, monthFilter]);
+    
+    const handleViewChange = (newView: 'list' | 'grid') => {
+        setView(newView);
+        localStorage.setItem('leaveView', newView);
+    };
 
     return (
         <div className="flex flex-col gap-4">
@@ -126,6 +139,7 @@ export default function LeaveManagementPage() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2">
+                        <ViewSwitcher view={view} onViewChange={handleViewChange} />
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
                                 <SelectValue placeholder="Year" />
@@ -175,13 +189,25 @@ export default function LeaveManagementPage() {
                             <Skeleton className="h-10 w-full" />
                             <Skeleton className="h-10 w-full" />
                          </div>
-                    ) : (
+                    ) : view === 'list' ? (
                         <LeaveRequestsTable 
                             leaves={filteredLeaves} 
                             onSave={handleSaveLeave}
                             onDelete={handleDeleteLeave}
                             employees={employees}
                         />
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            {filteredLeaves.map(leave => (
+                                <LeaveCard
+                                    key={leave.id}
+                                    leave={leave}
+                                    onSave={handleSaveLeave}
+                                    onDelete={handleDeleteLeave}
+                                    employees={employees}
+                                />
+                            ))}
+                        </div>
                     )}
                 </CardContent>
             </Card>
