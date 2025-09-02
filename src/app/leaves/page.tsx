@@ -4,10 +4,11 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane, PlusCircle } from "lucide-react";
+import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck } from "lucide-react";
 import { mockKras, mockLeaves } from '@/lib/data';
 import type { Employee, Leave, KRA } from '@/lib/types';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -18,10 +19,24 @@ import {
 } from "@/components/ui/select"
 import { LeaveRequestsTable } from '@/components/leave-requests-table';
 import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
-import { getMonth, getYear } from 'date-fns';
+import { getMonth, getYear, differenceInMonths, startOfMonth } from 'date-fns';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { LeaveCard } from '@/components/leave-card';
 import { useAuth } from '@/components/auth-provider';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
+import { Label } from '@/components/ui/label';
+
+interface LeaveBalance {
+    employeeId: string;
+    totalAccrued: number;
+    leavesTaken: number;
+    balance: number;
+}
 
 export default function LeaveManagementPage() {
     const [kras, setKras] = React.useState<KRA[]>([]);
@@ -33,6 +48,11 @@ export default function LeaveManagementPage() {
     const [view, setView] = React.useState<'list' | 'grid'>('list');
     const { currentUser, getPermission } = useAuth();
     const pagePermission = getPermission('leaves');
+    
+    const [selectedEmployeeForExtra, setSelectedEmployeeForExtra] = React.useState('');
+    const [extraLeaves, setExtraLeaves] = React.useState(0);
+    const [comboboxOpen, setComboboxOpen] = React.useState(false);
+    const { toast } = useToast();
 
     const employees: Employee[] = React.useMemo(() => {
         return Array.from(new Map(kras.map(kra => [kra.employee.id, kra.employee])).values());
@@ -43,7 +63,7 @@ export default function LeaveManagementPage() {
             const savedKras = sessionStorage.getItem('kraData');
             if (savedKras) {
                 setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
+                    if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
                         return new Date(value);
                     }
                     return value;
@@ -82,8 +102,9 @@ export default function LeaveManagementPage() {
     React.useEffect(() => {
         if (!loading) {
             sessionStorage.setItem('leaveData', JSON.stringify(leaves));
+            sessionStorage.setItem('kraData', JSON.stringify(kras));
         }
-    }, [leaves, loading]);
+    }, [leaves, kras, loading]);
 
     const handleSaveLeave = (leaveToSave: Leave) => {
         setLeaves((prevLeaves) => {
@@ -98,6 +119,52 @@ export default function LeaveManagementPage() {
     const handleDeleteLeave = (leaveId: string) => {
         setLeaves((prevLeaves) => prevLeaves.filter((leave) => leave.id !== leaveId));
     };
+
+    const leaveBalances: LeaveBalance[] = React.useMemo(() => {
+        return employees.map(emp => {
+            const today = new Date();
+            const joiningDate = emp.joiningDate ? new Date(emp.joiningDate) : today;
+            const monthsOfService = differenceInMonths(today, startOfMonth(joiningDate));
+            const accrued = monthsOfService >= 0 ? monthsOfService + 1 : 0;
+            const extra = emp.extraLeaves || 0;
+            const totalAccrued = accrued + extra;
+
+            const leavesTaken = leaves
+                .filter(l => l.employee.id === emp.id && l.status === 'Approved')
+                .reduce((total, l) => total + (l.duration || 1), 0);
+
+            return {
+                employeeId: emp.id,
+                totalAccrued,
+                leavesTaken,
+                balance: totalAccrued - leavesTaken,
+            };
+        });
+    }, [employees, leaves]);
+
+    const handleAddExtraLeaves = () => {
+        if (!selectedEmployeeForExtra || extraLeaves <= 0) {
+            toast({ title: 'Invalid Input', description: 'Please select an employee and enter a valid number of leaves.', variant: 'destructive'});
+            return;
+        }
+
+        setKras(prevKras => {
+            return prevKras.map(kra => {
+                if (kra.employee.id === selectedEmployeeForExtra) {
+                    const updatedEmployee = {
+                        ...kra.employee,
+                        extraLeaves: (kra.employee.extraLeaves || 0) + extraLeaves
+                    };
+                    return { ...kra, employee: updatedEmployee };
+                }
+                return kra;
+            });
+        });
+        const employee = employees.find(e => e.id === selectedEmployeeForExtra);
+        toast({ title: 'Success', description: `Added ${extraLeaves} extra leaves to ${employee?.name}'s account.` });
+        setSelectedEmployeeForExtra('');
+        setExtraLeaves(0);
+    }
 
     const { availableYears, availableMonths } = React.useMemo(() => {
         const years = new Set<number>();
@@ -133,8 +200,123 @@ export default function LeaveManagementPage() {
     };
 
     return (
-        <div className="flex flex-col gap-4">
-            <h1 className="text-2xl font-semibold">Leave Management</h1>
+        <div className="flex flex-col gap-6">
+            <h1 className="text-2xl font-semibold">Leave Account</h1>
+
+            {pagePermission === 'download' && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Leave Balance Overview</CardTitle>
+                        <CardDescription>View current leave balances for all employees and grant extra leaves.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className='grid grid-cols-3 gap-6'>
+                            <div className='col-span-2'>
+                                <div className="border rounded-lg max-h-80 overflow-y-auto">
+                                    <Table>
+                                        <TableHeader className='sticky top-0 bg-background'>
+                                            <TableRow>
+                                                <TableHead>Employee</TableHead>
+                                                <TableHead>Total Accrued</TableHead>
+                                                <TableHead>Leaves Taken</TableHead>
+                                                <TableHead>Balance</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {employees.map(emp => {
+                                                const balance = leaveBalances.find(b => b.employeeId === emp.id);
+                                                return (
+                                                    <TableRow key={emp.id}>
+                                                        <TableCell>
+                                                            <div className="flex items-center gap-3">
+                                                                <Avatar className="h-8 w-8">
+                                                                <AvatarImage src={emp.avatarUrl} alt={emp.name} />
+                                                                <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
+                                                                </Avatar>
+                                                                <span className="font-medium">{emp.name}</span>
+                                                            </div>
+                                                        </TableCell>
+                                                        <TableCell>{balance?.totalAccrued.toFixed(1)}</TableCell>
+                                                        <TableCell>{balance?.leavesTaken.toFixed(1)}</TableCell>
+                                                        <TableCell className='font-semibold'>{balance?.balance.toFixed(1)}</TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                            </div>
+                            <div className='col-span-1'>
+                                <Card className='bg-muted/50'>
+                                    <CardHeader>
+                                        <CardTitle className='text-base'>Grant Extra Leaves</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className='space-y-4'>
+                                        <div className='space-y-1.5'>
+                                            <Label>Employee</Label>
+                                            <Popover open={comboboxOpen} onOpenChange={setComboboxOpen}>
+                                                <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    role="combobox"
+                                                    aria-expanded={comboboxOpen}
+                                                    className="w-full justify-between bg-background"
+                                                >
+                                                    {selectedEmployeeForExtra
+                                                    ? employees.find((emp) => emp.id === selectedEmployeeForExtra)?.name
+                                                    : "Select employee..."}
+                                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                                </PopoverTrigger>
+                                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                                <Command>
+                                                    <CommandInput placeholder="Search employee..."/>
+                                                    <CommandList>
+                                                        <CommandEmpty>No employee found.</CommandEmpty>
+                                                        <CommandGroup>
+                                                        {employees.map((employee) => (
+                                                            <CommandItem
+                                                            key={employee.id}
+                                                            value={employee.name}
+                                                            onSelect={() => {
+                                                                setSelectedEmployeeForExtra(employee.id)
+                                                                setComboboxOpen(false);
+                                                            }}
+                                                            >
+                                                            <Check
+                                                                className={cn(
+                                                                "mr-2 h-4 w-4",
+                                                                employee.id === selectedEmployeeForExtra ? "opacity-100" : "opacity-0"
+                                                                )}
+                                                            />
+                                                            {employee.name}
+                                                            </CommandItem>
+                                                        ))}
+                                                        </CommandGroup>
+                                                    </CommandList>
+                                                </Command>
+                                                </PopoverContent>
+                                            </Popover>
+                                        </div>
+                                         <div className='space-y-1.5'>
+                                            <Label>Number of Leaves</Label>
+                                            <Input 
+                                                type='number'
+                                                value={extraLeaves}
+                                                onChange={(e) => setExtraLeaves(Number(e.target.value))}
+                                                placeholder='e.g., 2'
+                                                className='bg-background'
+                                            />
+                                         </div>
+                                         <Button onClick={handleAddExtraLeaves} className='w-full'>Add Leaves</Button>
+                                    </CardContent>
+                                </Card>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between gap-4">
                     <div className='flex items-center gap-4'>

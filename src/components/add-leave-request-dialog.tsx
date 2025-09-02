@@ -32,11 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, 'Employee is required.'),
-  leaveType: z.enum(['Annual', 'Sick', 'Casual', 'Unpaid']),
+  leaveType: z.enum(['Annual', 'Sick', 'Casual', 'Unpaid', 'Half Day']),
   startDate: z.date(),
   endDate: z.date(),
   reason: z.string().min(10, "Reason must be at least 10 characters long."),
@@ -65,6 +65,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     control,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<LeaveRequestFormValues>({
     resolver: zodResolver(leaveRequestSchema),
@@ -77,6 +78,8 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
       status: leave?.status || 'Pending',
     },
   });
+  
+  const watchedLeaveType = watch('leaveType');
 
   React.useEffect(() => {
     if (open) {
@@ -98,6 +101,8 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
         toast({ title: "Error", description: "Selected employee not found.", variant: 'destructive' });
         return;
     }
+
+    const duration = data.leaveType === 'Half Day' ? 0.5 : differenceInDays(data.endDate, data.startDate) + 1;
     
     const newLeave: Leave = {
       id: leave?.id || uuidv4(),
@@ -107,6 +112,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
       endDate: data.endDate,
       reason: data.reason,
       status: data.status,
+      duration: duration,
     };
     onSave?.(newLeave);
     toast({
@@ -205,6 +211,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                                 <SelectItem value="Sick">Sick</SelectItem>
                                 <SelectItem value="Casual">Casual</SelectItem>
                                 <SelectItem value="Unpaid">Unpaid</SelectItem>
+                                <SelectItem value="Half Day">Half Day</SelectItem>
                             </SelectContent>
                         </Select>
                     )}
@@ -243,6 +250,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                                 type="date"
                                 value={format(new Date(field.value), 'yyyy-MM-dd')}
                                 onChange={e => field.onChange(new Date(e.target.value))}
+                                disabled={watchedLeaveType === 'Half Day'}
                             />
                         )}
                     />

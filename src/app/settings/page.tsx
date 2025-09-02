@@ -36,7 +36,7 @@ import { useAuth } from '@/components/auth-provider';
 const navItems = [
     { id: 'employees', label: 'Employees' },
     { id: 'routine_tasks', label: 'Routine Tasks' },
-    { id: 'leaves', label: 'Leave Management' },
+    { id: 'leaves', label: 'Leave Account' },
     { id: 'attendance', label: 'Attendance' },
     { id: 'expenses', label: 'Expense Claims' },
     { id: 'habit_tracker', label: 'Habit Tracker' },

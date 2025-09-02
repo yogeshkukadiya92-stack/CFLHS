@@ -94,7 +94,7 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
             )}
             {leaves.map((leave) => {
                const Icon = statusConfig[leave.status].icon;
-               const duration = differenceInDays(leave.endDate, leave.startDate) + 1;
+               const duration = leave.duration ?? (leave.leaveType === 'Half Day' ? 0.5 : differenceInDays(leave.endDate, leave.startDate) + 1);
                return(
               <TableRow key={leave.id}>
                 <TableCell>

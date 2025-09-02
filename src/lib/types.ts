@@ -30,6 +30,8 @@ export interface Employee {
   birthDate?: Date;
   permissions?: EmployeePermissions;
   familyMobileNumber?: string;
+  leaveBalance?: number;
+  extraLeaves?: number;
 }
 
 export interface ActionItem {
@@ -76,7 +78,7 @@ export interface RoutineTask {
 }
 
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
-export type LeaveType = 'Annual' | 'Sick' | 'Casual' | 'Unpaid';
+export type LeaveType = 'Annual' | 'Sick' | 'Casual' | 'Unpaid' | 'Half Day';
 
 export interface Leave {
     id: string;
@@ -86,6 +88,7 @@ export interface Leave {
     endDate: Date;
     reason: string;
     status: LeaveStatus;
+    duration?: number;
 }
 
 export type AttendanceStatus = 'Present' | 'Absent' | 'Half-day';

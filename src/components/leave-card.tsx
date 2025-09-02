@@ -37,7 +37,7 @@ interface LeaveCardProps {
 export function LeaveCard({ leave, employees, onSave, onDelete }: LeaveCardProps) {
   const { toast } = useToast();
   const Icon = statusConfig[leave.status].icon;
-  const duration = differenceInDays(leave.endDate, leave.startDate) + 1;
+  const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
 
   const handleStatusChange = (leave: Leave, status: LeaveStatus) => {
     onSave({ ...leave, status });

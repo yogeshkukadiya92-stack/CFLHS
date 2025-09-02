@@ -17,7 +17,7 @@ export function AppSidebar() {
   const navItems = useMemo(() => [
     { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' as keyof EmployeePermissions },
-    { href: '/leaves', label: 'Leave Management', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
+    { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
     { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' as keyof EmployeePermissions },
     { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' as keyof EmployeePermissions },
     { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, permissionKey: 'habit_tracker' as keyof EmployeePermissions },
