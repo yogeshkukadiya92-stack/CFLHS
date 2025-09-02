@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -30,9 +30,11 @@ const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.E
   'Applied': { className: 'bg-blue-100 text-blue-800 border-blue-200', icon: Send },
   'Screening': { className: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Hourglass },
   'Interview': { className: 'bg-purple-100 text-purple-800 border-purple-200', icon: Briefcase },
+  'Second Round': { className: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Briefcase },
   'Offered': { className: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   'Hired': { className: 'bg-green-200 text-green-900 border-green-300 font-semibold', icon: UserCheck },
   'Rejected': { className: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
+  'Comment': { className: 'bg-gray-100 text-gray-800 border-gray-200', icon: MessageSquare },
 };
 
 interface RecruitmentTableProps {
@@ -70,7 +72,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
                 </TableRow>
             )}
             {recruits.map((recruit) => {
-                const StatusIcon = statusConfig[recruit.status].icon;
+                const StatusIcon = statusConfig[recruit.status]?.icon || Send;
                return(
               <TableRow key={recruit.id}>
                  <TableCell>
@@ -89,7 +91,7 @@ export function RecruitmentTable({ recruits, isAdmin, onSave, onDelete }: Recrui
                 <TableCell className="font-medium">{recruit.position}</TableCell>
                 <TableCell>{format(new Date(recruit.appliedDate), 'MMM d, yyyy')}</TableCell>
                 <TableCell>
-                  <Badge variant="outline" className={cn('gap-1.5 w-28 justify-center', statusConfig[recruit.status].className)}>
+                  <Badge variant="outline" className={cn('gap-1.5 w-32 justify-center', statusConfig[recruit.status]?.className)}>
                     <StatusIcon className="h-3.5 w-3.5" />
                     {recruit.status}
                   </Badge>

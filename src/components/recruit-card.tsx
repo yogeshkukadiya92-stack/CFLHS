@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, CheckCircle, XCircle, Hourglass, Briefcase, UserCheck, Send, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,9 +23,11 @@ const statusConfig: Record<RecruitmentStatus, { className: string; icon: React.E
   'Applied': { className: 'bg-blue-100 text-blue-800 border-blue-200', icon: Send },
   'Screening': { className: 'bg-yellow-100 text-yellow-800 border-yellow-200', icon: Hourglass },
   'Interview': { className: 'bg-purple-100 text-purple-800 border-purple-200', icon: Briefcase },
+  'Second Round': { className: 'bg-indigo-100 text-indigo-800 border-indigo-200', icon: Briefcase },
   'Offered': { className: 'bg-green-100 text-green-800 border-green-200', icon: CheckCircle },
   'Hired': { className: 'bg-green-200 text-green-900 border-green-300 font-semibold', icon: UserCheck },
   'Rejected': { className: 'bg-red-100 text-red-800 border-red-200', icon: XCircle },
+  'Comment': { className: 'bg-gray-100 text-gray-800 border-gray-200', icon: MessageSquare },
 };
 
 interface RecruitCardProps {
@@ -36,7 +38,7 @@ interface RecruitCardProps {
 }
 
 export function RecruitCard({ recruit, isAdmin, onSave, onDelete }: RecruitCardProps) {
-    const StatusIcon = statusConfig[recruit.status].icon;
+    const StatusIcon = statusConfig[recruit.status]?.icon || Send;
 
   return (
     <Card className="flex flex-col">
@@ -80,7 +82,7 @@ export function RecruitCard({ recruit, isAdmin, onSave, onDelete }: RecruitCardP
         <p>{recruit.phone}</p>
       </CardContent>
       <CardFooter className="flex justify-between items-center">
-        <Badge variant="outline" className={cn('gap-1.5', statusConfig[recruit.status].className)}>
+        <Badge variant="outline" className={cn('gap-1.5', statusConfig[recruit.status]?.className)}>
             <StatusIcon className="h-3.5 w-3.5" />
             {recruit.status}
         </Badge>

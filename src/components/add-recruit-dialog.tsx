@@ -35,9 +35,11 @@ const recruitSchema = z.object({
   email: z.string().email('Invalid email address.'),
   phone: z.string().min(10, 'Phone number must be at least 10 digits.'),
   position: z.string().min(1, 'Position is required.'),
+  branch: z.string().optional(),
   appliedDate: z.date(),
-  status: z.enum(['Applied', 'Screening', 'Interview', 'Offered', 'Hired', 'Rejected']),
+  status: z.enum(['Applied', 'Screening', 'Interview', 'Second Round', 'Offered', 'Hired', 'Rejected', 'Comment']),
   notes: z.string().optional(),
+  comment: z.string().optional(),
 });
 
 type RecruitFormValues = z.infer<typeof recruitSchema>;
@@ -64,9 +66,11 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
       email: recruit?.email || '',
       phone: recruit?.phone || '',
       position: recruit?.position || '',
+      branch: recruit?.branch || '',
       appliedDate: recruit?.appliedDate || new Date(),
       status: recruit?.status || 'Applied',
       notes: recruit?.notes || '',
+      comment: recruit?.comment || '',
     },
   });
 
@@ -77,9 +81,11 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
         email: recruit?.email || '',
         phone: recruit?.phone || '',
         position: recruit?.position || '',
+        branch: recruit?.branch || '',
         appliedDate: recruit?.appliedDate ? new Date(recruit.appliedDate) : new Date(),
         status: recruit?.status || 'Applied',
         notes: recruit?.notes || '',
+        comment: recruit?.comment || '',
       });
     }
   }, [open, recruit, reset]);
@@ -168,6 +174,19 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
               </div>
             </div>
             
+             <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="branch" className="text-right">
+                Branch
+              </Label>
+              <div className="col-span-3">
+                <Controller
+                  name="branch"
+                  control={control}
+                  render={({ field }) => <Input id="branch" {...field} placeholder="e.g., Marketing" />}
+                />
+              </div>
+            </div>
+
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="appliedDate" className="text-right">
                 Applied On
@@ -207,9 +226,11 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
                                 <SelectItem value="Applied">Applied</SelectItem>
                                 <SelectItem value="Screening">Screening</SelectItem>
                                 <SelectItem value="Interview">Interview</SelectItem>
+                                <SelectItem value="Second Round">Second Round</SelectItem>
                                 <SelectItem value="Offered">Offered</SelectItem>
                                 <SelectItem value="Hired">Hired</SelectItem>
                                 <SelectItem value="Rejected">Rejected</SelectItem>
+                                <SelectItem value="Comment">Comment</SelectItem>
                             </SelectContent>
                         </Select>
                     )}
@@ -227,6 +248,18 @@ export function AddRecruitDialog({ children, recruit, onSave }: AddRecruitDialog
                   name="notes"
                   control={control}
                   render={({ field }) => <Textarea id="notes" {...field} placeholder="Add any notes about the candidate..." />}
+                />
+              </div>
+            </div>
+             <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="comment" className="text-right pt-2">
+                Comment
+              </Label>
+              <div className="col-span-3">
+                <Controller
+                  name="comment"
+                  control={control}
+                  render={({ field }) => <Textarea id="comment" {...field} placeholder="Add a final comment..." />}
                 />
               </div>
             </div>

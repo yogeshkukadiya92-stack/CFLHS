@@ -114,7 +114,7 @@ export interface Holiday {
     type: HolidayType;
 }
 
-export type RecruitmentStatus = 'Applied' | 'Screening' | 'Interview' | 'Offered' | 'Hired' | 'Rejected';
+export type RecruitmentStatus = 'Applied' | 'Screening' | 'Interview' | 'Second Round' | 'Offered' | 'Hired' | 'Rejected' | 'Comment';
 
 export interface Recruit {
     id: string;
@@ -122,8 +122,10 @@ export interface Recruit {
     email: string;
     phone: string;
     position: string;
+    branch?: string;
     appliedDate: Date;
     status: RecruitmentStatus;
     notes?: string;
     avatarUrl: string;
+    comment?: string;
 }
