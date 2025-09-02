@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Flag, Calendar } from 'lucide-react';
+import { MoreHorizontal, Flag, Calendar, MessageSquare } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -61,7 +61,7 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
             <TableRow>
               <TableHead>Task</TableHead>
               <TableHead>Assigned To</TableHead>
-              <TableHead>Due Date</TableHead>
+              <TableHead>Dates</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
@@ -80,7 +80,19 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
             {tasks.map((task) => (
               <TableRow key={task.id}>
                 <TableCell className="font-medium max-w-sm">
-                    <p className="truncate">{task.title}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="truncate">{task.title}</p>
+                        {task.remarks && (
+                            <Tooltip>
+                                <TooltipTrigger>
+                                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>{task.remarks}</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
                     <p className="text-xs text-muted-foreground truncate">{task.description}</p>
                 </TableCell>
                 <TableCell>
@@ -93,10 +105,10 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
                   </div>
                 </TableCell>
                 <TableCell>
-                    <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-4 w-4" />
-                        <span>{format(task.dueDate, 'MMM d, yyyy')}</span>
-                    </div>
+                     <div className="text-sm text-muted-foreground">
+                        <p>Assigned: {format(task.assignedDate, 'MMM d, yyyy')}</p>
+                        <p className='font-semibold text-foreground'>Due: {format(task.dueDate, 'MMM d, yyyy')}</p>
+                     </div>
                 </TableCell>
                 <TableCell>
                     <Tooltip>

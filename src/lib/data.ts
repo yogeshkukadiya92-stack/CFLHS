@@ -205,15 +205,18 @@ export const mockRoutineTasks: RoutineTask[] = [
         title: 'Daily Standup Meeting',
         description: 'Attend the daily standup meeting to report progress and impediments.',
         employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
+        assignedDate: new Date(new Date().setDate(new Date().getDate() - 1)),
         dueDate: new Date(),
         status: 'To Do',
-        priority: 'High'
+        priority: 'High',
+        remarks: 'Please be on time.'
     },
     {
         id: 'RT-002',
         title: 'Update CRM with new leads',
         description: 'Ensure all new leads from the past week are entered and categorized in the CRM.',
         employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
+        assignedDate: new Date(new Date().setDate(new Date().getDate() - 7)),
         dueDate: new Date(new Date().setDate(new Date().getDate() + 2)),
         status: 'In Progress',
         priority: 'Medium'
@@ -223,15 +226,18 @@ export const mockRoutineTasks: RoutineTask[] = [
         title: 'Weekly Social Media Posting',
         description: 'Schedule all social media posts for the upcoming week across all platforms.',
         employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
+        assignedDate: new Date(new Date().setDate(new Date().getDate() - 2)),
         dueDate: new Date(new Date().setDate(new Date().getDate() + 3)),
         status: 'To Do',
-        priority: 'Medium'
+        priority: 'Medium',
+        remarks: 'Focus on video content this week.'
     },
     {
         id: 'RT-004',
         title: 'Review and reply to support tickets',
         description: 'Go through the high-priority support ticket queue and ensure all are responded to.',
         employee: { id: 'EMP-003', name: 'Charlie Brown', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Support' },
+        assignedDate: new Date(),
         dueDate: new Date(),
         status: 'Completed',
         priority: 'High'

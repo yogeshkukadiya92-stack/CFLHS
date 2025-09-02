@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Flag, Calendar, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Flag, Calendar, Edit, Trash2, MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -84,8 +84,21 @@ export function RoutineTaskCard({ task, employees, onSave, onDelete }: RoutineTa
             </DropdownMenu>
         </div>
       </CardHeader>
-      <CardContent className="flex-grow space-y-2">
+      <CardContent className="flex-grow space-y-3">
         <p className="text-sm text-muted-foreground line-clamp-2">{task.description}</p>
+        {task.remarks && (
+            <Tooltip>
+                <TooltipTrigger className="w-full">
+                    <div className="flex items-start gap-2 text-xs text-muted-foreground border-l-2 pl-2 italic">
+                        <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0"/>
+                        <p className="line-clamp-1 text-left">{task.remarks}</p>
+                    </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                    <p>{task.remarks}</p>
+                </TooltipContent>
+            </Tooltip>
+        )}
       </CardContent>
       <CardFooter className="flex justify-between items-center">
          <div className="flex items-center gap-2">

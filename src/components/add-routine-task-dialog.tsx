@@ -39,9 +39,11 @@ const routineTaskSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters.'),
   description: z.string().min(1, "Description cannot be empty."),
   employeeId: z.string().min(1, 'Employee is required.'),
+  assignedDate: z.date(),
   dueDate: z.date(),
   status: z.enum(['To Do', 'In Progress', 'Completed']),
   priority: z.enum(['Low', 'Medium', 'High']),
+  remarks: z.string().optional(),
 });
 
 type RoutineTaskFormValues = z.infer<typeof routineTaskSchema>;
@@ -71,9 +73,11 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
       title: task?.title || '',
       description: task?.description || '',
       employeeId: task?.employee.id || '',
+      assignedDate: task?.assignedDate || new Date(),
       dueDate: task?.dueDate || new Date(),
       status: task?.status || 'To Do',
       priority: task?.priority || 'Medium',
+      remarks: task?.remarks || '',
     },
   });
 
@@ -85,9 +89,11 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
         title: task?.title || '',
         description: task?.description || '',
         employeeId: task?.employee.id || '',
+        assignedDate: task?.assignedDate ? new Date(task.assignedDate) : new Date(),
         dueDate: task?.dueDate ? new Date(task.dueDate) : new Date(),
         status: task?.status || 'To Do',
         priority: task?.priority || 'Medium',
+        remarks: task?.remarks || '',
       });
     }
   }, [open, task, reset]);
@@ -105,9 +111,11 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
       title: data.title,
       description: data.description,
       employee: selectedEmployee,
+      assignedDate: data.assignedDate,
       dueDate: data.dueDate,
       status: data.status,
       priority: data.priority,
+      remarks: data.remarks,
     };
     onSave?.(newTask);
     toast({
@@ -220,25 +228,45 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
             </div>
             
              <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="dueDate" className="text-right">
-                Due Date
-              </Label>
-              <div className="col-span-3">
-                 <Controller
-                    name="dueDate"
-                    control={control}
-                    render={({ field }) => (
-                        <Input 
-                            id="dueDate"
-                            type="date"
-                            className='w-auto'
-                            value={format(new Date(field.value), 'yyyy-MM-dd')}
-                            onChange={e => field.onChange(new Date(e.target.value))}
+                <Label className="text-right">
+                    Dates
+                </Label>
+                <div className="col-span-3 grid grid-cols-2 gap-2">
+                    <div>
+                         <Label htmlFor="assignedDate" className="text-xs text-muted-foreground">Assigned</Label>
+                         <Controller
+                            name="assignedDate"
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    id="assignedDate"
+                                    type="date"
+                                    className='w-full'
+                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                />
+                            )}
                         />
-                    )}
-                />
-                 {errors.dueDate && <p className="text-xs text-destructive mt-1">{errors.dueDate.message}</p>}
-              </div>
+                        {errors.assignedDate && <p className="text-xs text-destructive mt-1">{errors.assignedDate.message}</p>}
+                    </div>
+                    <div>
+                         <Label htmlFor="dueDate" className="text-xs text-muted-foreground">Due</Label>
+                         <Controller
+                            name="dueDate"
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    id="dueDate"
+                                    type="date"
+                                    className='w-full'
+                                    value={format(new Date(field.value), 'yyyy-MM-dd')}
+                                    onChange={e => field.onChange(new Date(e.target.value))}
+                                />
+                            )}
+                        />
+                        {errors.dueDate && <p className="text-xs text-destructive mt-1">{errors.dueDate.message}</p>}
+                    </div>
+                </div>
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
@@ -288,6 +316,20 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
                     )}
                 />
                  {errors.status && <p className="text-xs text-destructive mt-1">{errors.status.message}</p>}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="remarks" className="text-right pt-2">
+                Remarks
+              </Label>
+              <div className="col-span-3">
+                <Controller
+                    name="remarks"
+                    control={control}
+                    render={({ field }) => <Textarea id="remarks" {...field} rows={2} placeholder="Add any comments or remarks..." />}
+                />
+                 {errors.remarks && <p className="text-xs text-destructive mt-1">{errors.remarks.message}</p>}
               </div>
             </div>
 

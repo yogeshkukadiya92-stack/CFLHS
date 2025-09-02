@@ -51,9 +51,11 @@ export interface RoutineTask {
     title: string;
     description: string;
     employee: Employee;
+    assignedDate: Date;
     dueDate: Date;
     status: RoutineTaskStatus;
     priority: 'Low' | 'Medium' | 'High';
+    remarks?: string;
 }
 
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
