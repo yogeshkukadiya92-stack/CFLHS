@@ -31,7 +31,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (user) {
         // In a real app, you'd fetch this from your database.
         // For now, we'll find it from mock data.
-        const employeeData = mockKras.find(k => k.employee.email === user.email);
+        const kraData = sessionStorage.getItem('kraData');
+        const kras = kraData ? JSON.parse(kraData) : mockKras;
+        const employeeData = kras.find((k:any) => k.employee.email === user.email);
         setCurrentUserRole(employeeData?.employee.role || 'Employee');
       } else {
         setCurrentUserRole(null);
