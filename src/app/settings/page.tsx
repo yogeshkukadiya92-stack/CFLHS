@@ -23,7 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -31,6 +31,7 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/components/auth-provider';
+import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 
 
 const navItems = [
@@ -355,6 +356,17 @@ export default function SettingsPage() {
             description: `Role has been changed to ${role}.`
         })
     };
+    
+    const handleSaveEmployee = (employeeToSave: Employee) => {
+        setKras(prevKras => {
+            return prevKras.map(kra => {
+                if (kra.employee.id === employeeToSave.id) {
+                    return { ...kra, employee: employeeToSave };
+                }
+                return kra;
+            });
+        });
+    };
 
     const handlePermissionChange = (employeeId: string, permissions: EmployeePermissions) => {
          const updatedKras = kras.map(kra => {
@@ -486,11 +498,12 @@ export default function SettingsPage() {
                                     <TableHead>Email</TableHead>
                                     <TableHead className="w-[200px]">Role</TableHead>
                                     <TableHead className="w-[150px]">Permissions</TableHead>
+                                    <TableHead className="text-right w-[100px]">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={4} className="text-center">Loading users...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
                                 ) : employees.map(employee => (
                                     <TableRow key={employee.id}>
                                         <TableCell>
@@ -526,6 +539,13 @@ export default function SettingsPage() {
                                                     Edit Permissions
                                                 </Button>
                                             </PermissionDialog>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <EditEmployeeDialog employee={employee} onSave={handleSaveEmployee}>
+                                                <Button variant="ghost" size="icon" disabled={pagePermission !== 'download'}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
+                                            </EditEmployeeDialog>
                                         </TableCell>
                                     </TableRow>
                                 ))}
