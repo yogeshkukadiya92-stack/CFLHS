@@ -352,7 +352,13 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 New Employee
                             </Label>
                             <div className="col-span-3">
-                                <Input id="newEmployeeName" value={watch('employeeName')} disabled />
+                                <Controller
+                                  name="employeeName"
+                                  control={control}
+                                  render={({ field }) => (
+                                    <Input id="newEmployeeName" {...field} disabled />
+                                  )}
+                                />
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
