@@ -22,13 +22,12 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, ActionItem, Employee, UserRole } from '@/lib/types';
+import type { KRA, ActionItem, Employee } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { useAuth } from './auth-provider';
 
 
@@ -43,13 +42,6 @@ const actionItemSchema = z.object({
 const kraSchema = z.object({
   taskDescription: z.string().min(10, 'Task description must be at least 10 characters.'),
   employeeId: z.string().min(1, 'Employee is required.'),
-  employeeName: z.string().min(2, 'Employee name is required.'),
-  employeeBranch: z.string().optional(),
-  employeeRole: z.custom<UserRole>().optional(),
-  employeeAddress: z.string().optional(),
-  employeeJoiningDate: z.date().optional(),
-  employeeBirthDate: z.date().optional(),
-  employeeFamilyMobileNumber: z.string().optional(),
   weightage: z.number().positive('Weightage must be a positive number.').nullable(),
   marksAchieved: z.number().min(0).nullable(),
   bonus: z.number().min(0).nullable(),
@@ -82,9 +74,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [open, setOpen] = React.useState(false);
   const [isRefining, setIsRefining] = React.useState(false);
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
-  const [currentEmployees, setCurrentEmployees] = React.useState<Employee[]>(employees);
-  const [newEmployeeName, setNewEmployeeName] = React.useState('');
-  const [showNewEmployeeFields, setShowNewEmployeeFields] = React.useState(false);
+  
   const { getPermission } = useAuth();
   const isAdmin = getPermission('employees') === 'download';
 
@@ -103,13 +93,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     defaultValues: {
       taskDescription: kra?.taskDescription || '',
       employeeId: kra?.employee.id || '',
-      employeeName: kra?.employee.name || '',
-      employeeBranch: kra?.employee.branch || '',
-      employeeRole: kra?.employee.role || 'Employee',
-      employeeAddress: kra?.employee.address || '',
-      employeeJoiningDate: kra?.employee.joiningDate || new Date(),
-      employeeBirthDate: kra?.employee.birthDate || new Date(),
-      employeeFamilyMobileNumber: kra?.employee.familyMobileNumber || '',
       weightage: kra?.weightage || null,
       marksAchieved: kra?.marksAchieved || null,
       bonus: kra?.bonus || null,
@@ -143,19 +126,9 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
   React.useEffect(() => {
     if (open) {
-      const isEditingNewEmployee = kra && !employees.some(e => e.id === kra.employee.id);
-      setShowNewEmployeeFields(isEditingNewEmployee);
-      setCurrentEmployees(employees);
       reset({
         taskDescription: kra?.taskDescription || '',
         employeeId: kra?.employee.id || '',
-        employeeName: kra?.employee.name || '',
-        employeeBranch: kra?.employee.branch || '',
-        employeeRole: kra?.employee.role || 'Employee',
-        employeeAddress: kra?.employee.address || '',
-        employeeJoiningDate: kra?.employee.joiningDate ? new Date(kra.employee.joiningDate) : new Date(),
-        employeeBirthDate: kra?.employee.birthDate ? new Date(kra.employee.birthDate) : new Date(),
-        employeeFamilyMobileNumber: kra?.employee.familyMobileNumber || '',
         weightage: kra?.weightage || null,
         marksAchieved: kra?.marksAchieved || null,
         bonus: kra?.bonus || null,
@@ -164,21 +137,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       });
     }
   }, [open, kra, reset, employees]);
-
-  React.useEffect(() => {
-    const selectedEmployee = currentEmployees.find(e => e.id === employeeId);
-    if(selectedEmployee) {
-        setValue("employeeBranch", selectedEmployee.branch || '');
-        setValue("employeeName", selectedEmployee.name);
-        setValue("employeeRole", selectedEmployee.role || 'Employee');
-        setValue("employeeAddress", selectedEmployee.address || '');
-        setValue("employeeJoiningDate", selectedEmployee.joiningDate ? new Date(selectedEmployee.joiningDate) : new Date());
-        setValue("employeeBirthDate", selectedEmployee.birthDate ? new Date(selectedEmployee.birthDate) : new Date());
-        setValue("employeeFamilyMobileNumber", selectedEmployee.familyMobileNumber || '');
-        setShowNewEmployeeFields(false);
-    }
-  }, [employeeId, currentEmployees, setValue]);
-
 
   const taskDescription = watch('taskDescription');
 
@@ -214,28 +172,24 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   };
   
   const onSubmit = (data: KraFormValues) => {
+    const selectedEmployee = employees.find(e => e.id === data.employeeId);
+    if (!selectedEmployee) {
+      toast({
+        title: 'Error',
+        description: 'Employee not found. Please select an employee.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     const completedMarks = data.actions?.filter(a => a.isCompleted).reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
     const totalActionMarks = data.actions?.reduce((sum, a) => sum + (a.marks || 0), 0) || 0;
     const progress = totalActionMarks > 0 ? Math.round((completedMarks / totalActionMarks) * 100) : (kra?.progress || 0);
     
-    const selectedEmployee = currentEmployees.find(e => e.id === data.employeeId);
-    
-    const finalEmployeeId = showNewEmployeeFields ? uuidv4() : data.employeeId;
-
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
       taskDescription: data.taskDescription,
-      employee: {
-        id: finalEmployeeId,
-        name: data.employeeName,
-        branch: data.employeeBranch,
-        avatarUrl: selectedEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${data.employeeName.charAt(0)}`,
-        role: data.employeeRole || 'Employee',
-        address: data.employeeAddress,
-        joiningDate: data.employeeJoiningDate,
-        birthDate: data.employeeBirthDate,
-        familyMobileNumber: data.employeeFamilyMobileNumber,
-      },
+      employee: selectedEmployee,
       progress: Math.min(100, progress),
       status: kra?.status || 'Pending',
       weightage: data.weightage || null,
@@ -249,7 +203,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     onSave?.(newKra);
     toast({
       title: 'KRA Saved',
-      description: `The KRA for ${data.employeeName} has been saved successfully.`,
+      description: `The KRA for ${selectedEmployee.name} has been saved successfully.`,
     });
     setOpen(false);
   };
@@ -295,25 +249,10 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
                                 <CommandInput 
-                                placeholder="Search employee or add new..."
-                                onValueChange={setNewEmployeeName}
-                                value={newEmployeeName}
+                                placeholder="Search employee..."
                                 />
                                 <CommandList>
-                                    <CommandEmpty>
-                                        <CommandItem
-                                        onSelect={() => {
-                                            setValue("employeeName", newEmployeeName.trim());
-                                            setValue("employeeId", newEmployeeName.trim()); // Temporary ID
-                                            setValue("employeeRole", "Employee");
-                                            setShowNewEmployeeFields(true);
-                                            setEmployeeComboboxOpen(false);
-                                        }}
-                                        >
-                                        <PlusCircle className="mr-2 h-4 w-4" />
-                                        <span>Add "{newEmployeeName}"</span>
-                                        </CommandItem>
-                                    </CommandEmpty>
+                                    <CommandEmpty>No employees found.</CommandEmpty>
                                     <CommandGroup>
                                     {employees.map((employee) => (
                                         <CommandItem
@@ -341,129 +280,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         )}
                     />
                     {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
-                    <Controller name="employeeName" control={control} render={({field}) => <input type="hidden" {...field} />} />
                 </div>
                 </div>
-
-                {showNewEmployeeFields && (
-                    <>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="newEmployeeName" className="text-right">
-                                New Employee
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                  name="employeeName"
-                                  control={control}
-                                  render={({ field }) => (
-                                    <Input id="newEmployeeName" {...field} disabled />
-                                  )}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="employeeBranch" className="text-right">
-                                Branch
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                    name="employeeBranch"
-                                    control={control}
-                                    render={({ field }) => <Input id="employeeBranch" {...field} placeholder="e.g. Engineering" />}
-                                />
-                            </div>
-                        </div>
-                        {isAdmin && (
-                            <div className="grid grid-cols-4 items-center gap-4">
-                                <Label htmlFor="employeeRole" className="text-right">
-                                    Role
-                                </Label>
-                                <div className="col-span-3">
-                                    <Controller
-                                        name="employeeRole"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select role" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Admin">Admin</SelectItem>
-                                                    <SelectItem value="Manager">Manager</SelectItem>
-                                                    <SelectItem value="Employee">Employee</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        )}
-                                    />
-                                </div>
-                            </div>
-                        )}
-                        <div className="grid grid-cols-4 items-start gap-4">
-                            <Label htmlFor="employeeAddress" className="text-right">
-                                Address
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                    name="employeeAddress"
-                                    control={control}
-                                    render={({ field }) => <Textarea id="employeeAddress" {...field} placeholder="Employee's current address" />}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                             <Label htmlFor="familyMobileNumber" className="text-right">
-                                Family Contact
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                    name="employeeFamilyMobileNumber"
-                                    control={control}
-                                    render={({ field }) => <Input id="familyMobileNumber" {...field} placeholder="Family member's contact number" />}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="employeeJoiningDate" className="text-right">
-                                Joining Date
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                    name="employeeJoiningDate"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Input
-                                        id="employeeJoiningDate"
-                                        type="date"
-                                        className="w-auto"
-                                        value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                                        onChange={e => field.onChange(new Date(e.target.value))}
-                                        />
-                                    )}
-                                />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-4 items-center gap-4">
-                            <Label htmlFor="employeeBirthDate" className="text-right">
-                                Birth Date
-                            </Label>
-                            <div className="col-span-3">
-                                <Controller
-                                    name="employeeBirthDate"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Input
-                                        id="employeeBirthDate"
-                                        type="date"
-                                        className="w-auto"
-                                        value={field.value ? format(new Date(field.value), 'yyyy-MM-dd') : ''}
-                                        onChange={e => field.onChange(new Date(e.target.value))}
-                                        />
-                                    )}
-                                />
-                            </div>
-                        </div>
-                    </>
-                )}
 
                 <div className="grid grid-cols-4 items-start gap-4">
                 <Label htmlFor="taskDescription" className="text-right pt-2">

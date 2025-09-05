@@ -29,13 +29,14 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
+import { AddEmployeeDialog } from '@/components/add-employee-dialog';
 
 
 interface EmployeeSummary {
@@ -66,7 +67,7 @@ function DashboardContent() {
         const savedKras = sessionStorage.getItem('kraData');
         if (savedKras) {
             setKras(JSON.parse(savedKras, (key, value) => {
-                if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
+                if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
                     return new Date(value);
                 }
                 return value;
@@ -108,6 +109,41 @@ function DashboardContent() {
     });
   };
 
+  const handleSaveEmployee = (employeeToSave: Employee) => {
+     setKras(prevKras => {
+        const employeeExists = prevKras.some(k => k.employee.id === employeeToSave.id);
+
+        if (employeeExists) {
+            // Update existing employee's details across all their KRAs
+            return prevKras.map(kra => {
+                if (kra.employee.id === employeeToSave.id) {
+                    return { ...kra, employee: employeeToSave };
+                }
+                return kra;
+            });
+        } else {
+            // Add a new employee with a placeholder KRA (or handle as needed)
+            // For now, we'll just add the employee to the list via a "dummy" KRA
+            // that won't be displayed but will make the employee appear in the list.
+            const newPlaceholderKra: KRA = {
+                id: `KRA-placeholder-${employeeToSave.id}`,
+                taskDescription: 'Placeholder KRA for new employee',
+                employee: employeeToSave,
+                progress: 0,
+                status: 'Pending',
+                weightage: null,
+                marksAchieved: null,
+                bonus: null,
+                penalty: null,
+                startDate: new Date(),
+                endDate: new Date(),
+                actions: [],
+            };
+            return [...prevKras, newPlaceholderKra];
+        }
+    });
+  };
+
   const { employeeSummary, branchOptions, performanceData } = React.useMemo(() => {
         let krasToProcess = kras;
         if (pagePermission === 'employee_only' && currentUser) {
@@ -130,14 +166,15 @@ function DashboardContent() {
         const perfData: EmployeePerformance[] = [];
 
         employeeMap.forEach(({ employee, kras }) => {
-            const relevantKras = kras.filter(k => k.marksAchieved !== null && k.weightage !== null && k.weightage > 0);
+             const displayKras = kras.filter(k => !k.id.startsWith('KRA-placeholder-'));
+            const relevantKras = displayKras.filter(k => k.marksAchieved !== null && k.weightage !== null && k.weightage > 0);
             const totalWeightage = relevantKras.reduce((sum, kra) => sum + (kra.weightage || 0), 0);
             const totalMarksAchieved = relevantKras.reduce((sum, kra) => sum + (kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0), 0);
             const averagePerformance = totalWeightage > 0 ? Math.round((totalMarksAchieved / totalWeightage) * 100) : 0;
             
             summaryData.push({
                 employee,
-                kraCount: kras.length,
+                kraCount: displayKras.length,
                 averagePerformance
             });
 
@@ -204,9 +241,17 @@ function DashboardContent() {
                         </Select>
                     )}
                     {pagePermission === 'edit' || pagePermission === 'download' && (
-                        <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                            <Button>Add KRA</Button>
-                        </AddKraDialog>
+                        <>
+                            <AddEmployeeDialog onSave={handleSaveEmployee}>
+                                <Button variant="outline">
+                                     <PlusCircle className="mr-2 h-4 w-4" />
+                                    Add Employee
+                                </Button>
+                            </AddEmployeeDialog>
+                            <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                                <Button>Add KRA</Button>
+                            </AddKraDialog>
+                        </>
                     )}
                 </div>
                 </CardHeader>
