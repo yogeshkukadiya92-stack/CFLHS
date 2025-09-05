@@ -51,7 +51,7 @@ type LeaveRequestFormValues = z.infer<typeof leaveRequestSchema>;
 interface AddLeaveRequestDialogProps {
   children: React.ReactNode;
   leave?: Leave;
-  onSave?: (leave: Leave) => void;
+  onSave: (leave: Leave) => void;
   employees: Employee[];
 }
 
@@ -114,7 +114,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
       status: data.status,
       duration: duration,
     };
-    onSave?.(newLeave);
+    onSave(newLeave);
     toast({
       title: leave ? 'Leave Request Updated' : 'Leave Request Submitted',
       description: `The request for ${selectedEmployee.name} has been saved.`,
@@ -307,3 +307,6 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     </Dialog>
   );
 }
+
+
+    

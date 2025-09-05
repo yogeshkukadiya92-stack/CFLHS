@@ -51,7 +51,7 @@ type RoutineTaskFormValues = z.infer<typeof routineTaskSchema>;
 interface AddRoutineTaskDialogProps {
   children: React.ReactNode;
   task?: RoutineTask;
-  onSave?: (task: RoutineTask) => void;
+  onSave: (task: RoutineTask) => void;
   employees: Employee[];
 }
 
@@ -117,7 +117,7 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
       priority: data.priority,
       remarks: data.remarks,
     };
-    onSave?.(newTask);
+    onSave(newTask);
     toast({
       title: task ? 'Task Updated' : 'Task Added',
       description: `The task "${data.title}" has been saved successfully.`,
@@ -343,4 +343,5 @@ export function AddRoutineTaskDialog({ children, task, onSave, employees }: AddR
   );
 }
 
+    
     
