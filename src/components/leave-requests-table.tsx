@@ -76,7 +76,6 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
               <TableHead>Employee</TableHead>
               <TableHead>Dates</TableHead>
               <TableHead>Days</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead>Reason</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>
@@ -87,14 +86,14 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
           <TableBody>
             {leaves.length === 0 && (
                 <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={6} className="h-24 text-center">
                         No leave requests found.
                     </TableCell>
                 </TableRow>
             )}
             {leaves.map((leave) => {
                const Icon = statusConfig[leave.status].icon;
-               const duration = leave.duration ?? (leave.leaveType === 'Half Day' ? 0.5 : differenceInDays(leave.endDate, leave.startDate) + 1);
+               const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
                return(
               <TableRow key={leave.id}>
                 <TableCell>
@@ -114,9 +113,6 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
                 </TableCell>
                 <TableCell>
                     <Badge variant="outline">{duration} day{duration > 1 ? 's' : ''}</Badge>
-                </TableCell>
-                <TableCell>
-                    <span className="font-medium">{leave.leaveType}</span>
                 </TableCell>
                 <TableCell className="max-w-xs">
                      <Tooltip>

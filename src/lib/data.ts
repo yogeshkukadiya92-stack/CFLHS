@@ -27,10 +27,11 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-07-01'),
     endDate: new Date('2024-09-30'),
     actions: [
-      { id: uuidv4(), description: 'Finalize UI mockups', dueDate: new Date('2024-07-15'), isCompleted: true },
-      { id: uuidv4(), description: 'Develop backend APIs', dueDate: new Date('2024-08-10'), isCompleted: true },
-      { id: uuidv4(), description: 'Frontend implementation', dueDate: new Date('2024-09-01'), isCompleted: false },
-    ]
+      { id: uuidv4(), description: 'Finalize UI mockups', dueDate: new Date('2024-07-15'), isCompleted: true, marks: 5 },
+      { id: uuidv4(), description: 'Develop backend APIs', dueDate: new Date('2024-08-10'), isCompleted: true, marks: 5 },
+      { id: uuidv4(), description: 'Frontend implementation', dueDate: new Date('2024-09-01'), isCompleted: false, marks: 5 },
+    ],
+    handover: 'Project is on track. Frontend needs to be completed.',
   },
   {
     id: 'KRA-002',
@@ -54,10 +55,10 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-08-15'),
     endDate: new Date('2024-11-15'),
      actions: [
-      { id: uuidv4(), description: 'Keyword research', dueDate: new Date('2024-08-25'), isCompleted: true },
-      { id: uuidv4(), description: 'Create 10 blog posts', dueDate: new Date('2024-09-25'), isCompleted: false },
-      { id: uuidv4(), description: 'Build 20 backlinks', dueDate: new Date('2024-10-25'), isCompleted: false },
-      { id: uuidv4(), description: 'Optimize on-page SEO', dueDate: new Date('2024-11-05'), isCompleted: false },
+      { id: uuidv4(), description: 'Keyword research', dueDate: new Date('2024-08-25'), isCompleted: true, marks: 5 },
+      { id: uuidv4(), description: 'Create 10 blog posts', dueDate: new Date('2024-09-25'), isCompleted: false, marks: 5 },
+      { id: uuidv4(), description: 'Build 20 backlinks', dueDate: new Date('2024-10-25'), isCompleted: false, marks: 5 },
+      { id: uuidv4(), description: 'Optimize on-page SEO', dueDate: new Date('2024-11-05'), isCompleted: false, marks: 5 },
     ]
   },
   {
@@ -125,8 +126,8 @@ export const mockKras: KRA[] = [
     startDate: new Date('2024-09-01'),
     endDate: new Date('2025-03-01'),
     actions: [
-        { id: uuidv4(), description: 'Identify 50 potential leads', dueDate: new Date('2024-09-30'), isCompleted: true },
-        { id: uuidv4(), description: 'Conduct 20 product demos', dueDate: new Date('2024-11-30'), isCompleted: false },
+        { id: uuidv4(), description: 'Identify 50 potential leads', dueDate: new Date('2024-09-30'), isCompleted: true, marks: 5 },
+        { id: uuidv4(), description: 'Conduct 20 product demos', dueDate: new Date('2024-11-30'), isCompleted: false, marks: 10 },
     ]
   },
   {
@@ -248,7 +249,6 @@ export const mockLeaves: Leave[] = [
     {
         id: 'L-001',
         employee: { id: 'EMP-002', name: 'Bob Williams', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Marketing' },
-        leaveType: 'Annual',
         startDate: new Date(new Date().setDate(new Date().getDate() + 10)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 15)),
         reason: 'Family vacation to the mountains.',
@@ -257,7 +257,6 @@ export const mockLeaves: Leave[] = [
     {
         id: 'L-002',
         employee: { id: 'EMP-004', name: 'Diana Prince', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Support' },
-        leaveType: 'Sick',
         startDate: new Date(new Date().setDate(new Date().getDate() - 1)),
         endDate: new Date(new Date().setDate(new Date().getDate())),
         reason: 'Fever and cold.',
@@ -266,7 +265,6 @@ export const mockLeaves: Leave[] = [
      {
         id: 'L-003',
         employee: { id: 'EMP-005', name: 'Ethan Hunt', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Sales' },
-        leaveType: 'Casual',
         startDate: new Date(new Date().setDate(new Date().getDate() + 5)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 5)),
         reason: 'Personal appointment.',
@@ -275,7 +273,6 @@ export const mockLeaves: Leave[] = [
      {
         id: 'L-004',
         employee: { id: 'EMP-001', name: 'Alice Johnson', avatarUrl: 'https://placehold.co/32x32.png', branch: 'Engineering' },
-        leaveType: 'Annual',
         startDate: new Date(new Date().setDate(new Date().getDate() + 20)),
         endDate: new Date(new Date().setDate(new Date().getDate() + 22)),
         reason: 'Attending a tech conference.',

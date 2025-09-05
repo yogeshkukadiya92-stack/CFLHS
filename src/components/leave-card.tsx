@@ -58,7 +58,7 @@ export function LeaveCard({ leave, employees, onSave, onDelete }: LeaveCardProps
                 </Avatar>
                 <div>
                     <CardTitle className="text-base">{leave.employee.name}</CardTitle>
-                    <CardDescription className='text-xs'>{leave.leaveType} Leave</CardDescription>
+                    <CardDescription className='text-xs'>Leave Request</CardDescription>
                 </div>
             </div>
              <DropdownMenu>

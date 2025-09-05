@@ -78,12 +78,10 @@ export interface RoutineTask {
 }
 
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
-export type LeaveType = 'Annual' | 'Sick' | 'Casual' | 'Unpaid' | 'Half Day';
 
 export interface Leave {
     id: string;
     employee: Employee;
-    leaveType: LeaveType;
     startDate: Date;
     endDate: Date;
     reason: string;

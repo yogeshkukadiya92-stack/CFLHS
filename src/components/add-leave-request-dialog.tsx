@@ -20,7 +20,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import type { Leave, Employee, LeaveStatus, LeaveType } from '@/lib/types';
+import type { Leave, Employee, LeaveStatus } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -32,11 +32,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { format, differenceInDays } from 'date-fns';
+import { format, differenceInDays, isSameDay } from 'date-fns';
 
 const leaveRequestSchema = z.object({
   employeeId: z.string().min(1, 'Employee is required.'),
-  leaveType: z.enum(['Annual', 'Sick', 'Casual', 'Unpaid', 'Half Day']),
   startDate: z.date(),
   endDate: z.date(),
   reason: z.string().min(10, "Reason must be at least 10 characters long."),
@@ -65,13 +64,11 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm<LeaveRequestFormValues>({
     resolver: zodResolver(leaveRequestSchema),
     defaultValues: {
       employeeId: leave?.employee.id || '',
-      leaveType: leave?.leaveType || 'Annual',
       startDate: leave?.startDate || new Date(),
       endDate: leave?.endDate || new Date(),
       reason: leave?.reason || '',
@@ -79,13 +76,10 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     },
   });
   
-  const watchedLeaveType = watch('leaveType');
-
   React.useEffect(() => {
     if (open) {
       reset({
         employeeId: leave?.employee.id || '',
-        leaveType: leave?.leaveType || 'Annual',
         startDate: leave?.startDate ? new Date(leave.startDate) : new Date(),
         endDate: leave?.endDate ? new Date(leave.endDate) : new Date(),
         reason: leave?.reason || '',
@@ -102,12 +96,11 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
         return;
     }
 
-    const duration = data.leaveType === 'Half Day' ? 0.5 : differenceInDays(data.endDate, data.startDate) + 1;
+    const duration = isSameDay(data.startDate, data.endDate) ? 0.5 : differenceInDays(data.endDate, data.startDate) + 1;
     
     const newLeave: Leave = {
       id: leave?.id || uuidv4(),
       employee: selectedEmployee,
-      leaveType: data.leaveType,
       startDate: data.startDate,
       endDate: data.endDate,
       reason: data.reason,
@@ -192,33 +185,6 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                  {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
               </div>
             </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="leaveType" className="text-right">
-                Leave Type
-              </Label>
-              <div className="col-span-3">
-                 <Controller
-                    name="leaveType"
-                    control={control}
-                    render={({ field }) => (
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Select leave type" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Annual">Annual</SelectItem>
-                                <SelectItem value="Sick">Sick</SelectItem>
-                                <SelectItem value="Casual">Casual</SelectItem>
-                                <SelectItem value="Unpaid">Unpaid</SelectItem>
-                                <SelectItem value="Half Day">Half Day</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                 {errors.leaveType && <p className="text-xs text-destructive mt-1">{errors.leaveType.message}</p>}
-              </div>
-            </div>
 
              <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="startDate" className="text-right">
@@ -250,7 +216,6 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                                 type="date"
                                 value={format(new Date(field.value), 'yyyy-MM-dd')}
                                 onChange={e => field.onChange(new Date(e.target.value))}
-                                disabled={watchedLeaveType === 'Half Day'}
                             />
                         )}
                     />
