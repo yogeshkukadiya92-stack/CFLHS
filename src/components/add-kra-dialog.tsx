@@ -218,14 +218,13 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     
     // Case 1: KRA has actions (KPIs)
     if (actions && actions.length > 0) {
-        const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
-
+        
         actions.forEach((action, index) => {
             const kpiAchieved = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
             
             // Auto-calculate weightage for each KPI
-            const kpiWeightage = (weightage && totalKpiTarget > 0) 
-                ? (action.target! / totalKpiTarget) * weightage 
+            const kpiWeightage = (weightage && target && action.target) 
+                ? (action.target / target) * weightage 
                 : 0;
 
             if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
@@ -246,7 +245,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     } 
     // Case 2: KRA has no actions, but has a target
     else if (target && target > 0 && weightage) {
-         totalMarksAchieved = (achieved || 0 / target) * weightage;
+         totalMarksAchieved = ((achieved || 0) / target) * weightage;
     }
 
     if (watch('marksAchieved') !== parseFloat(totalMarksAchieved.toFixed(2))) {
@@ -555,7 +554,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                         <Input 
                                             type="number"
                                             placeholder="Auto Weightage"
-                                            className="bg-background"
+                                            className="bg-muted"
                                             {...weightageField}
                                             value={weightageField.value ?? ''}
                                             onChange={e => weightageField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
@@ -707,4 +706,5 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     </Dialog>
   );
 }
+
 
