@@ -47,7 +47,7 @@ export interface ActionItem {
   name: string;
   dueDate: Date;
   isCompleted: boolean;
-  weightage: number;
+  weightage?: number;
   updates?: WeeklyUpdate[];
   target?: number;
   achieved?: number;

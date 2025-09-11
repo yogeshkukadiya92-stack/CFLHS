@@ -46,7 +46,7 @@ const actionItemSchema = z.object({
   name: z.string().min(1, "Action description cannot be empty."),
   dueDate: z.date(),
   isCompleted: z.boolean(),
-  weightage: z.coerce.number().min(0, "Marks must be a positive number."),
+  weightage: z.coerce.number().min(0, "Marks must be a positive number.").optional(),
   updates: z.array(weeklyUpdateSchema).optional(),
   target: z.coerce.number().optional(),
   achieved: z.coerce.number().optional(),
@@ -62,6 +62,7 @@ const kraSchema = z.object({
   actions: z.array(actionItemSchema).optional(),
   handover: z.string().optional(),
   target: z.number().min(0).nullable(),
+  achieved: z.number().min(0).nullable(),
 });
 
 
@@ -200,6 +201,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       actions: [],
       handover: kra?.handover || '',
       target: kra?.target || null,
+      achieved: kra?.achieved || null,
     },
   });
 
@@ -208,33 +210,34 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     name: "actions",
   });
 
-  const actions = watch('actions');
-  const employeeId = watch('employeeId');
-  const kraWeightage = watch('weightage');
-  const kraTarget = watch('target');
+  const allWatchedFields = watch();
 
    React.useEffect(() => {
+    const { actions, weightage, target, achieved } = allWatchedFields;
     let totalMarksAchieved = 0;
-    const kraAchieved = kra?.achieved || 0;
     
     // Case 1: KRA has actions (KPIs)
     if (actions && actions.length > 0) {
         const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
 
         actions.forEach((action, index) => {
+            const kpiAchieved = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
+            
             // Auto-calculate weightage for each KPI
-            const kpiWeightage = (kraWeightage && totalKpiTarget > 0) 
-                ? (action.target! / totalKpiTarget) * kraWeightage 
+            const kpiWeightage = (weightage && totalKpiTarget > 0) 
+                ? (action.target! / totalKpiTarget) * weightage 
                 : 0;
-            
-            // This is slightly inefficient to call in a loop, but ensures validation message is correct
-            setValue(`actions.${index}.weightage`, parseFloat(kpiWeightage.toFixed(2)));
 
-            const achievedValue = action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-            
+            if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
+                setValue(`actions.${index}.weightage`, parseFloat(kpiWeightage.toFixed(2)));
+            }
+             if (watch(`actions.${index}.achieved`) !== kpiAchieved) {
+                setValue(`actions.${index}.achieved`, kpiAchieved);
+            }
+
             let marks = 0;
             if(action.target && action.target > 0 && kpiWeightage > 0) {
-                marks = (achievedValue / action.target) * kpiWeightage;
+                marks = (kpiAchieved / action.target) * kpiWeightage;
             } else if (action.isCompleted && kpiWeightage) {
                 marks = kpiWeightage;
             }
@@ -242,13 +245,15 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         });
     } 
     // Case 2: KRA has no actions, but has a target
-    else if (kraTarget && kraTarget > 0 && kraWeightage) {
-         totalMarksAchieved = (kraAchieved / kraTarget) * kraWeightage;
+    else if (target && target > 0 && weightage) {
+         totalMarksAchieved = (achieved || 0 / target) * weightage;
     }
 
-    setValue('marksAchieved', parseFloat(totalMarksAchieved.toFixed(2)), { shouldValidate: true });
+    if (watch('marksAchieved') !== parseFloat(totalMarksAchieved.toFixed(2))) {
+        setValue('marksAchieved', parseFloat(totalMarksAchieved.toFixed(2)), { shouldValidate: true });
+    }
 
-  }, [actions, kraWeightage, kraTarget, kra?.achieved, setValue]);
+  }, [allWatchedFields, setValue, watch]);
 
 
   React.useEffect(() => {
@@ -267,6 +272,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         })) || [],
         handover: kra?.handover || '',
         target: kra?.target || null,
+        achieved: kra?.achieved || null,
       });
     }
   }, [open, kra, reset, employees]);
@@ -323,7 +329,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     });
 
     const totalTarget = updatedActions?.reduce((sum, action) => sum + (action.target || 0), 0) || (data.target || 0);
-    const progress = totalTarget > 0 ? Math.round((kraAchieved / totalTarget) * 100) : (kra?.progress || 0);
+    const finalAchieved = data.actions && data.actions.length > 0 ? kraAchieved : (data.achieved || 0);
+    const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : (kra?.progress || 0);
 
     const newKra: KRA = {
       id: kra?.id || uuidv4(),
@@ -340,7 +347,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       actions: updatedActions,
       handover: data.handover,
       target: data.target,
-      achieved: kraAchieved,
+      achieved: finalAchieved,
     };
     onSave?.(newKra);
     toast({
@@ -700,3 +707,4 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     </Dialog>
   );
 }
+
