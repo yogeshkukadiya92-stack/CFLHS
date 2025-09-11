@@ -21,12 +21,16 @@ export function AppSidebar() {
     { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' as keyof EmployeePermissions },
     { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' as keyof EmployeePermissions },
     { href: '/habit-tracker', label: 'Habit Tracker', icon: Target, permissionKey: 'habit_tracker' as keyof EmployeePermissions },
-    { href: '/holidays', label: 'Holidays', icon: CalendarDays, permissionKey: 'holidays' as keyof EmployeePermissions },
     { href: '/recruitment', label: 'Recruitment', icon: Briefcase, permissionKey: 'recruitment' as keyof EmployeePermissions },
     { href: '/hr-calendar', label: 'HR Calendar', icon: Calendar, permissionKey: 'hr_calendar' as keyof EmployeePermissions },
   ], []);
   
   const hasAccess = (permissionKey: keyof EmployeePermissions) => {
+    const permission = getPermission(permissionKey);
+    return permission !== 'none' && permission !== 'employee_only';
+  }
+  
+  const hasEmployeeAccess = (permissionKey: keyof EmployeePermissions) => {
     return getPermission(permissionKey) !== 'none';
   }
 
@@ -44,8 +48,12 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navItems.map((item) => (
-             hasAccess(item.permissionKey) && (
+          {navItems.map((item) => {
+             const canAccess = item.permissionKey === 'employees' || item.permissionKey === 'leaves' || item.permissionKey === 'expenses'
+                ? hasEmployeeAccess(item.permissionKey)
+                : hasAccess(item.permissionKey);
+
+             return canAccess && (
                  <SidebarMenuItem key={item.href}>
                     <Link href={item.href}>
                       <SidebarMenuButton 
@@ -58,7 +66,7 @@ export function AppSidebar() {
                     </Link>
                  </SidebarMenuItem>
              )
-          ))}
+          })}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
