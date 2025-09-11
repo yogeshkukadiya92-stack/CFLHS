@@ -55,7 +55,7 @@ interface EmployeePerformance {
 
 
 function DashboardContent() {
-  const [kras, setKras] = React.useState<KRA[]>([]);
+  const [kras, setKras] = React.useState<KRA[]>(mockKras);
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [selectedBranch, setSelectedBranch] = React.useState('all');
@@ -67,40 +67,16 @@ function DashboardContent() {
 
   React.useEffect(() => {
     try {
-        const savedKras = sessionStorage.getItem('kraData');
-        if (savedKras) {
-            setKras(JSON.parse(savedKras, (key, value) => {
-                if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-                    return new Date(value);
-                }
-                return value;
-            }));
-        } else {
-            setKras(mockKras);
-        }
-         const savedBranches = sessionStorage.getItem('branchData');
-        if (savedBranches) {
-            setBranches(JSON.parse(savedBranches));
-        }
-
         const savedView = localStorage.getItem('employeeView');
         if (savedView === 'grid' || savedView === 'list') {
             setView(savedView);
         }
     } catch (error) {
-        console.error("Failed to parse data from sessionStorage", error);
-        setKras(mockKras);
+        console.error("Failed to parse data from localStorage", error);
     } finally {
         setLoading(false);
     }
   }, []);
-
-  React.useEffect(() => {
-    if (!loading) {
-        sessionStorage.setItem('kraData', JSON.stringify(kras));
-    }
-  }, [kras, loading]);
-
 
   const handleSaveKra = (kraToSave: KRA) => {
     setKras((prevKras) => {

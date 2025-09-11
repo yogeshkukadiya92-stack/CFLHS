@@ -39,8 +39,8 @@ interface LeaveBalance {
 }
 
 export default function LeaveManagementPage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [leaves, setLeaves] = React.useState<Leave[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [leaves, setLeaves] = React.useState<Leave[]>(mockLeaves);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
@@ -60,51 +60,16 @@ export default function LeaveManagementPage() {
 
     React.useEffect(() => {
         try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-            const savedLeaves = sessionStorage.getItem('leaveData');
-            if (savedLeaves) {
-                const parsedLeaves = JSON.parse(savedLeaves, (key, value) => {
-                    if (['startDate', 'endDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                })
-                setLeaves(parsedLeaves);
-            } else {
-                setLeaves(mockLeaves);
-            }
-
             const savedView = localStorage.getItem('leaveView');
             if (savedView === 'grid' || savedView === 'list') {
                 setView(savedView);
             }
-
         } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setLeaves(mockLeaves);
+            console.error("Failed to parse data from localStorage", error);
         } finally {
             setLoading(false);
         }
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('leaveData', JSON.stringify(leaves));
-            sessionStorage.setItem('kraData', JSON.stringify(kras));
-        }
-    }, [leaves, kras, loading]);
 
     const handleSaveLeave = (leaveToSave: Leave) => {
         setLeaves((prevLeaves) => {

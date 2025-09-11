@@ -240,7 +240,7 @@ const BranchDialog = ({
 
 export default function SettingsPage() {
     const [branches, setBranches] = React.useState<Branch[]>([]);
-    const [kras, setKras] = React.useState<KRA[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
     const { getPermission } = useAuth();
@@ -267,37 +267,8 @@ export default function SettingsPage() {
     }, [kras, branches]);
 
     React.useEffect(() => {
-        try {
-            const savedBranches = sessionStorage.getItem('branchData');
-            if (savedBranches) {
-                setBranches(JSON.parse(savedBranches));
-            }
-             const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-        } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-             setKras(mockKras);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('branchData', JSON.stringify(branches));
-            sessionStorage.setItem('kraData', JSON.stringify(kras));
-        }
-    }, [branches, kras, loading]);
 
     const handleSaveBranch = (branchToSave: Branch) => {
         const isEditing = branches.some(b => b.id === branchToSave.id);

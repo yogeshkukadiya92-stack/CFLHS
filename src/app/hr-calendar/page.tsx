@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -28,8 +29,8 @@ const eventConfig: Record<EventType, { className: string, icon: React.ElementTyp
 };
 
 export default function HRCalendarPage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [holidays, setHolidays] = React.useState<Holiday[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [holidays, setHolidays] = React.useState<Holiday[]>(mockHolidays);
     const [loading, setLoading] = React.useState(true);
     const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const [currentMonth, setCurrentMonth] = React.useState<Date>(new Date());
@@ -39,31 +40,7 @@ export default function HRCalendarPage() {
     }, [kras]);
 
     React.useEffect(() => {
-        try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-            const savedHolidays = sessionStorage.getItem('holidayData');
-             if (savedHolidays) {
-                setHolidays(JSON.parse(savedHolidays, (key, value) => key === 'date' ? new Date(value) : value));
-            } else {
-                setHolidays(mockHolidays);
-            }
-        } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setHolidays(mockHolidays);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     }, []);
 
     const calendarEvents: CalendarEvent[] = React.useMemo(() => {

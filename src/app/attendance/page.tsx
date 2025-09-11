@@ -35,8 +35,8 @@ interface MonthlyStat {
 }
 
 export default function AttendancePage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [attendances, setAttendances] = React.useState<Attendance[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [attendances, setAttendances] = React.useState<Attendance[]>(mockAttendances);
     const [loading, setLoading] = React.useState(true);
     const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
     const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -53,45 +53,8 @@ export default function AttendancePage() {
     }, [kras]);
 
     React.useEffect(() => {
-        try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-            const savedAttendances = sessionStorage.getItem('attendanceData');
-            if (savedAttendances) {
-                setAttendances(JSON.parse(savedAttendances, (key, value) => {
-                    if (key === 'date' && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setAttendances(mockAttendances);
-            }
-
-        } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setAttendances(mockAttendances);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('attendanceData', JSON.stringify(attendances));
-        }
-    }, [attendances, loading]);
 
     const handleSaveAttendance = (attendanceToSave: Attendance) => {
         setAttendances((prevAttendances) => {

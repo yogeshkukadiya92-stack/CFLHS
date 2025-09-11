@@ -58,15 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        const kraData = sessionStorage.getItem('kraData');
-        const kras : KRA[] = kraData ? JSON.parse(kraData, (key, value) => {
-             if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-                return new Date(value);
-            }
-            return value;
-        }) : mockKras;
-
-        let employeeData = kras.find((k:any) => k.employee.email === user.email)?.employee;
+        let employeeData = mockKras.find((k:any) => k.employee.email === user.email)?.employee;
         
         if (employeeData) {
              if (employeeData.role === 'Admin') {

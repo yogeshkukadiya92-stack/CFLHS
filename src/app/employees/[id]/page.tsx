@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -38,41 +39,13 @@ export default function EmployeeKraPage() {
   const { toast } = useToast();
   const id = params.id as string;
   
-  const [kras, setKras] = React.useState<KRA[]>([]);
+  const [kras, setKras] = React.useState<KRA[]>(mockKras);
   const [branches, setBranches] = React.useState<Branch[]>([]);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    try {
-      const savedKras = sessionStorage.getItem('kraData');
-      if (savedKras) {
-        setKras(JSON.parse(savedKras, (key, value) => {
-          if (['startDate', 'endDate', 'dueDate', 'joiningDate', 'birthDate'].includes(key) && value) {
-            return new Date(value);
-          }
-          return value;
-        }));
-      } else {
-        setKras(mockKras);
-      }
-      const savedBranches = sessionStorage.getItem('branchData');
-        if (savedBranches) {
-            setBranches(JSON.parse(savedBranches));
-        }
-    } catch (error) {
-      console.error("Failed to parse KRA data from sessionStorage", error);
-      setKras(mockKras);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(false);
   }, []);
-
-  React.useEffect(() => {
-    if (!loading) {
-      sessionStorage.setItem('kraData', JSON.stringify(kras));
-    }
-  }, [kras, loading]);
-
 
   const handleSaveKra = (kraToSave: KRA) => {
     setKras((prevKras) => {

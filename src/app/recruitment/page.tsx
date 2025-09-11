@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 export default function RecruitmentPage() {
-    const [recruits, setRecruits] = React.useState<Recruit[]>([]);
+    const [recruits, setRecruits] = React.useState<Recruit[]>(mockRecruits);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const { getPermission } = useAuth();
@@ -37,35 +37,16 @@ export default function RecruitmentPage() {
 
     React.useEffect(() => {
         try {
-            const savedRecruits = sessionStorage.getItem('recruitmentData');
-            if (savedRecruits) {
-                setRecruits(JSON.parse(savedRecruits, (key, value) => {
-                    if (['appliedDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setRecruits(mockRecruits);
-            }
              const savedView = localStorage.getItem('recruitView');
             if (savedView === 'grid' || savedView === 'list') {
                 setView(savedView);
             }
-
         } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setRecruits(mockRecruits);
+            console.error("Failed to parse data from localStorage", error);
         } finally {
             setLoading(false);
         }
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('recruitmentData', JSON.stringify(recruits));
-        }
-    }, [recruits, loading]);
 
     const handleSaveRecruit = (recruitToSave: Recruit) => {
         setRecruits((prevRecruits) => {

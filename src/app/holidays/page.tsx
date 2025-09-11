@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 
 
 export default function HolidaysPage() {
-    const [holidays, setHolidays] = React.useState<Holiday[]>([]);
+    const [holidays, setHolidays] = React.useState<Holiday[]>(mockHolidays);
     const [loading, setLoading] = React.useState(true);
     const { getPermission } = useAuth();
     const pagePermission = getPermission('holidays');
@@ -31,32 +31,8 @@ export default function HolidaysPage() {
 
 
     React.useEffect(() => {
-        try {
-            const savedHolidays = sessionStorage.getItem('holidayData');
-            if (savedHolidays) {
-                setHolidays(JSON.parse(savedHolidays, (key, value) => {
-                    if (key === 'date' && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setHolidays(mockHolidays);
-            }
-
-        } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setHolidays(mockHolidays);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('holidayData', JSON.stringify(holidays));
-        }
-    }, [holidays, loading]);
 
     const handleSaveHoliday = (holidayToSave: Holiday) => {
         setHolidays((prevHolidays) => {

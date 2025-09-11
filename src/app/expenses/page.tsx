@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -45,8 +46,8 @@ const TYPE_COLORS: Record<ExpenseType, string> = {
 }
 
 export default function ExpenseManagementPage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [expenses, setExpenses] = React.useState<Expense[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [expenses, setExpenses] = React.useState<Expense[]>(mockExpenses);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>(String(getYear(new Date())));
@@ -60,48 +61,16 @@ export default function ExpenseManagementPage() {
 
     React.useEffect(() => {
         try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-            const savedExpenses = sessionStorage.getItem('expenseData');
-            if (savedExpenses) {
-                setExpenses(JSON.parse(savedExpenses, (key, value) => {
-                    if (['date'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setExpenses(mockExpenses);
-            }
-             const savedView = localStorage.getItem('expenseView');
+            const savedView = localStorage.getItem('expenseView');
             if (savedView === 'grid' || savedView === 'list') {
                 setView(savedView);
             }
-
         } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setExpenses(mockExpenses);
+            console.error("Failed to parse data from localStorage", error);
         } finally {
             setLoading(false);
         }
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('expenseData', JSON.stringify(expenses));
-        }
-    }, [expenses, loading]);
 
     const handleSaveExpense = (expenseToSave: Expense) => {
         setExpenses((prevExpenses) => {

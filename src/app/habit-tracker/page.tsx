@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -19,8 +20,8 @@ import { AddHabitDialog } from '@/components/add-habit-dialog';
 import { HabitCard } from '@/components/habit-card';
 
 export default function HabitTrackerPage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [habits, setHabits] = React.useState<Habit[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [habits, setHabits] = React.useState<Habit[]>(mockHabits);
     const [loading, setLoading] = React.useState(true);
     const [selectedEmployee, setSelectedEmployee] = React.useState('all');
 
@@ -30,48 +31,8 @@ export default function HabitTrackerPage() {
     }, [kras]);
 
     React.useEffect(() => {
-        try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-            const savedHabits = sessionStorage.getItem('habitData');
-            if (savedHabits) {
-                setHabits(JSON.parse(savedHabits, (key, value) => {
-                    if (key === 'checkIns' && Array.isArray(value)) {
-                        return value.map(d => new Date(d));
-                    }
-                     if (key === 'startDate' && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setHabits(mockHabits);
-            }
-
-        } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setHabits(mockHabits);
-        } finally {
-            setLoading(false);
-        }
+        setLoading(false);
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('habitData', JSON.stringify(habits));
-        }
-    }, [habits, loading]);
 
     const handleSaveHabit = (habitToSave: Habit) => {
         setHabits((prevHabits) => {

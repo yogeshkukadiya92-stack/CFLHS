@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -23,8 +24,8 @@ import { RoutineTaskCard } from '@/components/routine-task-card';
 
 
 export default function RoutineTasksPage() {
-    const [kras, setKras] = React.useState<KRA[]>([]);
-    const [routineTasks, setRoutineTasks] = React.useState<RoutineTask[]>([]);
+    const [kras, setKras] = React.useState<KRA[]>(mockKras);
+    const [routineTasks, setRoutineTasks] = React.useState<RoutineTask[]>(mockRoutineTasks);
     const [loading, setLoading] = React.useState(true);
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [priorityFilter, setPriorityFilter] = React.useState('all');
@@ -38,49 +39,16 @@ export default function RoutineTasksPage() {
 
     React.useEffect(() => {
         try {
-            const savedKras = sessionStorage.getItem('kraData');
-            if (savedKras) {
-                setKras(JSON.parse(savedKras, (key, value) => {
-                    if (['startDate', 'endDate', 'dueDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setKras(mockKras);
-            }
-
-            const savedTasks = sessionStorage.getItem('routineTasksData');
-            if (savedTasks) {
-                setRoutineTasks(JSON.parse(savedTasks, (key, value) => {
-                    if (['dueDate', 'assignedDate'].includes(key) && value) {
-                        return new Date(value);
-                    }
-                    return value;
-                }));
-            } else {
-                setRoutineTasks(mockRoutineTasks);
-            }
              const savedView = localStorage.getItem('routineTaskView');
             if (savedView === 'grid' || savedView === 'list') {
                 setView(savedView);
             }
-
         } catch (error) {
-            console.error("Failed to parse data from sessionStorage", error);
-            setKras(mockKras);
-            setRoutineTasks(mockRoutineTasks);
+            console.error("Failed to parse data from localStorage", error);
         } finally {
             setLoading(false);
         }
     }, []);
-
-    React.useEffect(() => {
-        if (!loading) {
-            sessionStorage.setItem('routineTasksData', JSON.stringify(routineTasks));
-        }
-    }, [routineTasks, loading]);
-
 
     const handleSaveTask = (taskToSave: RoutineTask) => {
         setRoutineTasks((prevTasks) => {
