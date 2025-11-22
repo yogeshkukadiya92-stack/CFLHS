@@ -464,7 +464,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                     <Label htmlFor="weightage" className="text-right">
                        Details
                     </Label>
-                     <div className="col-span-3 grid grid-cols-2 gap-2">
+                     <div className="col-span-3 grid grid-cols-3 gap-2">
                         <div>
                              <Label className="text-xs text-muted-foreground">Weightage</Label>
                             <Controller
@@ -501,6 +501,24 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             />
                             {errors.target && <p className="text-xs text-destructive mt-1">{errors.target.message}</p>}
                         </div>
+                         <div>
+                            <Label className="text-xs text-muted-foreground">Achieved</Label>
+                             <Controller
+                            name="achieved"
+                            control={control}
+                            render={({ field }) => (
+                                <Input 
+                                    id="achieved" 
+                                    type="number" 
+                                    {...field} 
+                                    value={field.value ?? ''}
+                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                    placeholder="e.g. 1200"
+                                />
+                            )}
+                            />
+                            {errors.achieved && <p className="text-xs text-destructive mt-1">{errors.achieved.message}</p>}
+                        </div>
                     </div>
                 </div>
             </fieldset>
@@ -521,14 +539,14 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     />
                                 )}
                             />
-                            <div className='flex-1 grid grid-cols-[1fr,80px,80px,80px] gap-2'>
+                            <div className='flex-1 grid grid-cols-[1fr,120px] gap-2'>
                                 <Controller
                                     name={`actions.${index}.name`}
                                     control={control}
                                     render={({ field: nameField }) => (
                                         <Input 
                                             type="text"
-                                            placeholder="KPI (e.g. Calls)"
+                                            placeholder="KPI Description (e.g. Calls, Visits)"
                                             className="bg-background"
                                             {...nameField}
                                         />
@@ -545,35 +563,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                             {...targetField}
                                             value={targetField.value ?? ''}
                                             onChange={e => targetField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                                        />
-                                    )}
-                                />
-                                 <Controller
-                                    name={`actions.${index}.achieved`}
-                                    control={control}
-                                    render={({ field: achievedField }) => (
-                                        <Input 
-                                            type="number"
-                                            placeholder="Achieved"
-                                            className="bg-background"
-                                            {...achievedField}
-                                            value={achievedField.value ?? ''}
-                                            onChange={e => achievedField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                                        />
-                                    )}
-                                />
-                                 <Controller
-                                    name={`actions.${index}.weightage`}
-                                    control={control}
-                                    render={({ field: weightageField }) => (
-                                        <Input 
-                                            type="number"
-                                            placeholder="Auto"
-                                            className="bg-muted"
-                                            {...weightageField}
-                                            value={weightageField.value ?? ''}
-                                            onChange={e => weightageField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                                            readOnly
                                         />
                                     )}
                                 />
@@ -725,6 +714,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     </Dialog>
   );
 }
+
 
 
 
