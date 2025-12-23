@@ -55,7 +55,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave, 
   const handleStatusChange = (employee: Employee, status: AttendanceStatus) => {
     const existingAttendance = getAttendanceForEmployee(employee.id, selectedDate);
     const attendanceToSave: Attendance = {
-      id: existingAttendance?.id || uuidv4(),
+      id: existingAttendance?.id || `${employee.id}-${format(selectedDate, 'yyyy-MM-dd')}`,
       employee: employee,
       date: selectedDate,
       status: status,

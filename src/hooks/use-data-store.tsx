@@ -1,11 +1,52 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { mockKras, mockLeaves, mockExpenses, mockRoutineTasks, mockHabits, mockHolidays, mockRecruits, mockAttendances } from '@/lib/data';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+
+// Helper function to get data from localStorage
+const useLocalStorage = <T,>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
+  const [storedValue, setStoredValue] = useState<T>(() => {
+    if (typeof window === 'undefined') {
+      return initialValue;
+    }
+    try {
+      const item = window.localStorage.getItem(key);
+      // Need to handle date strings on parse
+      return item ? JSON.parse(item, (key, value) => {
+        if (key.includes('Date') || key.includes('date') || key === 'checkIns') {
+            if (Array.isArray(value)) {
+                return value.map(v => new Date(v));
+            }
+            if(typeof value === 'string' && value.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z/)) {
+                return new Date(value);
+            }
+        }
+        return value;
+      }) : initialValue;
+    } catch (error) {
+      console.error(error);
+      return initialValue;
+    }
+  });
+
+  const setValue: React.Dispatch<React.SetStateAction<T>> = (value) => {
+    try {
+      const valueToStore = value instanceof Function ? value(storedValue) : value;
+      setStoredValue(valueToStore);
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  return [storedValue, setValue];
+};
+
 
 interface DataStoreContextType {
   loading: boolean;
@@ -40,19 +81,18 @@ const DataStoreContext = createContext<DataStoreContextType | undefined>(undefin
 
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
-  const [kras, setKras] = useState<KRA[]>(mockKras);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>(mockLeaves);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
-  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>(mockRoutineTasks);
-  const [habits, setHabits] = useState<Habit[]>(mockHabits);
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
-  const [recruits, setRecruits] = useState<Recruit[]>(mockRecruits);
-  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
-
+  const [kras, setKras] = useLocalStorage<KRA[]>('kras', mockKras);
+  const [branches, setBranches] = useLocalStorage<Branch[]>('branches', []);
+  const [leaves, setLeaves] = useLocalStorage<Leave[]>('leaves', mockLeaves);
+  const [expenses, setExpenses] = useLocalStorage<Expense[]>('expenses', mockExpenses);
+  const [routineTasks, setRoutineTasks] = useLocalStorage<RoutineTask[]>('routineTasks', mockRoutineTasks);
+  const [habits, setHabits] = useLocalStorage<Habit[]>('habits', mockHabits);
+  const [holidays, setHolidays] = useLocalStorage<Holiday[]>('holidays', mockHolidays);
+  const [recruits, setRecruits] = useLocalStorage<Recruit[]>('recruits', mockRecruits);
+  const [attendances, setAttendances] = useLocalStorage<Attendance[]>('attendances', mockAttendances);
 
   useEffect(() => {
-    // Simulate loading data
+    // Data is now loaded from localStorage, so loading is quicker.
     setLoading(false);
   }, []);
 
@@ -189,11 +229,11 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
         setAttendances((prevAttendances) => {
             const exists = prevAttendances.some(
                 a => a.employee.id === attendanceToSave.employee.id &&
-                a.date.toDateString() === attendanceToSave.date.toDateString()
+                new Date(a.date).toDateString() === new Date(attendanceToSave.date).toDateString()
             );
             if (exists) {
                 return prevAttendances.map((att) =>
-                    (att.employee.id === attendanceToSave.employee.id && att.date.toDateString() === attendanceToSave.date.toDateString())
+                    (att.employee.id === attendanceToSave.employee.id && new Date(att.date).toDateString() === new Date(attendanceToSave.date).toDateString())
                         ? attendanceToSave
                         : att
                 );
