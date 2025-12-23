@@ -46,7 +46,7 @@ const TYPE_COLORS: Record<ExpenseType, string> = {
 }
 
 export default function ExpenseManagementPage() {
-    const { employees, expenses, loading, handleSaveExpense } = useDataStore();
+    const { employees, expenses, loading, handleSaveExpense, handleDeleteExpense } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>(String(getYear(new Date())));
     const [monthFilter, setMonthFilter] = React.useState<string>(String(getMonth(new Date())));
@@ -62,11 +62,6 @@ export default function ExpenseManagementPage() {
             console.error("Failed to parse data from localStorage", error);
         }
     }, []);
-
-    const handleDeleteExpense = (expenseId: string) => {
-        // This needs to be implemented in the data store
-        console.log("Delete expense action triggered for", expenseId);
-    };
 
     const { availableYears, availableMonths } = React.useMemo(() => {
         const years = new Set<number>();

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -23,6 +24,7 @@ interface DataStoreContextType {
   handleDeleteEmployee: (employeeId: string) => void;
   handleSaveLeave: (leave: Leave) => void;
   handleSaveExpense: (expense: Expense) => void;
+  handleDeleteExpense: (expenseId: string) => void;
   handleSaveRoutineTask: (task: RoutineTask) => void;
   handleDeleteRoutineTask: (taskId: string) => void;
   handleSaveHabit: (habit: Habit) => void;
@@ -128,6 +130,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
+  const handleDeleteExpense = (expenseId: string) => {
+    setExpenses(prevExpenses => prevExpenses.filter(expense => expense.id !== expenseId));
+  };
+
   const handleSaveRoutineTask = (taskToSave: RoutineTask) => {
     setRoutineTasks((prevTasks) => {
         const exists = prevTasks.some(t => t.id === taskToSave.id);
@@ -209,6 +215,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     handleDeleteEmployee,
     handleSaveLeave,
     handleSaveExpense,
+    handleDeleteExpense,
     handleSaveRoutineTask,
     handleDeleteRoutineTask,
     handleSaveHabit,
