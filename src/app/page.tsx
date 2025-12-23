@@ -38,6 +38,7 @@ import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
 import { getYear, getMonth, startOfMonth, endOfMonth } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
+import { KraTable } from '@/components/kra-table';
 
 
 interface EmployeeSummary {
@@ -61,7 +62,8 @@ function DashboardContent() {
     loading, 
     employees, 
     handleSaveKra, 
-    handleSaveEmployee 
+    handleSaveEmployee,
+    handleDeleteEmployee
   } = useDataStore();
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [selectedYear, setSelectedYear] = React.useState<string>('all');
@@ -81,11 +83,13 @@ function DashboardContent() {
     }
   }, []);
 
-  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths } = React.useMemo(() => {
+  const { employeeSummary, branchOptions, performanceData, availableYears, availableMonths, employeeKras } = React.useMemo(() => {
         let krasToProcess = kras;
+        let employeeKras: KRA[] = [];
 
         if (pagePermission === 'employee_only' && currentUser) {
             krasToProcess = kras.filter(k => k.employee.id === currentUser.id);
+            employeeKras = krasToProcess;
         }
 
         const filteredKrasByDate = krasToProcess.filter(kra => {
@@ -168,7 +172,8 @@ function DashboardContent() {
             branchOptions: uniqueBranches, 
             performanceData: sortedPerfData,
             availableYears: Array.from(yearsSet).sort((a, b) => b - a),
-            availableMonths: monthMap
+            availableMonths: monthMap,
+            employeeKras
         };
 
     }, [kras, branches, pagePermission, currentUser, selectedYear, selectedMonth]);
@@ -186,6 +191,35 @@ function DashboardContent() {
         setView(newView);
         localStorage.setItem('employeeView', newView);
     };
+
+    if (pagePermission === 'employee_only') {
+        return (
+            <div className="flex-1 flex flex-col gap-4">
+                 <h1 className="text-2xl font-semibold">My Dashboard</h1>
+                 <Card>
+                    <CardHeader>
+                        <CardTitle>My Key Result Areas (KRAs)</CardTitle>
+                        <CardDescription>View and track your assigned KRAs.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                          {loading ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-12 w-full" />
+                                <Skeleton className="h-12 w-full" />
+                            </div>
+                        ) : (
+                            <KraTable 
+                               kras={employeeKras}
+                               employees={employees}
+                               onSave={handleSaveKra}
+                               onDelete={handleDeleteEmployee}
+                            />
+                        )}
+                    </CardContent>
+                 </Card>
+            </div>
+        )
+    }
 
   return (
      <TooltipProvider>

@@ -15,7 +15,7 @@ export function AppSidebar() {
   const { user, currentUser, getPermission } = useAuth();
 
   const navItems = useMemo(() => [
-    { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
+    { href: '/', label: 'Dashboard', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
     { href: '/kras', label: 'KRA Management', icon: ListChecks, permissionKey: 'employees' as keyof EmployeePermissions },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' as keyof EmployeePermissions },
     { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
@@ -38,6 +38,15 @@ export function AppSidebar() {
   if (!user) {
     return null;
   }
+  
+  const employeeNavItems = [
+    { href: '/', label: 'My Dashboard', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
+    { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
+    { href: '/expenses', label: 'Expense Claims', icon: ReceiptText, permissionKey: 'expenses' as keyof EmployeePermissions },
+  ]
+
+  const itemsToRender = getPermission('employees') === 'employee_only' ? employeeNavItems : navItems;
+
 
   return (
     <>
@@ -49,10 +58,8 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
-          {navItems.map((item) => {
-             const canAccess = item.permissionKey === 'employees' || item.permissionKey === 'leaves' || item.permissionKey === 'expenses'
-                ? hasEmployeeAccess(item.permissionKey)
-                : hasAccess(item.permissionKey);
+          {itemsToRender.map((item) => {
+             const canAccess = hasEmployeeAccess(item.permissionKey);
 
              return canAccess && (
                  <SidebarMenuItem key={item.href}>
