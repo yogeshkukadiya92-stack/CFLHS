@@ -6,6 +6,7 @@ export type PermissionLevel = 'none' | 'view' | 'edit' | 'download' | 'employee_
 
 export interface EmployeePermissions {
     employees: PermissionLevel;
+    kras: PermissionLevel;
     routine_tasks: PermissionLevel;
     leaves: PermissionLevel;
     attendance: PermissionLevel;

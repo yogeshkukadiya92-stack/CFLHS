@@ -36,6 +36,7 @@ import { useDataStore } from '@/hooks/use-data-store';
 
 const navItems = [
     { id: 'employees', label: 'Employees' },
+    { id: 'kras', label: 'KRA Management' },
     { id: 'routine_tasks', label: 'Routine Tasks' },
     { id: 'leaves', label: 'Leave Account' },
     { id: 'attendance', label: 'Attendance' },
@@ -68,7 +69,7 @@ const PermissionDialog = ({
     const { currentUser } = useAuth();
     const [permissions, setPermissions] = React.useState<EmployeePermissions>(
         employee.permissions || {
-            employees: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
+            employees: 'employee_only', kras: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
             expenses: 'edit', habit_tracker: 'edit', holidays: 'view', recruitment: 'view', hr_calendar: 'view', settings: 'none'
         }
     );
@@ -76,7 +77,7 @@ const PermissionDialog = ({
     React.useEffect(() => {
         if(open) {
              setPermissions(employee.permissions || {
-                employees: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
+                employees: 'employee_only', kras: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
                 expenses: 'edit', habit_tracker: 'edit', holidays: 'view', recruitment: 'view', hr_calendar: 'view', settings: 'none'
             });
         }

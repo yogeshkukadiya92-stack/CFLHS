@@ -18,6 +18,7 @@ interface AuthContextType {
 
 const defaultPermissions: EmployeePermissions = {
     employees: 'employee_only',
+    kras: 'employee_only',
     routine_tasks: 'view',
     leaves: 'employee_only',
     attendance: 'view',
@@ -31,6 +32,7 @@ const defaultPermissions: EmployeePermissions = {
 
 const adminPermissions: EmployeePermissions = {
     employees: 'download',
+    kras: 'download',
     routine_tasks: 'download',
     leaves: 'download',
     attendance: 'download',
