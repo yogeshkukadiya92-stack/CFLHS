@@ -150,7 +150,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
         <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
             {action.name} 
              {action.target && (
-                 <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
+                <QuickUpdateDialog action={{...action, achieved}} onUpdate={handleQuickUpdate}>
                     <span className='text-muted-foreground text-xs cursor-pointer hover:underline'> ({achieved} / {action.target})</span>
                  </QuickUpdateDialog>
             )}
@@ -201,6 +201,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   
   return (
      <TooltipProvider>
+    <div className='border rounded-lg'>
     <Table>
       <TableHeader>
         <TableRow>
@@ -303,6 +304,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         })}
       </TableBody>
     </Table>
+    </div>
     </TooltipProvider>
   );
 }

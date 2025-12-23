@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Settings, Package2, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase, Calendar } from 'lucide-react';
+import { Settings, Package2, Users, ListTodo, Plane, UserCheck, ReceiptText, Target, CalendarDays, Briefcase, Calendar, ListChecks } from 'lucide-react';
 import { useAuth } from './auth-provider';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
@@ -16,6 +16,7 @@ export function AppSidebar() {
 
   const navItems = useMemo(() => [
     { href: '/', label: 'Employees', icon: Users, permissionKey: 'employees' as keyof EmployeePermissions },
+    { href: '/kras', label: 'KRA Management', icon: ListChecks, permissionKey: 'employees' as keyof EmployeePermissions },
     { href: '/routine-tasks', label: 'Routine Tasks', icon: ListTodo, permissionKey: 'routine_tasks' as keyof EmployeePermissions },
     { href: '/leaves', label: 'Leave Account', icon: Plane, permissionKey: 'leaves' as keyof EmployeePermissions },
     { href: '/attendance', label: 'Attendance', icon: UserCheck, permissionKey: 'attendance' as keyof EmployeePermissions },

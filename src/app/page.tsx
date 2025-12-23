@@ -190,7 +190,7 @@ function DashboardContent() {
   return (
      <TooltipProvider>
         <div className="flex-1 flex flex-col gap-4">
-            <h1 className="text-2xl font-semibold">Employee Management</h1>
+            <h1 className="text-2xl font-semibold">Employee Dashboard</h1>
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -238,17 +238,12 @@ function DashboardContent() {
                         </Select>
                     )}
                     {pagePermission === 'edit' || pagePermission === 'download' && (
-                        <>
-                            <AddEmployeeDialog onSave={handleSaveEmployee}>
-                                <Button variant="outline">
-                                     <PlusCircle className="mr-2 h-4 w-4" />
-                                    Add Employee
-                                </Button>
-                            </AddEmployeeDialog>
-                            <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                                <Button>Add KRA</Button>
-                            </AddKraDialog>
-                        </>
+                        <AddEmployeeDialog onSave={handleSaveEmployee}>
+                            <Button>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Employee
+                            </Button>
+                        </AddEmployeeDialog>
                     )}
                 </div>
                 </CardHeader>
