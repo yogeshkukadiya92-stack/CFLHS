@@ -23,6 +23,7 @@ interface DataStoreContextType {
   handleSaveEmployee: (employee: Employee) => void;
   handleDeleteEmployee: (employeeId: string) => void;
   handleSaveLeave: (leave: Leave) => void;
+  handleDeleteLeave: (leaveId: string) => void;
   handleSaveExpense: (expense: Expense) => void;
   handleDeleteExpense: (expenseId: string) => void;
   handleSaveRoutineTask: (task: RoutineTask) => void;
@@ -120,6 +121,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
+  const handleDeleteLeave = (leaveId: string) => {
+    setLeaves(prevLeaves => prevLeaves.filter(l => l.id !== leaveId));
+  };
+
   const handleSaveExpense = (expenseToSave: Expense) => {
     setExpenses((prevExpenses) => {
         const exists = prevExpenses.some(l => l.id === expenseToSave.id);
@@ -214,6 +219,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     handleSaveEmployee,
     handleDeleteEmployee,
     handleSaveLeave,
+    handleDeleteLeave,
     handleSaveExpense,
     handleDeleteExpense,
     handleSaveRoutineTask,

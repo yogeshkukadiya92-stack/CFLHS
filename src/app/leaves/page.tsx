@@ -39,7 +39,7 @@ interface LeaveBalance {
 }
 
 export default function LeaveManagementPage() {
-    const { employees, leaves, loading, handleSaveLeave, setKras } = useDataStore();
+    const { employees, leaves, loading, handleSaveLeave, handleDeleteLeave, setKras } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
@@ -63,11 +63,6 @@ export default function LeaveManagementPage() {
             console.error("Failed to parse data from localStorage", error);
         }
     }, []);
-
-    const handleDeleteLeave = (leaveId: string) => {
-        // This needs to be implemented in the data store
-        console.log("Delete leave action triggered for", leaveId);
-    };
 
     const leaveBalances: LeaveBalance[] = React.useMemo(() => {
         return employees.map(emp => {
