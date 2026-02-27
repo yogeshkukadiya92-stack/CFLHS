@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -8,7 +6,7 @@ import { KraTable } from '@/components/kra-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake, Phone } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Sparkles, Loader2, Target, TrendingUp, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -31,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { format } from 'date-fns';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { useDataStore } from '@/hooks/use-data-store';
+import { generatePerformanceReview, type PerformanceReviewOutput } from '@/ai/flows/performance-review';
 
 
 export default function EmployeeKraPage() {
@@ -48,6 +47,9 @@ export default function EmployeeKraPage() {
     handleSaveEmployee,
     handleDeleteEmployee
   } = useDataStore();
+
+  const [aiReview, setAiReview] = React.useState<PerformanceReviewOutput | null>(null);
+  const [isGenerating, setIsGenerating] = React.useState(false);
 
 
   const handleDelete = () => {
@@ -67,9 +69,38 @@ export default function EmployeeKraPage() {
   }, [branches, id]);
 
    const handleDeleteKra = (kraId: string) => {
-    // This function needs to be implemented in the data store if needed
+    // Logic to handle KRA deletion would go here if needed in data store
     console.log("Delete KRA action triggered for", kraId);
   };
+
+  const handleGenerateAiReview = async () => {
+    if (!employee) return;
+    if (employeeKras.length === 0) {
+        toast({ title: "No Data", description: "This employee has no KRAs assigned for analysis.", variant: "destructive" });
+        return;
+    }
+
+    setIsGenerating(true);
+    try {
+        const input = {
+            employeeName: employee.name,
+            kraData: employeeKras.map(k => ({
+                task: k.taskDescription || 'Unspecified Task',
+                progress: k.progress,
+                status: k.status,
+                marks: (k.marksAchieved || 0) + (k.bonus || 0) - (k.penalty || 0)
+            }))
+        };
+        const result = await generatePerformanceReview(input);
+        setAiReview(result);
+        toast({ title: "Review Generated", description: "Gemini AI has analyzed the employee performance." });
+    } catch (error) {
+        console.error("AI Error:", error);
+        toast({ title: "AI Error", description: "Failed to generate AI review. Please try again.", variant: "destructive" });
+    } finally {
+        setIsGenerating(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -110,15 +141,6 @@ export default function EmployeeKraPage() {
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-4 w-full" />
                             <Skeleton className="h-4 w-full" />
-                        </CardContent>
-                    </Card>
-                    <Card className="shadow-md">
-                        <CardHeader>
-                           <Skeleton className="h-6 w-48 mb-2" />
-                           <Skeleton className="h-4 w-64" />
-                        </CardHeader>
-                        <CardContent className="flex items-center justify-center h-[250px]">
-                             <Skeleton className="h-48 w-48 rounded-full" />
                         </CardContent>
                     </Card>
                 </div>
@@ -169,6 +191,10 @@ export default function EmployeeKraPage() {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                                <Button variant="outline" onClick={handleGenerateAiReview} disabled={isGenerating} className="gap-2 border-primary/50 hover:bg-primary/5">
+                                    {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-yellow-500" />}
+                                    AI Performance Review
+                                </Button>
                                 <AddKraDialog onSave={handleSaveKra} employees={employees}>
                                     <Button>Add KRA</Button>
                                 </AddKraDialog>
@@ -204,6 +230,40 @@ export default function EmployeeKraPage() {
                             />
                         </CardContent>
                     </Card>
+
+                    {aiReview && (
+                        <Card className="border-primary/20 bg-primary/5 shadow-inner">
+                            <CardHeader className='pb-2'>
+                                <div className='flex items-center justify-between'>
+                                    <div className='flex items-center gap-2'>
+                                        <Sparkles className='h-5 w-5 text-yellow-500' />
+                                        <CardTitle className='text-lg'>Gemini AI Performance Analysis</CardTitle>
+                                    </div>
+                                    <Badge variant="outline" className='bg-background font-semibold'>{aiReview.overallSentiment}</Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className='space-y-4 pt-4'>
+                                <div className='space-y-2'>
+                                    <h4 className='font-semibold flex items-center gap-2'><Target className='h-4 w-4 text-primary'/> Summary</h4>
+                                    <p className='text-sm text-muted-foreground leading-relaxed'>{aiReview.summary}</p>
+                                </div>
+                                <div className='grid md:grid-cols-2 gap-4'>
+                                    <div className='p-3 rounded-lg bg-green-500/10 border border-green-500/20'>
+                                        <h4 className='font-semibold flex items-center gap-2 text-green-700 mb-2'><TrendingUp className='h-4 w-4'/> Key Strengths</h4>
+                                        <ul className='text-sm space-y-1 list-disc list-inside text-green-800/80'>
+                                            {aiReview.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    </div>
+                                    <div className='p-3 rounded-lg bg-orange-500/10 border border-orange-500/20'>
+                                        <h4 className='font-semibold flex items-center gap-2 text-orange-700 mb-2'><AlertCircle className='h-4 w-4'/> Areas for Improvement</h4>
+                                        <ul className='text-sm space-y-1 list-disc list-inside text-orange-800/80'>
+                                            {aiReview.areasForImprovement.map((a, i) => <li key={i}>{a}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                      <Card>

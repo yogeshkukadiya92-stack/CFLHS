@@ -6,3 +6,4 @@ config();
 import '@genkit-ai/firebase/plugin';
 
 import '@/ai/flows/kra-refinement.ts';
+import '@/ai/flows/performance-review.ts';
