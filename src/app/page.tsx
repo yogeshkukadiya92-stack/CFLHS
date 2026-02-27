@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import * as React from 'react';
@@ -13,7 +11,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { AddKraDialog } from '@/components/add-kra-dialog';
-import type { Employee, KRA, Branch } from '@/lib/types';
+import type { Employee, KRA, Branch, UserRole } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -28,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -36,9 +34,11 @@ import { ViewSwitcher } from '@/components/view-switcher';
 import { EmployeeCard } from '@/components/employee-card';
 import { useAuth } from '@/components/auth-provider';
 import { AddEmployeeDialog } from '@/components/add-employee-dialog';
-import { getYear, getMonth, startOfMonth, endOfMonth } from 'date-fns';
+import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
+import * as XLSX from 'xlsx';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface EmployeeSummary {
@@ -71,6 +71,8 @@ function DashboardContent() {
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const { currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
+  const { toast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     try {
@@ -192,6 +194,68 @@ function DashboardContent() {
         localStorage.setItem('employeeView', newView);
     };
 
+    const handleExport = () => {
+        const dataToExport = employees.map(e => ({
+            'ID': e.id,
+            'Name': e.name,
+            'Email': e.email,
+            'Branch': e.branch || 'N/A',
+            'Role': e.role || 'Employee',
+            'Joining Date': e.joiningDate ? format(new Date(e.joiningDate), 'yyyy-MM-dd') : 'N/A',
+            'Birth Date': e.birthDate ? format(new Date(e.birthDate), 'yyyy-MM-dd') : 'N/A',
+            'Address': e.address || 'N/A',
+            'Family Contact': e.familyMobileNumber || 'N/A'
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
+        XLSX.writeFile(workbook, `EmployeesData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        toast({ title: "Export Successful", description: "Employee data has been exported." });
+    };
+
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+                const importedEmployees: Employee[] = json.map((row, index) => {
+                    return {
+                        id: String(row['ID'] || `emp-${Date.now()}-${index}`),
+                        name: String(row['Name']),
+                        email: String(row['Email']),
+                        branch: row['Branch'],
+                        role: (row['Role'] as UserRole) || 'Employee',
+                        joiningDate: row['Joining Date'] ? new Date(row['Joining Date']) : undefined,
+                        birthDate: row['Birth Date'] ? new Date(row['Birth Date']) : undefined,
+                        address: row['Address'],
+                        familyMobileNumber: String(row['Family Contact'] || ''),
+                        avatarUrl: `https://placehold.co/32x32.png?text=${String(row['Name']).charAt(0)}`
+                    };
+                });
+
+                importedEmployees.forEach(handleSaveEmployee);
+                toast({ title: "Import Successful", description: `${json.length} employees imported.` });
+
+            } catch(error: any) {
+                toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
+            } finally {
+                if(fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     if (pagePermission === 'employee_only') {
         return (
             <div className="flex-1 flex flex-col gap-4">
@@ -226,14 +290,14 @@ function DashboardContent() {
         <div className="flex-1 flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Employee Dashboard</h1>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4">
                 <div>
                     <CardTitle>Employees Overview</CardTitle>
                     <CardDescription>
                         View, manage, and evaluate all employees in the system.
                     </CardDescription>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                     {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
                      <Select value={selectedYear} onValueChange={setSelectedYear}>
                         <SelectTrigger className="w-[120px]">
@@ -271,10 +335,31 @@ function DashboardContent() {
                             </SelectContent>
                         </Select>
                     )}
-                    {pagePermission === 'edit' || pagePermission === 'download' && (
+                    
+                    {pagePermission === 'download' && (
+                        <div className="flex gap-2">
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                onChange={handleImport}
+                                className="hidden"
+                                accept=".xlsx, .xls"
+                            />
+                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                <Upload className="mr-2 h-4 w-4" />
+                                Import
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={handleExport}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export
+                            </Button>
+                        </div>
+                    )}
+
+                    {(pagePermission === 'edit' || pagePermission === 'download') && (
                         <AddEmployeeDialog onSave={handleSaveEmployee}>
-                            <Button>
-                                    <PlusCircle className="mr-2 h-4 w-4" />
+                            <Button size="sm">
+                                <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Employee
                             </Button>
                         </AddEmployeeDialog>
@@ -284,8 +369,8 @@ function DashboardContent() {
                 <CardContent>
                     <Tabs defaultValue="list" className="w-full">
                         <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="list" className='gap-2'><Users /> Employee Overview</TabsTrigger>
-                            <TabsTrigger value="performance" className='gap-2'><TrendingUp /> Performance Chart</TabsTrigger>
+                            <TabsTrigger value="list" className='gap-2'><Users className="h-4 w-4" /> Employee Overview</TabsTrigger>
+                            <TabsTrigger value="performance" className='gap-2'><TrendingUp className="h-4 w-4" /> Performance Chart</TabsTrigger>
                         </TabsList>
                         <TabsContent value="list" className="mt-4">
                              {view === 'list' || pagePermission === 'employee_only' ? (
@@ -398,7 +483,7 @@ function DashboardContent() {
                                                     indicator="dot" 
                                                 />}
                                             />
-                                            <Bar dataKey="performanceScore" name="Performance" radius={4} />
+                                            <Bar dataKey="performanceScore" name="Performance" radius={4} fill="hsl(var(--primary))" />
                                         </BarChart>
                                     </ResponsiveContainer>
                                     </ChartContainer>
