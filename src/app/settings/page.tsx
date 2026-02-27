@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -10,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import type { Branch, Employee, KRA, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare, Share2, FileSpreadsheet } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -329,6 +328,46 @@ export default function SettingsPage() {
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Settings</h1>
+            
+            <Card>
+                <CardHeader>
+                    <div className='flex items-center gap-4'>
+                        <Share2 className="h-8 w-8 text-primary" />
+                        <div>
+                            <CardTitle>Google Sheets & External Integrations</CardTitle>
+                            <CardDescription>
+                                Link your data with Google Sheets for advanced reporting and management.
+                            </CardDescription>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                        You can sync your application data with Google Sheets using the **Import/Export** features available on the Attendance, Leaves, and Expenses pages.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="p-4 border rounded-lg bg-muted/30">
+                            <div className='flex items-center gap-2 mb-2'>
+                                <Download className="h-4 w-4 text-primary" />
+                                <h4 className="font-semibold">Export to Sheets</h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Click the "Export" button on any data page to download an Excel file. You can then open this file in Google Sheets by selecting **File > Import** in your spreadsheet.
+                            </p>
+                        </div>
+                        <div className="p-4 border rounded-lg bg-muted/30">
+                            <div className='flex items-center gap-2 mb-2'>
+                                <Upload className="h-4 w-4 text-primary" />
+                                <h4 className="font-semibold">Import from Sheets</h4>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                To update data from a Google Sheet, download your sheet as an **Excel (.xlsx)** file, then use the "Import" button in this application to sync the changes.
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader className='flex-row items-center justify-between'>
                     <div>

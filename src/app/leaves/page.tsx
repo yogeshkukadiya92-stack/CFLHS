@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck } from "lucide-react";
+import { Plane, PlusCircle, Check, ChevronsUpDown, ShieldCheck, Download, Upload } from "lucide-react";
 import type { Employee, Leave, KRA } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +17,7 @@ import {
 } from "@/components/ui/select"
 import { LeaveRequestsTable } from '@/components/leave-requests-table';
 import { AddLeaveRequestDialog } from '@/components/add-leave-request-dialog';
-import { getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { LeaveCard } from '@/components/leave-card';
 import { useAuth } from '@/components/auth-provider';
@@ -30,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { useDataStore } from '@/hooks/use-data-store';
+import * as XLSX from 'xlsx';
 
 interface LeaveBalance {
     employeeId: string;
@@ -51,6 +51,7 @@ export default function LeaveManagementPage() {
     const [extraLeaves, setExtraLeaves] = React.useState(0);
     const [comboboxOpen, setComboboxOpen] = React.useState(false);
     const { toast } = useToast();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
 
     React.useEffect(() => {
@@ -138,6 +139,67 @@ export default function LeaveManagementPage() {
         localStorage.setItem('leaveView', newView);
     };
 
+    const handleExport = () => {
+        const dataToExport = leaves.map(l => ({
+            'Employee ID': l.employee.id,
+            'Employee Name': l.employee.name,
+            'Start Date': format(new Date(l.startDate), 'yyyy-MM-dd'),
+            'End Date': format(new Date(l.endDate), 'yyyy-MM-dd'),
+            'Duration': l.duration,
+            'Reason': l.reason,
+            'Status': l.status
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Leaves');
+        XLSX.writeFile(workbook, `LeavesData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        toast({ title: "Export Successful", description: "Leave data has been exported." });
+    };
+
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+                const importedLeaves: Leave[] = json.map((row, index) => {
+                    const employeeId = row['Employee ID'];
+                    const employee = employees.find(emp => emp.id === String(employeeId));
+                    if (!employee) {
+                        throw new Error(`Row ${index + 2}: Employee with ID "${employeeId}" not found.`);
+                    }
+
+                    return {
+                        id: `imported-${index}-${Date.now()}`,
+                        employee: employee,
+                        startDate: new Date(row['Start Date']),
+                        endDate: new Date(row['End Date']),
+                        duration: Number(row['Duration']),
+                        reason: row['Reason'],
+                        status: row['Status'] || 'Pending'
+                    };
+                });
+
+                importedLeaves.forEach(handleSaveLeave);
+                toast({ title: "Import Successful", description: `${json.length} leaves imported.` });
+
+            } catch(error: any) {
+                toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
+            } finally {
+                if(fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Leave Account</h1>
@@ -149,8 +211,8 @@ export default function LeaveManagementPage() {
                         <CardDescription>View current leave balances for all employees and grant extra leaves.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div className='grid grid-cols-3 gap-6'>
-                            <div className='col-span-2'>
+                        <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                            <div className='md:col-span-2'>
                                 <div className="border rounded-lg max-h-80 overflow-y-auto">
                                     <Table>
                                         <TableHeader className='sticky top-0 bg-background'>
@@ -185,7 +247,7 @@ export default function LeaveManagementPage() {
                                     </Table>
                                 </div>
                             </div>
-                            <div className='col-span-1'>
+                            <div className='md:col-span-1'>
                                 <Card className='bg-muted/50'>
                                     <CardHeader>
                                         <CardTitle className='text-base'>Grant Extra Leaves</CardTitle>
@@ -257,7 +319,7 @@ export default function LeaveManagementPage() {
             )}
 
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className='flex items-center gap-4'>
                         <Plane className="h-8 w-8 text-primary" />
                         <div>
@@ -267,7 +329,7 @@ export default function LeaveManagementPage() {
                             </CardDescription>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
@@ -302,8 +364,29 @@ export default function LeaveManagementPage() {
                                 <SelectItem value="Rejected">Rejected</SelectItem>
                             </SelectContent>
                         </Select>
+                        
+                        {pagePermission === 'download' && (
+                            <div className='flex gap-2'>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleImport}
+                                    className="hidden"
+                                    accept=".xlsx, .xls"
+                                />
+                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Import
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleExport}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export
+                                </Button>
+                            </div>
+                        )}
+
                         <AddLeaveRequestDialog employees={employees} onSave={handleSaveLeave}>
-                            <Button>
+                            <Button size="sm">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Request
                             </Button>

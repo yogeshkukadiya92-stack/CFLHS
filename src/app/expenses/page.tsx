@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReceiptText, PlusCircle, TrendingUp } from "lucide-react";
+import { ReceiptText, PlusCircle, TrendingUp, Download, Upload } from "lucide-react";
 import type { Employee, Expense, KRA, ExpenseType } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +16,7 @@ import {
 } from "@/components/ui/select"
 import { ExpenseClaimsTable } from '@/components/expense-claims-table';
 import { AddExpenseClaimDialog } from '@/components/add-expense-claim-dialog';
-import { getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -25,6 +24,9 @@ import { Badge } from '@/components/ui/badge';
 import { ViewSwitcher } from '@/components/view-switcher';
 import { ExpenseCard } from '@/components/expense-card';
 import { useDataStore } from '@/hooks/use-data-store';
+import * as XLSX from 'xlsx';
+import { useAuth } from '@/components/auth-provider';
+import { useToast } from '@/hooks/use-toast';
 
 
 interface MonthlyExpenseStat {
@@ -51,6 +53,10 @@ export default function ExpenseManagementPage() {
     const [yearFilter, setYearFilter] = React.useState<string>(String(getYear(new Date())));
     const [monthFilter, setMonthFilter] = React.useState<string>(String(getMonth(new Date())));
     const [view, setView] = React.useState<'list' | 'grid'>('list');
+    const { getPermission } = useAuth();
+    const pagePermission = getPermission('expenses');
+    const { toast } = useToast();
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     React.useEffect(() => {
         try {
@@ -132,11 +138,72 @@ export default function ExpenseManagementPage() {
         localStorage.setItem('expenseView', newView);
     };
 
+    const handleExport = () => {
+        const dataToExport = expenses.map(e => ({
+            'Employee ID': e.employee.id,
+            'Employee Name': e.employee.name,
+            'Date': format(new Date(e.date), 'yyyy-MM-dd'),
+            'Type': e.expenseType,
+            'Description': e.description,
+            'Total Amount': e.totalAmount,
+            'Status': e.status
+        }));
+        
+        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Expenses');
+        XLSX.writeFile(workbook, `ExpensesData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
+        toast({ title: "Export Successful", description: "Expense data has been exported." });
+    };
+
+    const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const data = new Uint8Array(e.target?.result as ArrayBuffer);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet) as any[];
+
+                const importedExpenses: Expense[] = json.map((row, index) => {
+                    const employeeId = row['Employee ID'];
+                    const employee = employees.find(emp => emp.id === String(employeeId));
+                    if (!employee) {
+                        throw new Error(`Row ${index + 2}: Employee with ID "${employeeId}" not found.`);
+                    }
+
+                    return {
+                        id: `exp-imported-${index}-${Date.now()}`,
+                        employee: employee,
+                        date: new Date(row['Date']),
+                        expenseType: row['Type'] as ExpenseType,
+                        description: row['Description'],
+                        totalAmount: Number(row['Total Amount']),
+                        status: row['Status'] || 'Pending'
+                    };
+                });
+
+                importedExpenses.forEach(handleSaveExpense);
+                toast({ title: "Import Successful", description: `${json.length} expenses imported.` });
+
+            } catch(error: any) {
+                toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
+            } finally {
+                if(fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Expense Management</h1>
             <Card>
-                <CardHeader className="flex flex-row items-center justify-between gap-4">
+                <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4">
                     <div className='flex items-center gap-4'>
                         <ReceiptText className="h-8 w-8 text-primary" />
                         <div>
@@ -146,7 +213,7 @@ export default function ExpenseManagementPage() {
                             </CardDescription>
                         </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                         <ViewSwitcher view={view} onViewChange={handleViewChange} />
                         <Select value={yearFilter} onValueChange={setYearFilter}>
                             <SelectTrigger className="w-[120px]">
@@ -182,8 +249,29 @@ export default function ExpenseManagementPage() {
                                 <SelectItem value="Paid">Paid</SelectItem>
                             </SelectContent>
                         </Select>
+
+                        {pagePermission === 'download' && (
+                            <div className='flex gap-2'>
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
+                                    onChange={handleImport}
+                                    className="hidden"
+                                    accept=".xlsx, .xls"
+                                />
+                                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                                    <Upload className="mr-2 h-4 w-4" />
+                                    Import
+                                </Button>
+                                <Button variant="outline" size="sm" onClick={handleExport}>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Export
+                                </Button>
+                            </div>
+                        )}
+
                         <AddExpenseClaimDialog employees={employees} onSave={handleSaveExpense}>
-                            <Button>
+                            <Button size="sm">
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Add Claim
                             </Button>
@@ -239,8 +327,8 @@ export default function ExpenseManagementPage() {
                      {loading ? (
                          <Skeleton className="h-96 w-full" />
                     ) : (
-                    <div className='grid grid-cols-3 gap-6'>
-                        <div className='col-span-2'>
+                    <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
+                        <div className='md:col-span-2'>
                            <ChartContainer config={{}} className="h-[400px] w-full">
                                 <ResponsiveContainer>
                                     <BarChart data={monthlyEmployeeStats}>
@@ -256,7 +344,7 @@ export default function ExpenseManagementPage() {
                                 </ResponsiveContainer>
                             </ChartContainer>
                         </div>
-                        <div className='col-span-1 space-y-4'>
+                        <div className='md:col-span-1 space-y-4'>
                              <div>
                                 <h3 className='font-semibold mb-2'>Top 5 Spenders</h3>
                                 <div className='space-y-2'>
