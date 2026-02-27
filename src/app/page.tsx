@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -10,8 +11,7 @@ import {
 } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { AddKraDialog } from '@/components/add-kra-dialog';
-import type { Employee, KRA, Branch, UserRole } from '@/lib/types';
+import type { Employee, KRA, UserRole } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -211,7 +211,7 @@ function DashboardContent() {
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, 'Employees');
         XLSX.writeFile(workbook, `EmployeesData_${format(new Date(), 'yyyyMMdd')}.xlsx`);
-        toast({ title: "Export Successful", description: "Employee data has been exported." });
+        toast({ title: "Export Successful", description: "Employee data has been exported for Google Sheets." });
     };
 
     const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {

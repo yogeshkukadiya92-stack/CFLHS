@@ -7,9 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
-import type { Branch, Employee, KRA, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
+import type { Branch, Employee, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, UserCog, KeySquare, Share2, FileSpreadsheet } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, KeySquare, Share2, Download, Upload } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +52,7 @@ const permissionLevels: {value: PermissionLevel, label: string}[] = [
     { value: 'employee_only', label: 'Employee Only'},
     { value: 'view', label: 'View Only'},
     { value: 'edit', label: 'Edit'},
-    { value: 'download', label: 'Download'},
+    { value: 'download', label: 'Download (Google Sheets Sync)'},
 ]
 
 const PermissionDialog = ({
@@ -65,7 +65,6 @@ const PermissionDialog = ({
     children: React.ReactNode
 }) => {
     const [open, setOpen] = React.useState(false);
-    const { currentUser } = useAuth();
     const [permissions, setPermissions] = React.useState<EmployeePermissions>(
         employee.permissions || {
             employees: 'employee_only', kras: 'employee_only', routine_tasks: 'view', leaves: 'employee_only', attendance: 'view', 
@@ -98,7 +97,7 @@ const PermissionDialog = ({
                 <DialogHeader>
                     <DialogTitle>Edit Permissions for {employee.name}</DialogTitle>
                     <DialogDescription>
-                        Set the access level for each page for this employee.
+                        Set the access level for each page. 'Download' level enables Google Sheets data sync.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
@@ -334,34 +333,38 @@ export default function SettingsPage() {
                     <div className='flex items-center gap-4'>
                         <Share2 className="h-8 w-8 text-primary" />
                         <div>
-                            <CardTitle>Google Sheets & External Integrations</CardTitle>
+                            <CardTitle>Google Sheets & Excel Integration</CardTitle>
                             <CardDescription>
-                                Link your data with Google Sheets for advanced reporting and management.
+                                Fully compatible with Google Sheets for advanced reporting and bulk updates.
                             </CardDescription>
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        You can sync your application data with Google Sheets using the **Import/Export** features available on the Attendance, Leaves, and Expenses pages.
+                        You can sync your application data with **Google Sheets** using the **Import/Export** features available on all management pages (Employees, KRA, Tasks, Attendance, etc.).
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 border rounded-lg bg-muted/30">
                             <div className='flex items-center gap-2 mb-2'>
                                 <Download className="h-4 w-4 text-primary" />
-                                <h4 className="font-semibold">Export to Sheets</h4>
+                                <h4 className="font-semibold">Step 1: Export to Sheets</h4>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                Click the "Export" button on any data page to download an Excel file. You can then open this file in Google Sheets by selecting **File > Import** in your spreadsheet.
+                                1. Go to any page (e.g., Attendance).<br/>
+                                2. Click **Export**. An Excel (.xlsx) file will download.<br/>
+                                3. Upload this file to **Google Drive** and open it with **Google Sheets**.
                             </p>
                         </div>
                         <div className="p-4 border rounded-lg bg-muted/30">
                             <div className='flex items-center gap-2 mb-2'>
                                 <Upload className="h-4 w-4 text-primary" />
-                                <h4 className="font-semibold">Import from Sheets</h4>
+                                <h4 className="font-semibold">Step 2: Sync back from Sheets</h4>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                To update data from a Google Sheet, download your sheet as an **Excel (.xlsx)** file, then use the "Import" button in this application to sync the changes.
+                                1. In your Google Sheet, go to **File > Download > Microsoft Excel (.xlsx)**.<br/>
+                                2. Go back to the application and click **Import**.<br/>
+                                3. Select the downloaded file to sync all changes instantly.
                             </p>
                         </div>
                     </div>
@@ -466,7 +469,7 @@ export default function SettingsPage() {
                 <CardHeader>
                     <CardTitle>User & Permission Management</CardTitle>
                     <CardDescription>
-                        Assign roles and page access to users.
+                        Assign roles and page access level. 'Download' level enables external spreadsheet sync.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
