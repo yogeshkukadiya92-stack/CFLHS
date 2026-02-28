@@ -35,7 +35,7 @@ import { Badge } from './ui/badge';
 
 const weeklyUpdateSchema = z.object({
     id: z.string(),
-    date: z.date(),
+    date: z.date().optional(),
     status: z.enum(['On Track', 'Delayed', 'Completed', 'At Risk', 'Issue']),
     comment: z.string().min(1, "Comment is required."),
     value: z.coerce.number().optional(),
@@ -87,7 +87,6 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
     } = useForm<WeeklyUpdateFormValues>({
         resolver: zodResolver(weeklyUpdateSchema),
         defaultValues: {
-            date: new Date(),
             status: 'On Track',
             comment: '',
             value: 0,
@@ -97,7 +96,8 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
     const pending = Math.max(0, target - currentAchieved);
 
     const onSubmit = (data: WeeklyUpdateFormValues) => {
-        onSave({ id: uuidv4(), ...data });
+        // Automatically set the current date and time on submission
+        onSave({ ...data, id: uuidv4(), date: new Date() });
         toast({title: "Weekly Log Saved", description: "Your progress for this week has been recorded."});
         setOpen(false);
         reset();
@@ -226,13 +226,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         actions.forEach((action, index) => {
             const kpiAchieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
             
-            // Marks for this specific KPI
             let kpiMarks = 0;
             const kpiWeightage = (weightage && totalKpiTarget > 0 && action.target) 
                 ? (action.target / totalKpiTarget) * weightage 
                 : 0;
 
-            // Sync visual weightage for each action if needed
             if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
                 setValue(`actions.${index}.weightage`, parseFloat(kpiWeightage.toFixed(2)));
             }
@@ -624,7 +622,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                     currentAchieved={achieved}
                                     onSave={(updateData) => {
                                         const currentUpdates = field.updates || [];
-                                        const newUpdates = [...currentUpdates, { ...updateData, id: uuidv4(), date: new Date() }];
+                                        // The updateData now correctly includes the timestamp from the dialog's onSubmit
+                                        const newUpdates = [...currentUpdates, updateData];
                                         const newAchieved = achieved + (updateData.value || 0);
                                         update(index, {...field, updates: newUpdates, achieved: newAchieved });
                                     }}

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem } from '@/lib/types';
+import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useDataStore } from '@/hooks/use-data-store';
+import { v4 as uuidv4 } from 'uuid';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
@@ -136,7 +137,6 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
     
     let totalMarks = 0;
     if (kra.weightage && totalKpiTarget > 0) {
-        // Marks are calculated based on overall weighted progress
         totalMarks = (totalKpiAchieved / totalKpiTarget) * kra.weightage;
     }
 
@@ -157,10 +157,22 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
   };
 
   const handleQuickUpdate = (newValue: number) => {
-     updateKra({ ...action, achieved: newValue });
+     const diff = newValue - achieved;
+     if (diff === 0) return;
+
+     // Create an automatic log entry for the quick update
+     const newUpdate: WeeklyUpdate = {
+         id: uuidv4(),
+         date: new Date(), // capturing current time and date
+         status: 'On Track',
+         comment: `Quick Update: Changed from ${achieved} to ${newValue} (${diff > 0 ? '+' : ''}${diff} units)`,
+         value: diff
+     };
+
+     const currentUpdates = action.updates || [];
+     updateKra({ ...action, achieved: newValue, updates: [...currentUpdates, newUpdate] });
   }
 
-  // Visual calculation for this specific row only
   const totalKpiTarget = kra.actions?.reduce((sum, a) => sum + (a.target || 0), 0) || 0;
   const kpiWeightage = (kra.weightage && totalKpiTarget > 0 && action.target) 
     ? (action.target / totalKpiTarget) * kra.weightage 
@@ -194,7 +206,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
                         <History className="h-3.5 w-3.5" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>Quick Weekly Progress Log</TooltipContent>
+                <TooltipContent>Quick Progress Log</TooltipContent>
             </Tooltip>
         </QuickUpdateDialog>
 
@@ -220,21 +232,23 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
             <Table>
                 <TableHeader>
                     <TableRow className="h-7">
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Date</TableHead>
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Date & Time</TableHead>
                         <TableHead className='h-7 text-[10px] py-0 px-2'>Status</TableHead>
-                        <TableHead className='h-7 text-[10px] py-0 px-2'>Done</TableHead>
+                        <TableHead className='h-7 text-[10px] py-0 px-2'>Change</TableHead>
                         <TableHead className='h-7 text-[10px] py-0 px-2'>Comment</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {action.updates?.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(update => (
                         <TableRow key={update.id} className="h-7 hover:bg-transparent">
-                            <TableCell className='text-[10px] py-1 px-2'>{format(new Date(update.date), 'MMM d')}</TableCell>
+                            <TableCell className='text-[10px] py-1 px-2 whitespace-nowrap'>{format(new Date(update.date), 'MMM d, HH:mm')}</TableCell>
                             <TableCell className='py-1 px-2'>
                                 <Badge variant="outline" className={cn('text-[9px] px-1 h-4 leading-none', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
                             </TableCell>
                             <TableCell className='text-[10px] py-1 px-2 font-bold'>{update.value}</TableCell>
-                              <TableCell className='text-[10px] py-1 px-2 text-muted-foreground line-clamp-1'>{update.comment}</TableCell>
+                              <TableCell className='text-[10px] py-1 px-2 text-muted-foreground'>
+                                  <span className="line-clamp-1" title={update.comment}>{update.comment}</span>
+                              </TableCell>
                         </TableRow>
                     ))}
                 </TableBody>
