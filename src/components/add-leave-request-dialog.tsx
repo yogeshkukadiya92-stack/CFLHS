@@ -33,6 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { format, differenceInDays, isSameDay } from 'date-fns';
+import { useAuth } from './auth-provider';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 const leaveReasons = [
     'Sick', 'Travel', 'Religious Function', 'Family Function', 
@@ -72,6 +74,9 @@ interface AddLeaveRequestDialogProps {
 export function AddLeaveRequestDialog({ children, leave, onSave, employees }: AddLeaveRequestDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
+  const { currentUser, getPermission } = useAuth();
+  const leavePermission = getPermission('leaves');
+  const isEmployeeOnly = leavePermission === 'employee_only';
   
   const { toast } = useToast();
 
@@ -90,20 +95,25 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
   React.useEffect(() => {
     if (open) {
       const isOtherReason = leave?.reason && !leaveReasons.includes(leave.reason as any);
+      
+      // Default values
+      const defaultEmployeeId = isEmployeeOnly && currentUser ? currentUser.id : (leave?.employee.id || '');
+      const defaultStatus = leave?.status || 'Pending';
+
       reset({
-        employeeId: leave?.employee.id || '',
+        employeeId: defaultEmployeeId,
         startDate: leave?.startDate ? new Date(leave.startDate) : new Date(),
         endDate: leave?.endDate ? new Date(leave.endDate) : new Date(),
         reason: isOtherReason ? 'Other, please specify' : leave?.reason || '',
         otherReason: isOtherReason ? leave?.reason : '',
-        status: leave?.status || 'Pending',
+        status: defaultStatus as LeaveStatus,
       });
     }
-  }, [open, leave, reset]);
+  }, [open, leave, reset, isEmployeeOnly, currentUser]);
 
 
   const onSubmit = (data: LeaveRequestFormValues) => {
-    const selectedEmployee = employees.find(e => e.id === data.employeeId);
+    const selectedEmployee = employees.find(e => e.id === data.employeeId) || (isEmployeeOnly ? currentUser : null);
     if (!selectedEmployee) {
         toast({ title: "Error", description: "Selected employee not found.", variant: 'destructive' });
         return;
@@ -119,7 +129,7 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
       startDate: data.startDate,
       endDate: data.endDate,
       reason: finalReason,
-      status: data.status,
+      status: isEmployeeOnly ? (leave?.status || 'Pending') : data.status,
       duration: duration,
     };
     onSave(newLeave);
@@ -148,56 +158,73 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
                 Employee
               </Label>
               <div className="col-span-3">
-                 <Controller
-                    name="employeeId"
-                    control={control}
-                    render={({ field }) => (
-                      <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={employeeComboboxOpen}
-                            className="w-full justify-between"
-                          >
-                            {field.value
-                              ? employees.find((employee) => employee.id === field.value)?.name
-                              : "Select employee..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                          <Command>
-                            <CommandInput placeholder="Search employee..."/>
-                            <CommandList>
-                                <CommandEmpty>No employee found.</CommandEmpty>
-                                <CommandGroup>
-                                  {employees.map((employee) => (
-                                    <CommandItem
-                                      key={employee.id}
-                                      value={employee.name}
-                                      onSelect={() => {
-                                        field.onChange(employee.id)
-                                        setEmployeeComboboxOpen(false);
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          employee.id === field.value ? "opacity-100" : "opacity-0"
-                                        )}
-                                      />
-                                      {employee.name}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    )}
-                  />
-                 {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
+                 {isEmployeeOnly ? (
+                    <div className='flex items-center gap-3 p-2 border rounded-md bg-muted/50'>
+                        <Avatar className="h-8 w-8">
+                            <AvatarImage src={currentUser?.avatarUrl} alt={currentUser?.name} />
+                            <AvatarFallback>{currentUser?.name?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className='font-medium'>{currentUser?.name}</span>
+                        <Controller
+                            name="employeeId"
+                            control={control}
+                            render={({ field }) => <input type="hidden" {...field} />}
+                        />
+                    </div>
+                 ) : (
+                    <>
+                        <Controller
+                            name="employeeId"
+                            control={control}
+                            render={({ field }) => (
+                            <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
+                                <PopoverTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    role="combobox"
+                                    aria-expanded={employeeComboboxOpen}
+                                    className="w-full justify-between"
+                                >
+                                    {field.value
+                                    ? employees.find((employee) => employee.id === field.value)?.name
+                                    : "Select employee..."}
+                                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                                <Command>
+                                    <CommandInput placeholder="Search employee..."/>
+                                    <CommandList>
+                                        <CommandEmpty>No employee found.</CommandEmpty>
+                                        <CommandGroup>
+                                        {employees.map((employee) => (
+                                            <CommandItem
+                                            key={employee.id}
+                                            value={employee.name}
+                                            onSelect={() => {
+                                                field.onChange(employee.id)
+                                                setEmployeeComboboxOpen(false);
+                                            }}
+                                            >
+                                            <Check
+                                                className={cn(
+                                                "mr-2 h-4 w-4",
+                                                employee.id === field.value ? "opacity-100" : "opacity-0"
+                                                )}
+                                            />
+                                            {employee.name}
+                                            </CommandItem>
+                                        ))}
+                                        </CommandGroup>
+                                    </CommandList>
+                                </Command>
+                                </PopoverContent>
+                            </Popover>
+                            )}
+                        />
+                        {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
+                    </>
+                 )}
               </div>
             </div>
 
@@ -275,30 +302,32 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
               </div>
             </div>
             
-             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="status" className="text-right">
-                Status
-              </Label>
-              <div className="col-span-3">
-                 <Controller
-                    name="status"
-                    control={control}
-                    render={({ field }) => (
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <SelectTrigger>
-                                <SelectValue placeholder="Set status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Pending">Pending</SelectItem>
-                                <SelectItem value="Approved">Approved</SelectItem>
-                                <SelectItem value="Rejected">Rejected</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    )}
-                />
-                 {errors.status && <p className="text-xs text-destructive mt-1">{errors.status.message}</p>}
-              </div>
-            </div>
+             {!isEmployeeOnly && (
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="status" className="text-right">
+                        Status
+                    </Label>
+                    <div className="col-span-3">
+                        <Controller
+                            name="status"
+                            control={control}
+                            render={({ field }) => (
+                                <Select onValueChange={field.onChange} value={field.value}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Set status" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="Pending">Pending</SelectItem>
+                                        <SelectItem value="Approved">Approved</SelectItem>
+                                        <SelectItem value="Rejected">Rejected</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            )}
+                        />
+                        {errors.status && <p className="text-xs text-destructive mt-1">{errors.status.message}</p>}
+                    </div>
+                </div>
+             )}
 
           </div>
           <DialogFooter className="pt-4">
@@ -309,5 +338,3 @@ export function AddLeaveRequestDialog({ children, leave, onSave, employees }: Ad
     </Dialog>
   );
 }
-
-    
