@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -16,12 +17,12 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare } from 'lucide-react';
-import { useForm, Controller, useFieldArray, useWatch } from 'react-hook-form';
+import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { refineKraTaskDescription } from '@/ai/flows/kra-refinement';
 import { useToast } from '@/hooks/use-toast';
-import type { KRA, ActionItem, Employee, WeeklyUpdate, WeeklyUpdateStatus } from '@/lib/types';
+import type { KRA, ActionItem, Employee, WeeklyUpdate } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -277,6 +278,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   }, [open, kra, reset, employees]);
 
   const taskDescription = watch('taskDescription');
+  const hasActions = allWatchedFields.actions && allWatchedFields.actions.length > 0;
 
   const handleRefine = async () => {
     if (!taskDescription) {
@@ -516,6 +518,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                                 onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
                                 placeholder="Work Done"
                                 className='border-primary/50'
+                                disabled={hasActions}
                             />
                         )}
                         />

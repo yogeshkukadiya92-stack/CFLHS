@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -85,8 +86,8 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
             <DialogTrigger asChild>{children}</DialogTrigger>
             <DialogContent className="sm:max-w-xs">
                 <DialogHeader>
-                    <DialogTitle>Quick Update KPI Progress</DialogTitle>
-                    <DialogDescription>Enter the total achieved value for "{action.name}".</DialogDescription>
+                    <DialogTitle>Quick Update Progress</DialogTitle>
+                    <DialogDescription>Enter how much you have achieved so far for "{action.name}".</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 space-y-2">
                     <Label htmlFor="achievedValue">Total Work Done (Achieved)</Label>
@@ -97,10 +98,10 @@ const QuickUpdateDialog = ({ action, onUpdate, children }: { action: ActionItem,
                         onChange={(e) => setValue(Number(e.target.value))}
                         placeholder="e.g., 150"
                     />
-                    <p className='text-xs text-muted-foreground'>Target: {action.target || 'N/A'}</p>
+                    <p className='text-xs text-muted-foreground'>Goal/Target: {action.target || 'N/A'}</p>
                 </div>
                 <DialogFooter>
-                    <Button onClick={handleSave} className='w-full'>Update Progress</Button>
+                    <Button onClick={handleSave} className='w-full'>Save My Progress</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -172,7 +173,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
                         <Edit className="h-3.5 w-3.5" />
                     </Button>
                 </TooltipTrigger>
-                <TooltipContent>Log Work Progress</TooltipContent>
+                <TooltipContent>Log Progress Towards Goal</TooltipContent>
             </Tooltip>
         </QuickUpdateDialog>
 
@@ -381,7 +382,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
                           <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              Edit / Update
+                              Log Progress / Edit
                           </DropdownMenuItem>
                       </AddKraDialog>
                       <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive">Delete</DropdownMenuItem>
