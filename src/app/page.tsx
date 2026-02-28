@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -345,6 +345,10 @@ function DashboardContent() {
                                 <div>
                                     <CardTitle className='text-lg'>{currentEmployeeData.name}</CardTitle>
                                     <CardDescription>{currentEmployeeData.branch || 'No Branch'} Branch</CardDescription>
+                                    <div className='flex items-center gap-1 mt-1'>
+                                        <Fingerprint className='h-3 w-3 text-muted-foreground' />
+                                        <span className='text-[10px] text-muted-foreground font-mono'>{currentEmployeeData.id}</span>
+                                    </div>
                                 </div>
                             </div>
                             <ChevronDown className={cn("h-5 w-5 text-muted-foreground transition-transform", showProfileDetails && "rotate-180")} />
@@ -550,6 +554,7 @@ function DashboardContent() {
                                                     onCheckedChange={(checked) => handleSelectAll(!!checked)}
                                                   />
                                                 </TableHead>
+                                                <TableHead>Employee ID</TableHead>
                                                 <TableHead>Employee</TableHead>
                                                 <TableHead>Branch</TableHead>
                                                 <TableHead>KRAs Assigned</TableHead>
@@ -562,6 +567,7 @@ function DashboardContent() {
                                                 Array.from({ length: 5 }).map((_, i) => (
                                                 <TableRow key={i}>
                                                     <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                                                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-3">
                                                             <Skeleton className="h-10 w-10 rounded-full" />
@@ -590,6 +596,7 @@ function DashboardContent() {
                                                             onCheckedChange={(checked) => handleSelectOne(employee.id, !!checked)}
                                                           />
                                                         </TableCell>
+                                                        <TableCell className='font-mono text-xs text-muted-foreground'>{employee.id}</TableCell>
                                                         <TableCell>
                                                             <div className="flex items-center gap-3">
                                                                 <Avatar className="h-10 w-10">

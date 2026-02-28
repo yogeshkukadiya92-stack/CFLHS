@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import type { Branch, Employee, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, KeySquare, Share2, Download, Upload } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, KeySquare, Share2, Download, Upload, Fingerprint } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -477,6 +477,7 @@ export default function SettingsPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead className='w-[100px]'>ID</TableHead>
                                     <TableHead>Employee</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead className="w-[200px]">Role</TableHead>
@@ -486,9 +487,10 @@ export default function SettingsPage() {
                             </TableHeader>
                             <TableBody>
                                 {loading ? (
-                                    <TableRow><TableCell colSpan={5} className="text-center">Loading users...</TableCell></TableRow>
+                                    <TableRow><TableCell colSpan={6} className="text-center">Loading users...</TableCell></TableRow>
                                 ) : sortedEmployees.map(employee => (
                                     <TableRow key={employee.id}>
+                                        <TableCell className='font-mono text-xs text-muted-foreground'>{employee.id}</TableCell>
                                         <TableCell>
                                              <div className="flex items-center gap-3">
                                                 <Avatar className="h-8 w-8">

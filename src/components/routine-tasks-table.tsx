@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Flag, Calendar, MessageSquare, Edit, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Flag, Calendar, MessageSquare, Edit, Trash2, Fingerprint } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -183,7 +184,12 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
                         <AvatarImage src={task.employee.avatarUrl} alt={task.employee.name} data-ai-hint="people" />
                         <AvatarFallback>{task.employee.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">{task.employee.name}</div>
+                      <div>
+                        <div className="font-medium text-sm">{task.employee.name}</div>
+                        <div className='flex items-center gap-1 text-[10px] text-muted-foreground font-mono'>
+                            <Fingerprint className='h-2.5 w-2.5'/> {task.employee.id}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

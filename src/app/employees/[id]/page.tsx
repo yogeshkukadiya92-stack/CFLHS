@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -6,7 +7,7 @@ import { KraTable } from '@/components/kra-table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import Link from 'next/link';
-import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Sparkles, Loader2, Target, TrendingUp, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Sparkles, Loader2, Target, TrendingUp, AlertCircle, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
@@ -185,8 +186,11 @@ export default function EmployeeKraPage() {
                                             </Tooltip>
                                         )}
                                     </div>
-                                    <CardDescription>
-                                        {employee.branch ? `${employee.branch} Branch` : 'No branch assigned'}
+                                    <CardDescription className='flex flex-col'>
+                                        <span>{employee.branch ? `${employee.branch} Branch` : 'No branch assigned'}</span>
+                                        <span className='flex items-center gap-1 mt-1 text-[10px] text-muted-foreground font-mono'>
+                                            <Fingerprint className='h-3 w-3'/> ID: {employee.id}
+                                        </span>
                                     </CardDescription>
                                 </div>
                             </div>

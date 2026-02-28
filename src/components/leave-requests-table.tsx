@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Calendar, CheckCircle, XCircle, Hourglass, Trash2 } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle, XCircle, Hourglass, Trash2, Fingerprint } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -178,7 +179,12 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
                         <AvatarImage src={leave.employee.avatarUrl} alt={leave.employee.name} data-ai-hint="people" />
                         <AvatarFallback>{leave.employee.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">{leave.employee.name}</div>
+                      <div>
+                        <div className="font-medium text-sm">{leave.employee.name}</div>
+                        <div className='flex items-center gap-1 text-[10px] text-muted-foreground font-mono'>
+                            <Fingerprint className='h-2.5 w-2.5'/> {leave.employee.id}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

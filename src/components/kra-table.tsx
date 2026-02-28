@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2, History } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2, History, Fingerprint } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -371,7 +371,12 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                     <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
                     <AvatarFallback>{kra.employee.name.charAt(0)}</AvatarFallback>
                   </Avatar>
-                  <div className="font-medium text-xs sm:text-sm">{kra.employee.name}</div>
+                  <div>
+                    <div className="font-medium text-xs sm:text-sm">{kra.employee.name}</div>
+                    <div className='flex items-center gap-1 mt-0.5 text-[10px] text-muted-foreground font-mono'>
+                        <Fingerprint className='h-2.5 w-2.5'/> ID: {kra.employee.id}
+                    </div>
+                  </div>
                 </div>
               </TableCell>
               <TableCell className="max-w-sm">

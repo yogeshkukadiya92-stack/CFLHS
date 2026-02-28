@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, Calendar, CheckCircle, XCircle, Hourglass, Trash2, BadgeDollarSign, Car, Utensils, BedDouble } from 'lucide-react';
+import { MoreHorizontal, Calendar, CheckCircle, XCircle, Hourglass, Trash2, BadgeDollarSign, Car, Utensils, BedDouble, Fingerprint } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -190,7 +191,12 @@ export function ExpenseClaimsTable({ expenses, employees, onSave, onDelete }: Ex
                         <AvatarImage src={expense.employee.avatarUrl} alt={expense.employee.name} data-ai-hint="people" />
                         <AvatarFallback>{expense.employee.name.charAt(0)}</AvatarFallback>
                       </Avatar>
-                      <div className="font-medium">{expense.employee.name}</div>
+                      <div>
+                        <div className="font-medium text-sm">{expense.employee.name}</div>
+                        <div className='flex items-center gap-1 text-[10px] text-muted-foreground font-mono'>
+                            <Fingerprint className='h-2.5 w-2.5'/> {expense.employee.id}
+                        </div>
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

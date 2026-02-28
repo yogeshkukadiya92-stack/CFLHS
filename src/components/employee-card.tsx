@@ -7,7 +7,7 @@ import type { Employee, KRA } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Progress } from './ui/progress';
 import { Badge } from './ui/badge';
-import { ShieldCheck, Eye } from 'lucide-react';
+import { ShieldCheck, Eye, Fingerprint } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -53,7 +53,10 @@ export function EmployeeCard({ summary }: EmployeeCardProps) {
                         </Tooltip>
                     )}
                  </div>
-                <CardDescription>{employee.branch || 'No branch assigned'}</CardDescription>
+                <CardDescription className='flex flex-col'>
+                    <span>{employee.branch || 'No branch assigned'}</span>
+                    <span className='text-[10px] font-mono text-muted-foreground mt-0.5'>ID: {employee.id}</span>
+                </CardDescription>
             </div>
         </div>
       </CardHeader>

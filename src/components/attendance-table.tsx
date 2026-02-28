@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -23,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from '@/lib/utils';
+import { Fingerprint } from 'lucide-react';
 
 const statusConfig: Record<AttendanceStatus, { className: string }> = {
   'Present': { 
@@ -68,6 +68,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave, 
       <Table>
         <TableHeader>
           <TableRow>
+            <TableHead className='w-[100px]'>ID</TableHead>
             <TableHead>Employee</TableHead>
             <TableHead>Branch</TableHead>
             <TableHead className="w-[200px]">Status</TableHead>
@@ -76,7 +77,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave, 
         <TableBody>
           {employees.length === 0 && (
               <TableRow>
-                  <TableCell colSpan={3} className="h-24 text-center">
+                  <TableCell colSpan={4} className="h-24 text-center">
                       No employees found.
                   </TableCell>
               </TableRow>
@@ -88,6 +89,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave, 
 
              return(
             <TableRow key={employee.id}>
+              <TableCell className='font-mono text-xs text-muted-foreground'>{employee.id}</TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
                   <Avatar className="h-8 w-8">
