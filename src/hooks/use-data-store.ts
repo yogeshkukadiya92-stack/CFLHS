@@ -35,6 +35,7 @@ interface DataStoreContextType {
   handleSaveHabit: (habit: Habit) => void;
   handleSaveHoliday: (holiday: Holiday) => void;
   handleDeleteHoliday: (id: string) => void;
+  handleDeleteMultipleHolidays: (ids: string[]) => void;
   handleSaveRecruit: (recruit: Recruit) => void;
   handleDeleteRecruit: (id: string) => void;
   handleDeleteMultipleRecruits: (ids: string[]) => void;
@@ -224,6 +225,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     setHolidays(prev => prev.filter(h => h.id !== id));
   };
 
+  const handleDeleteMultipleHolidays = (ids: string[]) => {
+    setHolidays(prev => prev.filter(h => !ids.includes(h.id)));
+  };
+
   const handleSaveRecruit = (recruitToSave: Recruit) => {
     setRecruits(prev => {
       const exists = prev.some(r => r.id === recruitToSave.id);
@@ -250,7 +255,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const value = {
     loading, kras, employees, branches, leaves, expenses, routineTasks, habits, holidays, recruits, attendances,
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
-    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
+    handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
     setKras, setBranches
   };
 
