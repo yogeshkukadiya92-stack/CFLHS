@@ -48,15 +48,15 @@ const DataStoreContext = createContext<DataStoreContextType | undefined>(undefin
 
 export const DataStoreProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
-  const [kras, setKras] = useState<KRA[]>(mockKras);
+  const [kras, setKras] = useState<KRA[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [leaves, setLeaves] = useState<Leave[]>(mockLeaves);
-  const [expenses, setExpenses] = useState<Expense[]>(mockExpenses);
-  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>(mockRoutineTasks);
-  const [habits, setHabits] = useState<Habit[]>(mockHabits);
-  const [holidays, setHolidays] = useState<Holiday[]>(mockHolidays);
-  const [recruits, setRecruits] = useState<Recruit[]>(mockRecruits);
-  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
+  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [routineTasks, setRoutineTasks] = useState<RoutineTask[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+  const [recruits, setRecruits] = useState<Recruit[]>([]);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
 
   useEffect(() => {
     const loadData = (key: string, initialValue: any, setter: Function) => {
@@ -72,9 +72,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
             return value;
           });
           setter(parsed);
+        } else {
+          setter(initialValue);
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage:`, error);
+        setter(initialValue);
       }
     };
 

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -37,7 +36,8 @@ function KraManagementPage() {
     loading, 
     employees, 
     handleSaveKra, 
-    handleDeleteEmployee, 
+    handleDeleteKra,
+    handleDeleteMultipleKras
   } = useDataStore();
   const [selectedBranch, setSelectedBranch] = React.useState('all');
   const [selectedYear, setSelectedYear] = React.useState<string>(String(getYear(new Date())));
@@ -102,11 +102,6 @@ function KraManagementPage() {
         };
 
     }, [kras, pagePermission, currentUser, selectedBranch, selectedYear, selectedMonth]);
-
-    const handleDeleteKra = (kraId: string) => {
-        // This needs to be implemented in useDataStore
-        console.log("Delete KRA requested for ID:", kraId);
-    }
 
     const handleExport = () => {
         const dataToExport = filteredKras.map(k => ({

@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -54,7 +53,7 @@ import { v4 as uuidv4 } from 'uuid';
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
   'At Risk': 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:border-green-800',
-  Completed: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-blue-800',
+  Completed: 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:border-green-800',
   Pending: 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-200 dark:bg-gray-800/40 dark:text-gray-300 dark:border-gray-700',
 };
 
@@ -131,7 +130,6 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
   const updateKra = (updatedAction: ActionItem) => {
     const newActions = kra.actions!.map(a => a.id === updatedAction.id ? updatedAction : a);
     
-    // Recalculate everything for the entire KRA
     const totalKpiTarget = newActions.reduce((sum, a) => sum + (a.target || 0), 0);
     const totalKpiAchieved = newActions.reduce((sum, a) => sum + (a.achieved || a.updates?.reduce((s, u) => s + (u.value || 0), 0) || 0), 0);
     
@@ -160,10 +158,9 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
      const diff = newValue - achieved;
      if (diff === 0) return;
 
-     // Create an automatic log entry for the quick update
      const newUpdate: WeeklyUpdate = {
          id: uuidv4(),
-         date: new Date(), // capturing current time and date
+         date: new Date(),
          status: 'On Track',
          comment: `Quick Update: Changed from ${achieved} to ${newValue} (${diff > 0 ? '+' : ''}${diff} units)`,
          value: diff

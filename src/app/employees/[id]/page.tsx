@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -45,6 +44,7 @@ export default function EmployeeKraPage() {
     loading, 
     employees,
     handleSaveKra,
+    handleDeleteKra,
     handleSaveEmployee,
     handleDeleteEmployee
   } = useDataStore();
@@ -68,11 +68,6 @@ export default function EmployeeKraPage() {
   const isManager = React.useMemo(() => {
     return branches.some(b => b.managerId === id);
   }, [branches, id]);
-
-   const handleDeleteKra = (kraId: string) => {
-    // Logic to handle KRA deletion would go here if needed in data store
-    console.log("Delete KRA action triggered for", kraId);
-  };
 
   const handleGenerateAiReview = async () => {
     if (!employee) return;
