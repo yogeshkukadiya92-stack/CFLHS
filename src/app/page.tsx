@@ -26,7 +26,7 @@ import Link from 'next/link';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint } from 'lucide-react';
+import { Eye, ShieldCheck, Users, TrendingUp, PlusCircle, Download, Upload, FileSpreadsheet, Trash2, Mail, Home, Calendar as CalendarIcon, Cake, Phone, Edit, ChevronDown, Fingerprint, Filter, Database, UserPlus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
@@ -37,6 +37,7 @@ import { AddEmployeeDialog } from '@/components/add-employee-dialog';
 import { getYear, getMonth, startOfMonth, endOfMonth, format } from 'date-fns';
 import { useDataStore } from '@/hooks/use-data-store';
 import { KraTable } from '@/components/kra-table';
+import { AddKraDialog } from '@/components/add-kra-dialog';
 import * as XLSX from 'xlsx';
 import { useToast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -85,6 +86,9 @@ function DashboardContent() {
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
   const [showProfileDetails, setShowProfileDetails] = React.useState(false);
+  const [showFilters, setShowFilters] = React.useState(false);
+  const [showTools, setShowTools] = React.useState(false);
+  
   const { user, currentUser, getPermission } = useAuth();
   const pagePermission = getPermission('employees');
   const { toast } = useToast();
@@ -426,90 +430,121 @@ function DashboardContent() {
         <div className="flex-1 flex flex-col gap-4">
             <h1 className="text-2xl font-semibold">Employee Dashboard</h1>
             <Card>
-                <CardHeader className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div>
-                    <CardTitle>Employees Overview</CardTitle>
-                    <CardDescription>
-                        View, manage, and evaluate all employees in the system.
-                    </CardDescription>
+                <CardHeader className="space-y-4">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <CardTitle>Employees Overview</CardTitle>
+                        <CardDescription>
+                            View, manage, and evaluate all employees in the system.
+                        </CardDescription>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
+                        
+                        <Button 
+                            variant={showFilters ? "secondary" : "outline"} 
+                            size="sm" 
+                            onClick={() => setShowFilters(!showFilters)}
+                            className="gap-2"
+                        >
+                            <Filter className="h-4 w-4" /> Filter
+                        </Button>
+
+                        {(pagePermission === 'download') && (
+                            <Button 
+                                variant={showTools ? "secondary" : "outline"} 
+                                size="sm" 
+                                onClick={() => setShowTools(!showTools)}
+                                className="gap-2"
+                            >
+                                <Database className="h-4 w-4" /> Data Tools
+                            </Button>
+                        )}
+
+                        {(pagePermission === 'edit' || pagePermission === 'download') && (
+                            <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                                <Button variant="outline" size="sm" className="gap-2">
+                                    <PlusCircle className="h-4 w-4" /> Add KRA
+                                </Button>
+                            </AddKraDialog>
+                        )}
+
+                        {(pagePermission === 'edit' || pagePermission === 'download') && (
+                            <AddEmployeeDialog onSave={handleSaveEmployee}>
+                                <Button size="sm" className="gap-2">
+                                    <UserPlus className="h-4 w-4" /> Add Employee
+                                </Button>
+                            </AddEmployeeDialog>
+                        )}
+                    </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    {pagePermission !== 'employee_only' && <ViewSwitcher view={view} onViewChange={handleViewChange} />}
-                     <Select value={selectedYear} onValueChange={setSelectedYear}>
-                        <SelectTrigger className="w-[120px]">
-                            <SelectValue placeholder="Year" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Years</SelectItem>
-                            {availableYears.map(year => (
-                                <SelectItem key={year} value={String(year)}>{year}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
-                        <SelectTrigger className="w-[140px]">
-                            <SelectValue placeholder="Month" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Months</SelectItem>
-                            {availableMonths.map((month, index) => (
-                                <SelectItem key={index} value={String(index)}>{month}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {pagePermission !== 'employee_only' && (
-                        <Select value={selectedBranch} onValueChange={setSelectedBranch}>
-                            <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Filter by Branch" />
+
+                {showFilters && (
+                    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-lg border animate-in fade-in slide-in-from-top-1 duration-200">
+                        <Select value={selectedYear} onValueChange={setSelectedYear}>
+                            <SelectTrigger className="w-[120px]">
+                                <SelectValue placeholder="Year" />
                             </SelectTrigger>
                             <SelectContent>
-                                {branchOptions.map(branch => (
-                                <SelectItem key={branch} value={branch}>
-                                    {branch === 'all' ? 'All Branches' : branch}
-                                </SelectItem>
+                                <SelectItem value="all">All Years</SelectItem>
+                                {availableYears.map(year => (
+                                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                    )}
-                    
-                    {pagePermission === 'download' && (
-                        <div className="flex gap-2">
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                onChange={handleImport}
-                                className="hidden"
-                                accept=".xlsx, .xls"
-                            />
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Button variant="outline" size="sm" onClick={handleDownloadSample}>
-                                        <FileSpreadsheet className="mr-2 h-4 w-4" />
-                                        Sample
-                                    </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>Download sample Excel template</TooltipContent>
-                            </Tooltip>
-                            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-                                <Upload className="mr-2 h-4 w-4" />
-                                Import
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleExport}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export
-                            </Button>
-                        </div>
-                    )}
+                        <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
+                            <SelectTrigger className="w-[140px]">
+                                <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Months</SelectItem>
+                                {availableMonths.map((month, index) => (
+                                    <SelectItem key={index} value={String(index)}>{month}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {pagePermission !== 'employee_only' && (
+                            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+                                <SelectTrigger className="w-[180px]">
+                                    <SelectValue placeholder="Filter by Branch" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branchOptions.map(branch => (
+                                    <SelectItem key={branch} value={branch}>
+                                        {branch === 'all' ? 'All Branches' : branch}
+                                    </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+                    </div>
+                )}
 
-                    {(pagePermission === 'edit' || pagePermission === 'download') && (
-                        <AddEmployeeDialog onSave={handleSaveEmployee}>
-                            <Button size="sm">
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Employee
-                            </Button>
-                        </AddEmployeeDialog>
-                    )}
-                </div>
+                {showTools && pagePermission === 'download' && (
+                    <div className="flex flex-wrap items-center gap-2 p-3 bg-muted/30 rounded-lg border animate-in fade-in slide-in-from-top-1 duration-200">
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImport}
+                            className="hidden"
+                            accept=".xlsx, .xls"
+                        />
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button variant="outline" size="sm" onClick={handleDownloadSample} className="gap-2">
+                                    <FileSpreadsheet className="h-4 w-4" /> Sample
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Download sample Excel template</TooltipContent>
+                        </Tooltip>
+                        <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                            <Upload className="h-4 w-4" /> Import
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+                            <Download className="h-4 w-4" /> Export
+                        </Button>
+                    </div>
+                )}
                 </CardHeader>
                 <CardContent>
                     <Tabs defaultValue="list" className="w-full">
