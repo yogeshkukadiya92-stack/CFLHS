@@ -64,10 +64,11 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
         if (typeof window === 'undefined') return;
         const item = window.localStorage.getItem(key);
         if (item) {
-          const parsed = JSON.parse(item, (key, value) => {
-            if (key.includes('Date') || key.includes('date') || key === 'checkIns') {
-              if (Array.isArray(value)) return value.map(v => new Date(v));
-              if (typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/)) return new Date(value);
+          const parsed = JSON.parse(item, (k, value) => {
+            // Robust date revival
+            if (typeof value === 'string' && (k.toLowerCase().includes('date') || k === 'checkIns' || k === 'appliedDate' || k === 'joiningDate' || k === 'birthDate')) {
+              const d = new Date(value);
+              if (!isNaN(d.getTime())) return d;
             }
             return value;
           });
@@ -107,7 +108,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const employees: Employee[] = React.useMemo(() => {
     const employeeMap = new Map<string, Employee>();
     kras.forEach(kra => {
-      if (!employeeMap.has(kra.employee.id)) {
+      if (kra.employee && !employeeMap.has(kra.employee.id)) {
         employeeMap.set(kra.employee.id, kra.employee);
       }
     });
@@ -262,7 +263,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     setKras, setBranches
   };
 
-  return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;
+  return React.createElement(DataStoreContext.Provider, { value }, children);
 };
 
 export const useDataStore = () => {
