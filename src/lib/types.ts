@@ -42,6 +42,11 @@ export interface WeeklyUpdate {
     value?: number;
 }
 
+export interface WeeklyProgress {
+    target: number | null;
+    achieved: number | null;
+}
+
 export interface ActionItem {
   id: string;
   name: string;
@@ -70,6 +75,13 @@ export interface KRA {
   extraWork?: string;
   target?: number;
   achieved?: number;
+  weeklyProgress?: {
+    week1: WeeklyProgress;
+    week2: WeeklyProgress;
+    week3: WeeklyProgress;
+    week4: WeeklyProgress;
+    week5: WeeklyProgress;
+  };
 }
 
 export interface Branch {

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -15,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History } from 'lucide-react';
+import { Sparkles, Loader2, PlusCircle, Trash2, Check, ChevronsUpDown, MessageSquare, History, CalendarDays } from 'lucide-react';
 import { useForm, Controller, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -38,6 +39,11 @@ const weeklyUpdateSchema = z.object({
     status: z.enum(['On Track', 'Delayed', 'Completed', 'At Risk', 'Issue']),
     comment: z.string().min(1, "Comment is required."),
     value: z.coerce.number().optional(),
+});
+
+const weeklyProgressItemSchema = z.object({
+    target: z.number().nullable(),
+    achieved: z.number().nullable(),
 });
 
 const actionItemSchema = z.object({
@@ -63,6 +69,13 @@ const kraSchema = z.object({
   extraWork: z.string().optional(),
   target: z.number().min(0).nullable(),
   achieved: z.number().min(0).nullable(),
+  weeklyProgress: z.object({
+    week1: weeklyProgressItemSchema,
+    week2: weeklyProgressItemSchema,
+    week3: weeklyProgressItemSchema,
+    week4: weeklyProgressItemSchema,
+    week5: weeklyProgressItemSchema,
+  }).optional(),
 });
 
 type KraFormValues = z.infer<typeof kraSchema>;
@@ -176,7 +189,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const [isRefining, setIsRefining] = React.useState(false);
   const [employeeComboboxOpen, setEmployeeComboboxOpen] = React.useState(false)
   
-  const { getPermission } = useAuth();
+  const { getPermission, currentUser: loggedInUser } = useAuth();
   const isAdmin = getPermission('employees') === 'download';
   const { toast } = useToast();
 
@@ -201,6 +214,13 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       extraWork: kra?.extraWork || '',
       target: kra?.target || null,
       achieved: kra?.achieved || null,
+      weeklyProgress: {
+        week1: { target: null, achieved: null },
+        week2: { target: null, achieved: null },
+        week3: { target: null, achieved: null },
+        week4: { target: null, achieved: null },
+        week5: { target: null, achieved: null },
+      }
     },
   });
 
@@ -212,9 +232,19 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const allWatchedFields = watch();
 
   React.useEffect(() => {
-    const { actions, weightage, target, achieved } = allWatchedFields;
+    const { actions, weightage, target, achieved, weeklyProgress } = allWatchedFields;
     let totalMarksCalculated = 0;
     
+    // Calculate achievement from weekly progress if it exists
+    let weeklyAchieved = 0;
+    if (weeklyProgress) {
+        Object.values(weeklyProgress).forEach(w => {
+            if (w.achieved) weeklyAchieved += w.achieved;
+        });
+    }
+
+    const currentAchieved = weeklyAchieved > 0 ? weeklyAchieved : (achieved || 0);
+
     if (actions && actions.length > 0) {
         const totalKpiTarget = actions.reduce((sum, action) => sum + (action.target || 0), 0);
         
@@ -233,12 +263,16 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
             totalMarksCalculated += kpiMarks;
         });
     } else if (target && target > 0 && weightage) {
-         totalMarksCalculated = ((achieved || 0) / target) * weightage;
+         totalMarksCalculated = (currentAchieved / target) * weightage;
     }
 
     const finalMarks = Math.min(weightage || 0, parseFloat(totalMarksCalculated.toFixed(2)));
     if (watch('marksAchieved') !== finalMarks) {
         setValue('marksAchieved', finalMarks, { shouldValidate: true });
+    }
+    
+    if (weeklyAchieved > 0 && achieved !== weeklyAchieved) {
+        setValue('achieved', weeklyAchieved);
     }
   }, [allWatchedFields, setValue, watch]);
 
@@ -260,6 +294,13 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         extraWork: kra?.extraWork || '',
         target: kra?.target || null,
         achieved: kra?.achieved || null,
+        weeklyProgress: kra?.weeklyProgress || {
+            week1: { target: null, achieved: null },
+            week2: { target: null, achieved: null },
+            week3: { target: null, achieved: null },
+            week4: { target: null, achieved: null },
+            week5: { target: null, achieved: null },
+        }
       });
     }
   }, [open, kra, reset]);
@@ -313,6 +354,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       extraWork: data.extraWork,
       target: data.target,
       achieved: finalAchieved,
+      weeklyProgress: data.weeklyProgress,
     };
     onSave?.(newKra);
     setOpen(false);
@@ -321,12 +363,12 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-4xl max-h-[95vh] flex flex-col p-0">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
           <DialogHeader className="p-6 pb-2">
             <DialogTitle>{kra ? 'Update KRA & Progress' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
-              Record your achievements and weekly progress logs.
+              Set weekly targets, record achievements, and manage KPI goals.
             </DialogDescription>
           </DialogHeader>
           
@@ -388,7 +430,57 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                 <Separator />
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label className="text-right pt-2 font-semibold">Goals</Label>
+                    <Label className="text-right pt-2 font-semibold">Weekly Targets & Achievement</Label>
+                    <div className="col-span-3">
+                        <div className="grid grid-cols-5 gap-4">
+                            {[1, 2, 3, 4, 5].map((weekNum) => (
+                                <div key={weekNum} className="space-y-3 p-3 border rounded-lg bg-slate-50/50">
+                                    <div className='flex items-center gap-1.5 mb-1'>
+                                        <CalendarDays className='h-3.5 w-3.5 text-primary' />
+                                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600">Week {weekNum}</span>
+                                    </div>
+                                    <div className='space-y-1.5'>
+                                        <Label className="text-[9px] font-bold text-slate-400">Target</Label>
+                                        <Controller
+                                            name={`weeklyProgress.week${weekNum}.target` as any}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Input 
+                                                    type="number" 
+                                                    {...field} 
+                                                    className="h-8 text-xs bg-white" 
+                                                    value={field.value ?? ''} 
+                                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                                />
+                                            )}
+                                        />
+                                    </div>
+                                    <div className='space-y-1.5'>
+                                        <Label className="text-[9px] font-bold text-primary/70">Done</Label>
+                                        <Controller
+                                            name={`weeklyProgress.week${weekNum}.achieved` as any}
+                                            control={control}
+                                            render={({ field }) => (
+                                                <Input 
+                                                    type="number" 
+                                                    {...field} 
+                                                    className="h-8 text-xs bg-white border-primary/20 focus:border-primary" 
+                                                    value={field.value ?? ''} 
+                                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
+                                                />
+                                            )}
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <Separator />
+
+                <div className="grid grid-cols-4 items-start gap-4">
+                    <Label className="text-right pt-2 font-semibold">Goals Summary</Label>
                     <div className="col-span-3 grid grid-cols-4 gap-3">
                         <div className='space-y-1'>
                             <Label className="text-[10px] font-bold uppercase text-slate-500">Weightage</Label>
@@ -399,7 +491,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             />
                         </div>
                         <div className='space-y-1'>
-                            <Label className="text-[10px] font-bold uppercase text-slate-500">Target</Label>
+                            <Label className="text-[10px] font-bold uppercase text-slate-500">Total Target</Label>
                             <Controller
                                 name="target"
                                 control={control}
@@ -407,11 +499,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             />
                         </div>
                         <div className='space-y-1'>
-                            <Label className="text-[10px] font-bold uppercase text-primary">Achieved</Label>
+                            <Label className="text-[10px] font-bold uppercase text-primary">Total Achieved</Label>
                             <Controller
                                 name="achieved"
                                 control={control}
-                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={hasActions} className="bg-primary/5 border-primary/20" />}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} className="bg-primary/5 border-primary/20" />}
                             />
                         </div>
                         <div className='space-y-1'>

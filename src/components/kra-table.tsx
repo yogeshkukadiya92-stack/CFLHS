@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -22,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate } from '@/lib/types';
+import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate, WeeklyProgress } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
@@ -329,8 +330,8 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           </AlertDialog>
         </div>
       )}
-      <div className='border rounded-lg overflow-hidden bg-white shadow-sm'>
-      <Table>
+      <div className='border rounded-lg overflow-hidden bg-white shadow-sm overflow-x-auto'>
+      <Table className="min-w-[1200px]">
         <TableHeader className="bg-muted/50">
           <TableRow>
             <TableHead className="w-[50px]">
@@ -340,9 +341,14 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
               />
             </TableHead>
             <TableHead>Employee</TableHead>
-            <TableHead className='w-[450px]'>KRA-KPI Task Details</TableHead>
-            <TableHead className="text-center">Weightage</TableHead>
-            <TableHead className="text-center">Performance</TableHead>
+            <TableHead className='w-[350px]'>KRA-KPI Task Details</TableHead>
+            <TableHead className="text-center w-24">Weightage</TableHead>
+            <TableHead className="text-center w-20">W1</TableHead>
+            <TableHead className="text-center w-20">W2</TableHead>
+            <TableHead className="text-center w-20">W3</TableHead>
+            <TableHead className="text-center w-20">W4</TableHead>
+            <TableHead className="text-center w-20">W5</TableHead>
+            <TableHead className="text-center w-24">Performance</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -351,7 +357,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         <TableBody>
           {kras.length === 0 && (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">No KRAs found.</TableCell>
+              <TableCell colSpan={11} className="h-24 text-center">No KRAs found.</TableCell>
             </TableRow>
           )}
           {kras.map((kra) => {
@@ -370,6 +376,16 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 : (kra.achieved || 0);
             
             const totalPending = Math.max(0, totalTarget - totalAchieved);
+
+            const renderWeekCell = (weekData?: WeeklyProgress) => {
+                if (!weekData || (weekData.target === null && weekData.achieved === null)) return "-";
+                return (
+                    <div className="flex flex-col items-center text-[10px]">
+                        <span className="font-bold text-primary">{weekData.achieved ?? 0}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weekData.target ?? 0}</span>
+                    </div>
+                );
+            };
 
             return (
             <TableRow key={kra.id} className="align-top">
@@ -426,6 +442,11 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       <span className="text-muted-foreground">-</span>
                   )}
               </TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
               <TableCell className="text-center">
                   <Tooltip>
                       <TooltipTrigger>
@@ -479,6 +500,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
               <TableCell className="text-center text-lg font-black text-slate-700">
                 {totalWeightage}
               </TableCell>
+              <TableCell colSpan={5} />
               <TableCell className="text-center text-xl font-black text-primary">
                 {totalPerformance.toFixed(2)}
               </TableCell>
