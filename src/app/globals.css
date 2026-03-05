@@ -23,12 +23,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
-    --radius: 0.5rem;
-    --chart-1: 221.2 83.2% 53.3%;
-    --chart-2: 212 95% 68%;
-    --chart-3: 216 92% 60%;
-    --chart-4: 210 98% 78%;
-    --chart-5: 212 97% 87%;
+    --radius: 0.75rem;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -58,31 +53,15 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-slate-50 text-slate-900;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
 .professional-card {
-  @apply bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:shadow-md;
+  @apply bg-white border border-slate-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/20;
 }
 
 .sidebar-clean {
   @apply bg-white border-r border-slate-200 !important;
-}
-
-.event-birthday {
-    background-color: #fee2e2 !important;
-    color: #991b1b !important;
-    font-weight: bold;
-}
-.event-anniversary {
-    background-color: #dcfce7 !important;
-    color: #166534 !important;
-    font-weight: bold;
-}
-.event-holiday {
-    background-color: #dbeafe !important;
-    color: #1e40af !important;
-    font-weight: bold;
 }

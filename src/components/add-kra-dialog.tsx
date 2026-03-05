@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -46,7 +45,7 @@ const actionItemSchema = z.object({
   name: z.string().min(1, "Action description cannot be empty."),
   dueDate: z.date(),
   isCompleted: z.boolean(),
-  weightage: z.coerce.number().min(0, "Marks must be a positive number.").optional(),
+  weightage: z.coerce.number().min(0).optional(),
   updates: z.array(weeklyUpdateSchema).optional(),
   target: z.coerce.number().optional(),
   achieved: z.coerce.number().optional(),
@@ -65,7 +64,6 @@ const kraSchema = z.object({
   target: z.number().min(0).nullable(),
   achieved: z.number().min(0).nullable(),
 });
-
 
 type KraFormValues = z.infer<typeof kraSchema>;
 type WeeklyUpdateFormValues = z.infer<typeof weeklyUpdateSchema>;
@@ -111,8 +109,8 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
                     <DialogHeader>
                         <DialogTitle>Weekly Progress Log</DialogTitle>
                         <DialogDescription>
-                            Record how much work you completed this week. 
-                            <span className="block mt-1 font-semibold text-orange-600">Pending Goal: {pending} units</span>
+                            Record work completed this week. 
+                            <span className="block mt-1 font-semibold text-primary">Pending Goal: {pending} units</span>
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -150,7 +148,6 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
                                         onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
                                     />}
                                 />
-                                <p className='text-xs text-muted-foreground mt-1'>This will decrease your pending work automatically.</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-4 items-start gap-4">
@@ -159,7 +156,7 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
                                 <Controller
                                     name="comment"
                                     control={control}
-                                    render={({ field }) => <Textarea id="comment" {...field} placeholder="What was achieved this week?"/>}
+                                    render={({ field }) => <Textarea id="comment" {...field} placeholder="What was achieved?"/>}
                                 />
                                 {errors.comment && <p className="text-xs text-destructive mt-1">{errors.comment.message}</p>}
                             </div>
@@ -174,7 +171,6 @@ const UpdateDialog = ({ target, currentAchieved, onSave, children }: {target: nu
     )
 }
 
-
 export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [isRefining, setIsRefining] = React.useState(false);
@@ -182,8 +178,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   
   const { getPermission } = useAuth();
   const isAdmin = getPermission('employees') === 'download';
-
-
   const { toast } = useToast();
 
   const {
@@ -217,7 +211,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
   const allWatchedFields = watch();
 
-   React.useEffect(() => {
+  React.useEffect(() => {
     const { actions, weightage, target, achieved } = allWatchedFields;
     let totalMarksCalculated = 0;
     
@@ -226,16 +220,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         
         actions.forEach((action, index) => {
             const kpiAchieved = action.achieved || action.updates?.reduce((sum, u) => sum + (u.value || 0), 0) || 0;
-            
-            let kpiMarks = 0;
             const kpiWeightage = (weightage && totalKpiTarget > 0 && action.target) 
                 ? (action.target / totalKpiTarget) * weightage 
                 : 0;
 
-            if (watch(`actions.${index}.weightage`) !== parseFloat(kpiWeightage.toFixed(2))) {
-                setValue(`actions.${index}.weightage`, parseFloat(kpiWeightage.toFixed(2)));
-            }
-
+            let kpiMarks = 0;
             if (action.target && action.target > 0) {
                 kpiMarks = (kpiAchieved / action.target) * kpiWeightage;
             } else if (action.isCompleted) {
@@ -248,13 +237,10 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
     }
 
     const finalMarks = Math.min(weightage || 0, parseFloat(totalMarksCalculated.toFixed(2)));
-
     if (watch('marksAchieved') !== finalMarks) {
         setValue('marksAchieved', finalMarks, { shouldValidate: true });
     }
-
   }, [allWatchedFields, setValue, watch]);
-
 
   React.useEffect(() => {
     if (open) {
@@ -282,31 +268,14 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   const hasActions = allWatchedFields.actions && allWatchedFields.actions.length > 0;
 
   const handleRefine = async () => {
-    if (!taskDescription) {
-      toast({
-        title: 'Error',
-        description: 'Please enter a task description first.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (!taskDescription) return;
     setIsRefining(true);
     try {
       const result = await refineKraTaskDescription({ taskDescription });
-      setValue('taskDescription', result.refinedTaskDescription, {
-        shouldValidate: true,
-      });
-      toast({
-        title: 'Success',
-        description: 'Task description has been refined.',
-      });
+      setValue('taskDescription', result.refinedTaskDescription);
+      toast({ title: 'Success', description: 'Task description refined.' });
     } catch (error) {
-      console.error('Failed to refine KRA task:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to refine task description. Please try again.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: 'Failed to refine.', variant: 'destructive' });
     } finally {
       setIsRefining(false);
     }
@@ -314,14 +283,7 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
   
   const onSubmit = (data: KraFormValues) => {
     const selectedEmployee = employees.find(e => e.id === data.employeeId);
-    if (!selectedEmployee) {
-      toast({
-        title: 'Error',
-        description: 'Employee not found. Please select an employee.',
-        variant: 'destructive',
-      });
-      return;
-    }
+    if (!selectedEmployee) return;
     
     let totalAchieved = 0;
     const updatedActions = data.actions?.map(action => {
@@ -353,13 +315,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       achieved: finalAchieved,
     };
     onSave?.(newKra);
-    toast({
-      title: 'Progress Synchronized',
-      description: `Updates for ${selectedEmployee.name} have been saved.`,
-    });
     setOpen(false);
   };
-
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -367,18 +324,16 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col p-0">
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col h-full overflow-hidden">
           <DialogHeader className="p-6 pb-2">
-            <DialogTitle>{kra ? 'Update KRA & Weekly KPI Logs' : 'Add New KRA'}</DialogTitle>
+            <DialogTitle>{kra ? 'Update KRA & Progress' : 'Add New KRA'}</DialogTitle>
             <DialogDescription>
-              {kra ? 'Log your weekly progress. The system will automatically calculate pending units and update marks.' : 'Fill in the details for the new KRA task.'}
+              Record your achievements and weekly progress logs.
             </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6">
             <div className="grid gap-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="employeeName" className="text-right font-semibold">
-                    Employee
-                </Label>
+                <Label className="text-right font-semibold">Employee</Label>
                 <div className="col-span-3">
                     <Controller
                         name="employeeId"
@@ -386,44 +341,21 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         render={({ field }) => (
                         <Popover open={employeeComboboxOpen} onOpenChange={setEmployeeComboboxOpen}>
                             <PopoverTrigger asChild>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={employeeComboboxOpen}
-                                className="w-full justify-between rounded-xl border-primary/20"
-                                disabled={!isAdmin}
-                            >
-                                {field.value
-                                ? employees.find((employee) => employee.id === field.value)?.name
-                                : "Select employee..."}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            <Button variant="outline" className="w-full justify-between" disabled={!isAdmin}>
+                                {field.value ? employees.find((e) => e.id === field.value)?.name : "Select employee..."}
+                                <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
                             </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0 rounded-xl border-none shadow-2xl">
+                            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
                             <Command>
-                                <CommandInput 
-                                placeholder="Search employee..."
-                                />
+                                <CommandInput placeholder="Search employee..." />
                                 <CommandList>
                                     <CommandEmpty>No employees found.</CommandEmpty>
                                     <CommandGroup>
-                                    {employees.map((employee) => (
-                                        <CommandItem
-                                        key={employee.id}
-                                        value={employee.name}
-                                        onSelect={() => {
-                                            field.onChange(employee.id)
-                                            setEmployeeComboboxOpen(false);
-                                        }}
-                                        className='rounded-lg mx-1'
-                                        >
-                                        <Check
-                                            className={cn(
-                                            "mr-2 h-4 w-4",
-                                            employee.id === field.value ? "opacity-100" : "opacity-0"
-                                            )}
-                                        />
-                                        {employee.name}
+                                    {employees.map((e) => (
+                                        <CommandItem key={e.id} value={e.name} onSelect={() => { field.onChange(e.id); setEmployeeComboboxOpen(false); }}>
+                                        <Check className={cn("mr-2 h-4 w-4", e.id === field.value ? "opacity-100" : "opacity-0")} />
+                                        {e.name}
                                         </CommandItem>
                                     ))}
                                     </CommandGroup>
@@ -433,108 +365,58 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                         </Popover>
                         )}
                     />
-                    {errors.employeeId && <p className="text-xs text-destructive mt-1">{errors.employeeId.message}</p>}
                 </div>
                 </div>
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="taskDescription" className="text-right pt-2 font-semibold">
-                    Task
-                </Label>
+                <Label className="text-right pt-2 font-semibold">Task</Label>
                 <div className="col-span-3">
                     <Controller
                         name="taskDescription"
                         control={control}
-                        render={({ field }) => <Textarea id="taskDescription" {...field} rows={3} disabled={!isAdmin} className="rounded-xl border-primary/20 bg-muted/10" />}
+                        render={({ field }) => <Textarea {...field} rows={3} disabled={!isAdmin} className="bg-slate-50" />}
                     />
-                    {errors.taskDescription && <p className="text-xs text-destructive mt-1">{errors.taskDescription.message}</p>}
                     {isAdmin && (
-                        <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="mt-2 rounded-xl gap-2 border-primary/30 hover:bg-primary/5"
-                        onClick={handleRefine}
-                        disabled={isRefining}
-                        >
-                        {isRefining ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Sparkles className="mr-2 h-4 w-4 text-yellow-500" />
-                        )}
-                        Refine Task with AI
+                        <Button type="button" variant="outline" size="sm" className="mt-2 gap-2" onClick={handleRefine} disabled={isRefining}>
+                            {isRefining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-yellow-500" />}
+                            Refine with AI
                         </Button>
                     )}
                 </div>
                 </div>
                 
-                <Separator className='my-2' />
+                <Separator />
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="weightage" className="text-right pt-2 font-semibold">
-                    Overall Goals
-                    </Label>
+                    <Label className="text-right pt-2 font-semibold">Goals</Label>
                     <div className="col-span-3 grid grid-cols-4 gap-3">
-                        <div className='space-y-1.5'>
-                            <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Weightage</Label>
+                        <div className='space-y-1'>
+                            <Label className="text-[10px] font-bold uppercase text-slate-500">Weightage</Label>
                             <Controller
-                            name="weightage"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="weightage" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="Marks"
-                                    disabled={!isAdmin}
-                                    className='rounded-xl border-primary/20'
-                                />
-                            )}
+                                name="weightage"
+                                control={control}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={!isAdmin} />}
                             />
                         </div>
-                        <div className='space-y-1.5'>
-                            <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Goal Target</Label>
+                        <div className='space-y-1'>
+                            <Label className="text-[10px] font-bold uppercase text-slate-500">Target</Label>
                             <Controller
-                            name="target"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="target" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="Units"
-                                    disabled={!isAdmin}
-                                    className='rounded-xl border-primary/20'
-                                />
-                            )}
+                                name="target"
+                                control={control}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={!isAdmin} />}
                             />
                         </div>
-                        <div className='space-y-1.5'>
-                            <Label className="text-[10px] font-black text-primary uppercase tracking-widest ml-1">Achieved</Label>
+                        <div className='space-y-1'>
+                            <Label className="text-[10px] font-bold uppercase text-primary">Achieved</Label>
                             <Controller
-                            name="achieved"
-                            control={control}
-                            render={({ field }) => (
-                                <Input 
-                                    id="achieved" 
-                                    type="number" 
-                                    {...field} 
-                                    value={field.value ?? ''}
-                                    onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                    placeholder="Work Done"
-                                    className='rounded-xl border-primary shadow-sm bg-primary/5 focus-visible:ring-primary'
-                                    disabled={hasActions}
-                                />
-                            )}
+                                name="achieved"
+                                control={control}
+                                render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} disabled={hasActions} className="bg-primary/5 border-primary/20" />}
                             />
                         </div>
-                        <div className='space-y-1.5'>
-                            <Label className="text-[10px] font-black text-orange-600 uppercase tracking-widest ml-1">Pending</Label>
-                            <div className="h-10 flex items-center px-3 border-2 border-orange-100 rounded-xl bg-orange-50 text-orange-700 font-black shadow-inner">
+                        <div className='space-y-1'>
+                            <Label className="text-[10px] font-bold uppercase text-orange-600">Pending</Label>
+                            <div className="h-10 flex items-center px-3 border rounded-md bg-orange-50 text-orange-700 font-bold">
                                 {Math.max(0, (watch('target') || 0) - (watch('achieved') || 0))}
                             </div>
                         </div>
@@ -542,242 +424,101 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                 </div>
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label className="text-right pt-2 font-bold text-primary">Weekly KPI Logs</Label>
+                    <Label className="text-right pt-2 font-bold text-primary">KPI Actions</Label>
                     <div className="col-span-3 space-y-4">
-                        {fields.map((field, index) => {
-                            const target = field.target || 0;
-                            const achieved = field.achieved || 0;
-                            const pending = Math.max(0, target - achieved);
-
-                            return (
-                            <div key={field.id} className="space-y-3 p-4 border border-primary/10 rounded-2xl bg-white/50 backdrop-blur-sm shadow-sm transition-all hover:shadow-md">
+                        {fields.map((field, index) => (
+                            <div key={field.id} className="p-4 border rounded-lg bg-white shadow-sm space-y-3">
                                 <div className="flex items-center gap-3">
                                     <Controller
                                         name={`actions.${index}.isCompleted`}
                                         control={control}
-                                        render={({ field: checkboxField }) => (
-                                            <Checkbox
-                                                checked={checkboxField.value}
-                                                onCheckedChange={checkboxField.onChange}
-                                                className='h-5 w-5 rounded-lg border-2 border-primary/20 data-[state=checked]:bg-primary'
-                                            />
-                                        )}
+                                        render={({ field: f }) => <Checkbox checked={f.value} onCheckedChange={f.onChange} />}
                                     />
-                                    <div className='flex-1 grid grid-cols-[1fr,100px] gap-3'>
-                                        <Controller
-                                            name={`actions.${index}.name`}
-                                            control={control}
-                                            render={({ field: nameField }) => (
-                                                <Input 
-                                                    type="text"
-                                                    placeholder="KPI Goal Description"
-                                                    className="bg-background font-bold rounded-xl border-none shadow-inner"
-                                                    {...nameField}
-                                                    disabled={!isAdmin}
-                                                />
-                                            )}
-                                        />
-                                        <Controller
-                                            name={`actions.${index}.target`}
-                                            control={control}
-                                            render={({ field: targetField }) => (
-                                                <Input 
-                                                    type="number"
-                                                    placeholder="Goal"
-                                                    className="bg-background rounded-xl border-none shadow-inner text-center font-black"
-                                                    {...targetField}
-                                                    value={targetField.value ?? ''}
-                                                    onChange={e => targetField.onChange(e.target.value === '' ? undefined : Number(e.target.value))}
-                                                    disabled={!isAdmin}
-                                                />
-                                            )}
-                                        />
-                                    </div>
+                                    <Controller
+                                        name={`actions.${index}.name`}
+                                        control={control}
+                                        render={({ field: f }) => <Input placeholder="KPI Action" {...f} disabled={!isAdmin} className="flex-1 font-semibold" />}
+                                    />
                                     {isAdmin && (
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className='rounded-xl text-rose-500 hover:bg-rose-50'>
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)} className='text-rose-500'>
                                             <Trash2 className="h-4 w-4" />
                                         </Button>
                                     )}
                                 </div>
-                                <div className='flex items-end gap-3 pl-8'>
-                                    <div className='flex-1 space-y-1'>
-                                        <Label className='text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1'>Deadline</Label>
+                                <div className='flex items-end gap-3 pl-7'>
+                                    <div className='flex-1'>
+                                        <Label className='text-[10px] uppercase font-bold text-slate-500'>Target</Label>
                                         <Controller
-                                            name={`actions.${index}.dueDate`}
+                                            name={`actions.${index}.target`}
                                             control={control}
-                                            render={({ field: dateField }) => (
-                                                <Input 
-                                                    type="date"
-                                                    className='w-full bg-background h-10 rounded-xl border-primary/10'
-                                                    value={format(new Date(dateField.value), 'yyyy-MM-dd')}
-                                                    onChange={e => dateField.onChange(new Date(e.target.value))}
-                                                    disabled={!isAdmin}
-                                                />
-                                            )}
+                                            render={({ field: f }) => <Input type="number" {...f} value={f.value ?? ''} onChange={e => f.onChange(e.target.value === '' ? undefined : Number(e.target.value))} disabled={!isAdmin} />}
                                         />
                                     </div>
-                                    <div className='w-24 space-y-1'>
-                                        <Label className='text-[10px] font-black text-primary uppercase tracking-widest ml-1'>Done</Label>
-                                        <div className="h-10 flex items-center px-3 border border-primary/20 rounded-xl bg-primary/5 text-primary font-black text-sm shadow-inner">
-                                            {achieved}
-                                        </div>
-                                    </div>
-                                    <div className='w-24 space-y-1'>
-                                        <Label className='text-[10px] font-black text-orange-600 uppercase tracking-widest ml-1'>Pending</Label>
-                                        <div className="h-10 flex items-center px-3 border border-orange-100 rounded-xl bg-orange-50 text-orange-700 font-black text-sm shadow-inner">
-                                            {pending}
-                                        </div>
+                                    <div className='w-20'>
+                                        <Label className='text-[10px] uppercase font-bold text-slate-500'>Done</Label>
+                                        <div className="h-10 flex items-center px-2 border rounded-md bg-slate-50 text-sm font-bold">{field.achieved || 0}</div>
                                     </div>
                                     <UpdateDialog 
-                                        target={target} 
-                                        currentAchieved={achieved}
-                                        onSave={(updateData) => {
-                                            const currentUpdates = field.updates || [];
-                                            const newUpdates = [...currentUpdates, updateData];
-                                            const newAchieved = achieved + (updateData.value || 0);
-                                            update(index, {...field, updates: newUpdates, achieved: newAchieved });
+                                        target={field.target || 0} 
+                                        currentAchieved={field.achieved || 0}
+                                        onSave={(upd) => {
+                                            const newUpd = [...(field.updates || []), upd];
+                                            const newAch = (field.achieved || 0) + (upd.value || 0);
+                                            update(index, {...field, updates: newUpd, achieved: newAch });
                                         }}
                                     >
-                                        <Button type="button" size="sm" variant="outline" className='gap-2 bg-white border-primary/30 text-primary hover:bg-primary hover:text-white rounded-xl h-10 px-4 transition-all duration-300 shadow-md font-bold'>
-                                            <History className='h-4 w-4'/> Log Progress
-                                        </Button>
+                                        <Button type="button" size="sm" variant="outline" className='h-10'><History className='h-4 w-4 mr-2'/> Log</Button>
                                     </UpdateDialog>
                                 </div>
                             </div>
-                            )
-                        })}
+                        ))}
                         {isAdmin && (
-                            <Button type="button" size="sm" variant="outline" className="w-full border-dashed rounded-2xl h-12 gap-2 text-primary border-primary/20 hover:border-primary hover:bg-primary/5 transition-all font-bold" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
-                                <PlusCircle className="h-4 w-4" />
-                                Add New KPI Strategy Goal
+                            <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => append({ id: uuidv4(), name: '', dueDate: new Date(), isCompleted: false, weightage: 0, updates: [] })}>
+                                <PlusCircle className="h-4 w-4 mr-2" /> Add KPI Action
                             </Button>
                         )}
                     </div>
                 </div>
                 
-                <Separator className='my-2' />
+                <Separator />
 
                 <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="marksAchieved" className="text-right font-black text-slate-900">
-                    Performance Score
-                </Label>
-                <div className="col-span-3">
-                    <div className='relative'>
+                    <Label className="text-right font-bold">Marks Achieved</Label>
+                    <div className="col-span-3">
                         <Controller
-                        name="marksAchieved"
-                        control={control}
-                        render={({ field }) => (
-                            <Input 
-                                id="marksAchieved" 
-                                type="number" 
-                                {...field} 
-                                value={field.value ?? ''}
-                                onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                placeholder="Auto-calculated Score"
-                                readOnly
-                                className='bg-primary/5 border-primary/30 rounded-xl h-12 text-lg font-black text-primary text-center shadow-inner'
-                            />
-                        )}
+                            name="marksAchieved"
+                            control={control}
+                            render={({ field }) => <Input type="number" {...field} value={field.value ?? ''} readOnly className='bg-primary/5 font-bold text-lg text-center' />}
                         />
-                        <div className='absolute right-4 top-1/2 -translate-y-1/2'>
-                            <Badge variant="secondary" className='bg-white/80 shadow-sm'>Auto-Metric</Badge>
-                        </div>
                     </div>
                 </div>
-                </div>
-                
-                {isAdmin && (
-                    <div className="grid grid-cols-4 items-start gap-4">
-                        <Label className="text-right pt-2 font-semibold">Incentives/Deductions</Label>
-                        <div className="col-span-3 grid grid-cols-2 gap-4">
-                            <div className='space-y-1.5'>
-                                <Label className="text-[10px] font-black text-green-600 uppercase tracking-widest ml-1">Bonus Points (+)</Label>
-                                <Controller
-                                    name="bonus"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Input 
-                                            id="bonus" 
-                                            type="number" 
-                                            {...field} 
-                                            value={field.value ?? ''}
-                                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                            placeholder="Extra performance"
-                                            className='rounded-xl border-green-200 focus-visible:ring-green-500'
-                                        />
-                                    )}
-                                />
-                            </div>
-                            <div className='space-y-1.5'>
-                                <Label className="text-[10px] font-black text-rose-600 uppercase tracking-widest ml-1">Penalty Points (-)</Label>
-                                <Controller
-                                    name="penalty"
-                                    control={control}
-                                    render={({ field }) => (
-                                        <Input 
-                                            id="penalty" 
-                                            type="number" 
-                                            {...field} 
-                                            value={field.value ?? ''}
-                                            onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))}
-                                            placeholder="Performance deductions"
-                                            className='rounded-xl border-rose-200 focus-visible:ring-rose-500'
-                                        />
-                                    )}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="extraWork" className="text-right pt-2 font-bold text-orange-600">
-                        Extra Work Done
-                    </Label>
+                    <Label className="text-right pt-2 font-bold text-blue-600">Extra Work Done</Label>
                     <div className="col-span-3">
                         <Controller
                             name="extraWork"
                             control={control}
-                            render={({ field }) => (
-                                <Textarea 
-                                    id="extraWork" 
-                                    {...field} 
-                                    rows={2} 
-                                    placeholder="Write about any additional work or achievements outside KPIs..."
-                                    className='rounded-xl border-orange-200 bg-orange-50/30 font-medium placeholder:text-orange-300'
-                                />
-                            )}
+                            render={({ field }) => <Textarea {...field} rows={2} placeholder="Any additional achievements or tasks..." className="border-blue-100 bg-blue-50/30" />}
                         />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="handover" className="text-right pt-2 font-semibold text-muted-foreground">
-                        Work Handover
-                    </Label>
+                    <Label className="text-right pt-2 font-semibold text-slate-500">Handover/Notes</Label>
                     <div className="col-span-3">
                         <Controller
                             name="handover"
                             control={control}
-                            render={({ field }) => (
-                                <Textarea 
-                                    id="handover" 
-                                    {...field} 
-                                    rows={2} 
-                                    placeholder="Notes regarding work status or handover..."
-                                    className='rounded-xl border-primary/10 bg-muted/5 italic text-sm'
-                                />
-                            )}
+                            render={({ field }) => <Textarea {...field} rows={2} placeholder="Status handover or general remarks..." className="italic text-sm" />}
                         />
                     </div>
                 </div>
             </div>
           </div>
 
-          <DialogFooter className="p-6 border-t bg-white/80 backdrop-blur-md shrink-0">
-            <Button type="submit" className='w-full h-12 rounded-2xl font-black text-lg shadow-xl shadow-primary/30 transition-all active:scale-95 hover:shadow-primary/40'>
-                Sync All Progress Data
-            </Button>
+          <DialogFooter className="p-6 border-t bg-slate-50 shrink-0">
+            <Button type="submit" className='w-full h-12 font-bold text-lg'>Save All Changes</Button>
           </DialogFooter>
         </form>
       </DialogContent>
