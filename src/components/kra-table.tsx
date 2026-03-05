@@ -279,6 +279,29 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     kras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
   , [kras]);
 
+  const weeklyTotals = React.useMemo(() => {
+    const totals = {
+      week1: { target: 0, achieved: 0 },
+      week2: { target: 0, achieved: 0 },
+      week3: { target: 0, achieved: 0 },
+      week4: { target: 0, achieved: 0 },
+      week5: { target: 0, achieved: 0 },
+    };
+
+    kras.forEach(kra => {
+      if (kra.weeklyProgress) {
+        Object.keys(kra.weeklyProgress).forEach(week => {
+          const w = week as keyof typeof totals;
+          const weekData = kra.weeklyProgress![w];
+          totals[w].target += weekData.target || 0;
+          totals[w].achieved += weekData.achieved || 0;
+        });
+      }
+    });
+
+    return totals;
+  }, [kras]);
+
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedIds(kras.map(k => k.id));
@@ -495,12 +518,41 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
           <TableFooter className="bg-slate-50/80 font-bold border-t-2">
             <TableRow>
               <TableCell colSpan={3} className="text-right py-4 pr-6 text-slate-500 uppercase text-[10px] tracking-widest">
-                Aggregated Performance Score
+                Aggregated Totals
               </TableCell>
               <TableCell className="text-center text-lg font-black text-slate-700">
                 {totalWeightage}
               </TableCell>
-              <TableCell colSpan={5} />
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center text-[10px]">
+                    <span className="font-bold text-primary">{weeklyTotals.week1.achieved}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week1.target}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center text-[10px]">
+                    <span className="font-bold text-primary">{weeklyTotals.week2.achieved}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week2.target}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center text-[10px]">
+                    <span className="font-bold text-primary">{weeklyTotals.week3.achieved}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week3.target}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center text-[10px]">
+                    <span className="font-bold text-primary">{weeklyTotals.week4.achieved}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week4.target}</span>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center text-[10px]">
+                    <span className="font-bold text-primary">{weeklyTotals.week5.achieved}</span>
+                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week5.target}</span>
+                </div>
+              </TableCell>
               <TableCell className="text-center text-xl font-black text-primary">
                 {totalPerformance.toFixed(2)}
               </TableCell>
