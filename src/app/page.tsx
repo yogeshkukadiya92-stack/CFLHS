@@ -48,6 +48,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { cn } from '@/lib/utils';
@@ -486,7 +487,7 @@ function DashboardContent() {
                             </CardDescription>
                         </div>
                     </div>
-                    <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex wrap items-center gap-3">
                         {(pagePermission === 'edit' || pagePermission === 'download') && (
                             <AddKraDialog onSave={handleSaveKra} employees={employees}>
                                 <Button variant="outline" className="gap-2 rounded-xl border-primary/20 font-bold hover:bg-primary hover:text-white transition-all duration-300">
@@ -506,7 +507,7 @@ function DashboardContent() {
                 </div>
 
                 {showFilters && (
-                    <div className="flex flex-wrap items-center gap-4 p-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl border border-white shadow-inner animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex wrap items-center gap-4 p-5 bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl border border-white shadow-inner animate-in fade-in slide-in-from-top-4 duration-500">
                         <div className='space-y-1.5'>
                             <label className='text-[10px] font-black text-blue-600 uppercase ml-1'>Report Year</label>
                             <Select value={selectedYear} onValueChange={setSelectedYear}>
@@ -556,7 +557,7 @@ function DashboardContent() {
                 )}
 
                 {showTools && pagePermission === 'download' && (
-                    <div className="flex flex-wrap items-center gap-4 p-5 bg-slate-900 rounded-3xl border-none shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="flex wrap items-center gap-4 p-5 bg-slate-900 rounded-3xl border-none shadow-2xl animate-in fade-in slide-in-from-top-4 duration-500">
                         <input
                             type="file"
                             ref={fileInputRef}
@@ -731,7 +732,7 @@ function DashboardContent() {
                                         <div key={summary.employee.id} className="relative group perspective-1000">
                                           <div className="absolute top-4 left-4 z-10 opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
                                             <Checkbox 
-                                              checked={setSelectedEmployeeIds.includes(summary.employee.id)}
+                                              checked={selectedEmployeeIds.includes(summary.employee.id)}
                                               onCheckedChange={(checked) => handleSelectOne(summary.employee.id, !!checked)}
                                               className="bg-white shadow-xl rounded-lg border-2 border-primary/20 data-[state=checked]:bg-primary h-6 w-6"
                                             />
