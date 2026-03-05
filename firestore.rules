@@ -8,6 +8,9 @@ service cloud.firestore {
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
+    function isEmailOwner(email) {
+      return isSignedIn() && request.auth.token.email == email;
+    }
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
@@ -18,46 +21,76 @@ service cloud.firestore {
       allow write: if isOwner(userId) || isAdmin();
     }
 
-    // KRAs
+    // KRAs - Allow access based on UID or Email
     match /kras/{id} {
       allow read: if isSignedIn();
-      allow write: if isAdmin() || (isSignedIn() && resource == null) || (isSignedIn() && resource.data.employee.id == request.auth.uid);
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Leaves
     match /leaves/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Expenses
     match /expenses/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Routine Tasks
     match /routineTasks/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Habits
     match /habits/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Attendance
     match /attendances/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin() 
+                   || (isSignedIn() && (
+                        resource == null || 
+                        resource.data.employee.id == request.auth.uid || 
+                        resource.data.employee.email == request.auth.token.email
+                      ));
     }
 
     // Recruitment
     match /recruits/{id} {
       allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Global Collections
