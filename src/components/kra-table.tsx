@@ -287,6 +287,14 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
     kras.reduce((sum, kra) => sum + ((kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0)), 0)
   , [kras]);
 
+  const totalOverallTarget = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + (kra.target || 0), 0)
+  , [kras]);
+
+  const totalOverallAchieved = React.useMemo(() => 
+    kras.reduce((sum, kra) => sum + (kra.achieved || 0), 0)
+  , [kras]);
+
   const weeklyTotals = React.useMemo(() => {
     const totals = {
       week1: { target: 0, achieved: 0 },
@@ -395,6 +403,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             </TableHead>
             <TableHead>Employee</TableHead>
             <TableHead className='w-[350px]'>KRA-KPI Task Details</TableHead>
+            <TableHead className="text-center w-24">Total Achieved</TableHead>
             <TableHead className="text-center w-24">Weightage</TableHead>
             <TableHead className="text-center w-24">Performance</TableHead>
             <TableHead className="text-center w-20">W1</TableHead>
@@ -410,7 +419,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         <TableBody>
           {kras.length === 0 && (
             <TableRow>
-              <TableCell colSpan={11} className="h-24 text-center">No KRAs found.</TableCell>
+              <TableCell colSpan={12} className="h-24 text-center">No KRAs found.</TableCell>
             </TableRow>
           )}
           {kras.map((kra) => {
@@ -479,6 +488,12 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                   )}
               </TableCell>
               <TableCell className="text-center">
+                  <div className="flex flex-col items-center">
+                      <span className="font-bold text-green-600 text-sm">{totalAchieved}</span>
+                      <span className="text-[9px] text-muted-foreground border-t w-10">Tgt: {totalTarget}</span>
+                  </div>
+              </TableCell>
+              <TableCell className="text-center">
                    {kra.weightage !== null ? (
                       <span className="font-bold text-base text-muted-foreground">{kra.weightage}</span>
                   ) : (
@@ -539,6 +554,14 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             <TableRow>
               <TableCell colSpan={3} className="text-right py-4 pr-6 text-slate-500 uppercase text-[10px] tracking-widest">
                 Aggregated Totals
+              </TableCell>
+              <TableCell className="text-center">
+                <div className="flex flex-col items-center">
+                    <span className="text-lg font-black text-green-600 leading-tight">
+                        {totalOverallAchieved}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground border-t w-12 text-center mt-0.5">Tgt: {totalOverallTarget}</span>
+                </div>
               </TableCell>
               <TableCell className="text-center text-lg font-black text-slate-700">
                 {totalWeightage}
