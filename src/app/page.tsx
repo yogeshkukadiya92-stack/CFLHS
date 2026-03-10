@@ -83,7 +83,6 @@ function DashboardContent() {
   const [selectedMonth, setSelectedMonth] = React.useState<string>(String(getMonth(new Date())));
   const [view, setView] = React.useState<'list' | 'grid'>('list');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = React.useState<string[]>([]);
-  const [showProfileDetails, setShowProfileDetails] = React.useState(false);
   const [showFilters, setShowFilters] = React.useState(false);
   const [showTools, setShowTools] = React.useState(false);
   
@@ -213,42 +212,8 @@ function DashboardContent() {
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-3">
-                    <Card className='lg:col-span-1 h-fit shadow-sm'>
-                        <CardHeader className='flex-row items-center justify-between p-3 bg-slate-50/50'>
-                            <div className='flex items-center gap-2'>
-                                <Avatar className='h-8 w-8 border border-slate-200'>
-                                    <AvatarImage src={currentEmployeeData.avatarUrl} alt={currentEmployeeData.name} />
-                                    <AvatarFallback className="text-[10px]">{currentEmployeeData.name?.charAt(0)}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <CardTitle className='text-xs font-bold'>{currentEmployeeData.name}</CardTitle>
-                                    <CardDescription className='text-[9px] font-bold text-primary uppercase'>{currentEmployeeData.branch || 'General'}</CardDescription>
-                                </div>
-                            </div>
-                            <Button variant="ghost" size="icon" className='h-7 w-7' onClick={() => setShowProfileDetails(!showProfileDetails)}>
-                                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showProfileDetails && "rotate-180")} />
-                            </Button>
-                        </CardHeader>
-                        {showProfileDetails && (
-                            <CardContent className='text-[10px] space-y-2 p-3 border-t animate-in fade-in slide-in-from-top-1'>
-                                <div className='flex items-center gap-2'>
-                                    <Mail className="h-2.5 w-2.5 text-slate-400" />
-                                    <span className='font-medium'>{currentEmployeeData.email}</span>
-                                </div>
-                                <div className='flex items-start gap-2'>
-                                    <Home className="h-2.5 w-2.5 text-slate-400 mt-0.5" />
-                                    <span className='font-medium leading-tight'>{currentEmployeeData.address || 'No address'}</span>
-                                </div>
-                                <div className='flex items-center gap-2'>
-                                    <CalendarIcon className="h-2.5 w-2.5 text-slate-400" />
-                                    <span className='font-medium'>Joined: {currentEmployeeData.joiningDate ? format(new Date(currentEmployeeData.joiningDate), "MMM d, yyyy") : 'N/A'}</span>
-                                </div>
-                            </CardContent>
-                        )}
-                    </Card>
-
-                    <Card className='lg:col-span-3 professional-card shadow-sm'>
+                 <div className="w-full">
+                    <Card className='w-full professional-card shadow-sm'>
                         <CardHeader className='p-3 border-b'>
                             <CardTitle className='text-base font-bold'>Monthly Performance Goals (KRAs)</CardTitle>
                             <CardDescription className='text-[10px]'>Active targets for {availableMonths[parseInt(selectedMonth)]} {selectedYear}.</CardDescription>
@@ -374,7 +339,7 @@ function DashboardContent() {
                                     <Table>
                                         <TableHeader className='bg-slate-50'>
                                             <TableRow className='h-8'>
-                                                <TableHead className="w-[35px] px-2"><Checkbox checked={selectedIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} className="h-3 w-3" /></TableHead>
+                                                <TableHead className="w-[35px] px-2"><Checkbox checked={selectedEmployeeIds.length === filteredEmployeeSummary.length} onCheckedChange={handleSelectAll} className="h-3 w-3" /></TableHead>
                                                 <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Identity</TableHead>
                                                 <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 py-0 h-8'>Dept.</TableHead>
                                                 <TableHead className='text-[8px] font-bold uppercase tracking-wider text-slate-500 text-center py-0 h-8'>KRAs</TableHead>
