@@ -10,7 +10,6 @@ import { ArrowLeft, ShieldCheck, Trash2, Edit, Mail, Home, Calendar as CalendarI
 import { Button } from '@/components/ui/button';
 import type { Employee, KRA, Branch } from '@/lib/types';
 import { AddKraDialog } from '@/components/add-kra-dialog';
-import { KraProgressChart } from '@/components/kra-progress-chart';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -101,23 +100,19 @@ export default function EmployeeKraPage() {
   if (loading) {
     return (
         <div className="flex flex-col gap-4">
-            <Skeleton className="h-9 w-36" />
-            <Card className="shadow-md">
-                 <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Skeleton className="h-12 w-12 rounded-full" />
+            <Skeleton className="h-8 w-32" />
+            <Card>
+                 <CardHeader className="p-4">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
                         <div>
-                            <Skeleton className="h-6 w-32 mb-2" />
-                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-5 w-24 mb-1" />
+                            <Skeleton className="h-3 w-16" />
                         </div>
                     </div>
                 </CardHeader>
-                <CardContent>
-                     <div className="space-y-4">
-                        <Skeleton className="h-12 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                        <Skeleton className="h-10 w-full" />
-                     </div>
+                <CardContent className='p-4'>
+                     <Skeleton className="h-40 w-full" />
                 </CardContent>
             </Card>
         </div>
@@ -126,89 +121,70 @@ export default function EmployeeKraPage() {
 
   return (
     <TooltipProvider>
-    <div className="flex flex-col gap-4">
-        <Link href="/" className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
-            <Button variant="outline" size="sm" className='gap-2'>
-                <ArrowLeft className="h-4 w-4" />
-                Back to Employees
-            </Button>
-        </Link>
+    <div className="flex flex-col gap-3">
+        <div className='flex items-center justify-between'>
+            <Link href="/">
+                <Button variant="ghost" size="sm" className='h-8 gap-1.5 text-xs text-muted-foreground hover:text-foreground'>
+                    <ArrowLeft className="h-3.5 w-3.5" /> Back
+                </Button>
+            </Link>
+            <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={handleGenerateAiReview} disabled={isGenerating} className="h-8 gap-1.5 text-xs border-primary/30">
+                    {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-yellow-500" />}
+                    AI Review
+                </Button>
+                <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                    <Button size="sm" className="h-8 gap-1.5 text-xs">
+                        <Target className="h-3.5 w-3.5" /> Add KRA
+                    </Button>
+                </AddKraDialog>
+                <EditEmployeeDialog employee={employee!} onSave={handleSaveEmployee}>
+                    <Button variant="outline" size="icon" className='h-8 w-8'>
+                        <Edit className="h-3.5 w-3.5" />
+                    </Button>
+                </EditEmployeeDialog>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className='h-8 w-8'>
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently remove the employee and all associated KRAs.</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+        </div>
+
         {employee ? (
-            <div className="space-y-6">
-                <Card className="shadow-md overflow-hidden">
-                    <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-50/50">
-                        <div className="flex items-center gap-4">
-                            <Avatar className="h-14 w-14 border-2 border-white shadow-sm">
-                            <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
-                            <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
+            <div className="space-y-4">
+                <Card className="shadow-sm overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between p-4 bg-slate-50/50">
+                        <div className="flex items-center gap-3">
+                            <Avatar className="h-10 w-10 border-2 border-white shadow-sm">
+                                <AvatarImage src={employee.avatarUrl} alt={employee.name} data-ai-hint="people" />
+                                <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
                                 <div className='flex items-center gap-2'>
-                                 <CardTitle className="text-2xl">{employee.name}</CardTitle>
-                                   {isManager && (
-                                        <Tooltip>
-                                            <TooltipTrigger>
-                                                <Badge variant="secondary" className="gap-1">
-                                                    <ShieldCheck className="h-3.5 w-3.5" />
-                                                    Manager
-                                                </Badge>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>Branch Manager</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    )}
+                                    <CardTitle className="text-base">{employee.name}</CardTitle>
+                                    {isManager && <Badge variant="secondary" className="text-[9px] h-4 px-1">Manager</Badge>}
                                 </div>
-                                <CardDescription className='flex flex-wrap items-center gap-x-4 gap-y-1 mt-1'>
-                                    <span className="font-semibold text-primary">{employee.branch ? `${employee.branch} Branch` : 'No branch assigned'}</span>
-                                    <span className='flex items-center gap-1 text-[11px] text-muted-foreground font-mono bg-white px-2 py-0.5 rounded border'>
-                                        <Fingerprint className='h-3 w-3'/> ID: {employee.id}
-                                    </span>
-                                    <span className='flex items-center gap-1 text-[11px] text-muted-foreground'>
-                                        <Mail className='h-3 w-3'/> {employee.email}
-                                    </span>
+                                <CardDescription className='flex items-center gap-3 text-[10px]'>
+                                    <span className="font-semibold text-primary">{employee.branch || 'No Dept.'}</span>
+                                    <span className='font-mono text-muted-foreground'>ID: {employee.id.slice(0,8)}</span>
                                 </CardDescription>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <Button variant="outline" onClick={handleGenerateAiReview} disabled={isGenerating} className="gap-2 border-primary/50 hover:bg-primary/5">
-                                {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4 text-yellow-500" />}
-                                AI Performance Review
-                            </Button>
-                            <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                                <Button className="gap-2">
-                                    <Target className="h-4 w-4" /> Add KRA
-                                </Button>
-                            </AddKraDialog>
-                            <EditEmployeeDialog employee={employee} onSave={handleSaveEmployee}>
-                                <Button variant="outline" size="icon">
-                                    <Edit className="h-4 w-4" />
-                                </Button>
-                            </EditEmployeeDialog>
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" size="icon">
-                                        <Trash2 className="h-4 w-4" />
-                                        <span className="sr-only">Delete Employee</span>
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete the
-                                        employee and all of their associated KRAs.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-                        </div>
                     </CardHeader>
-                    <CardContent className="p-0 sm:p-6 overflow-x-auto">
+                    <CardContent className="p-0 sm:p-4">
                         <KraTable 
                             kras={employeeKras}
                             employees={employees}
@@ -220,31 +196,28 @@ export default function EmployeeKraPage() {
 
                 {aiReview && (
                     <Card className="border-primary/20 bg-primary/5 shadow-inner">
-                        <CardHeader className='pb-2'>
+                        <CardHeader className='p-4 pb-2'>
                             <div className='flex items-center justify-between'>
                                 <div className='flex items-center gap-2'>
-                                    <Sparkles className='h-5 w-5 text-yellow-500' />
-                                    <CardTitle className='text-lg'>Gemini AI Performance Analysis</CardTitle>
+                                    <Sparkles className='h-4 w-4 text-yellow-500' />
+                                    <CardTitle className='text-sm'>AI Performance Analysis</CardTitle>
                                 </div>
-                                <Badge variant="outline" className='bg-background font-semibold'>{aiReview.overallSentiment}</Badge>
+                                <Badge variant="outline" className='bg-background text-[10px] h-5'>{aiReview.overallSentiment}</Badge>
                             </div>
                         </CardHeader>
-                        <CardContent className='space-y-4 pt-4'>
-                            <div className='space-y-2'>
-                                <h4 className='font-semibold flex items-center gap-2'><Target className='h-4 w-4 text-primary'/> Summary</h4>
-                                <p className='text-sm text-muted-foreground leading-relaxed'>{aiReview.summary}</p>
-                            </div>
-                            <div className='grid md:grid-cols-2 gap-4'>
-                                <div className='p-3 rounded-lg bg-green-500/10 border border-green-500/20'>
-                                    <h4 className='font-semibold flex items-center gap-2 text-green-700 mb-2'><TrendingUp className='h-4 w-4'/> Key Strengths</h4>
-                                    <ul className='text-sm space-y-1 list-disc list-inside text-green-800/80'>
-                                        {aiReview.strengths.map((s, i) => <li key={i}>{s}</li>)}
+                        <CardContent className='space-y-3 p-4 pt-2'>
+                            <p className='text-[11px] text-muted-foreground leading-relaxed'>{aiReview.summary}</p>
+                            <div className='grid md:grid-cols-2 gap-3'>
+                                <div className='p-2 rounded-lg bg-green-500/5 border border-green-500/10'>
+                                    <h4 className='text-[10px] font-bold text-green-700 mb-1'>Key Strengths</h4>
+                                    <ul className='text-[10px] space-y-0.5 list-disc list-inside text-green-800/80'>
+                                        {aiReview.strengths.slice(0,3).map((s, i) => <li key={i}>{s}</li>)}
                                     </ul>
                                 </div>
-                                <div className='p-3 rounded-lg bg-orange-500/10 border border-orange-500/20'>
-                                    <h4 className='font-semibold flex items-center gap-2 text-orange-700 mb-2'><AlertCircle className='h-4 w-4'/> Areas for Improvement</h4>
-                                    <ul className='text-sm space-y-1 list-disc list-inside text-orange-800/80'>
-                                        {aiReview.areasForImprovement.map((a, i) => <li key={i}>{a}</li>)}
+                                <div className='p-2 rounded-lg bg-orange-500/5 border border-orange-500/10'>
+                                    <h4 className='text-[10px] font-bold text-orange-700 mb-1'>Improvement Areas</h4>
+                                    <ul className='text-[10px] space-y-0.5 list-disc list-inside text-orange-800/80'>
+                                        {aiReview.areasForImprovement.slice(0,2).map((a, i) => <li key={i}>{a}</li>)}
                                     </ul>
                                 </div>
                             </div>
@@ -254,11 +227,8 @@ export default function EmployeeKraPage() {
             </div>
         ) : (
              <Card>
-                <CardHeader>
-                    <CardTitle>Employee Not Found</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p>The requested employee could not be found. They may have been deleted.</p>
+                <CardContent className='p-10 text-center text-muted-foreground text-sm'>
+                    Employee not found.
                 </CardContent>
             </Card>
         )}
