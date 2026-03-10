@@ -396,12 +396,12 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
             <TableHead>Employee</TableHead>
             <TableHead className='w-[350px]'>KRA-KPI Task Details</TableHead>
             <TableHead className="text-center w-24">Weightage</TableHead>
+            <TableHead className="text-center w-24">Performance</TableHead>
             <TableHead className="text-center w-20">W1</TableHead>
             <TableHead className="text-center w-20">W2</TableHead>
             <TableHead className="text-center w-20">W3</TableHead>
             <TableHead className="text-center w-20">W4</TableHead>
             <TableHead className="text-center w-20">W5</TableHead>
-            <TableHead className="text-center w-24">Performance</TableHead>
             <TableHead>
               <span className="sr-only">Actions</span>
             </TableHead>
@@ -485,11 +485,6 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       <span className="text-muted-foreground">-</span>
                   )}
               </TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
-              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
               <TableCell className="text-center">
                   <Tooltip>
                       <TooltipTrigger>
@@ -509,6 +504,11 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                       )}
                   </Tooltip>
               </TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
+              <TableCell className="text-center">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
               <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -544,6 +544,17 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 {totalWeightage}
               </TableCell>
               <TableCell className="text-center">
+                <div className="flex flex-col items-center">
+                    <span className="text-xl font-black text-primary leading-tight">
+                        {totalPerformance.toFixed(2)}
+                    </span>
+                    <div className="flex gap-2 text-[9px] font-bold uppercase mt-1">
+                        <span className="text-green-600">B: +{totalBonus}</span>
+                        <span className="text-rose-600">P: -{totalPenalty}</span>
+                    </div>
+                </div>
+              </TableCell>
+              <TableCell className="text-center">
                 <div className="flex flex-col items-center text-[10px]">
                     <span className="font-bold text-primary">{weeklyTotals.week1.achieved}</span>
                     <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week1.target}</span>
@@ -571,17 +582,6 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                 <div className="flex flex-col items-center text-[10px]">
                     <span className="font-bold text-primary">{weeklyTotals.week5.achieved}</span>
                     <span className="text-muted-foreground border-t border-muted-foreground/20 w-8 text-center">{weeklyTotals.week5.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center">
-                <div className="flex flex-col items-center">
-                    <span className="text-xl font-black text-primary leading-tight">
-                        {totalPerformance.toFixed(2)}
-                    </span>
-                    <div className="flex gap-2 text-[9px] font-bold uppercase mt-1">
-                        <span className="text-green-600">B: +{totalBonus}</span>
-                        <span className="text-rose-600">P: -{totalPenalty}</span>
-                    </div>
                 </div>
               </TableCell>
               <TableCell />
