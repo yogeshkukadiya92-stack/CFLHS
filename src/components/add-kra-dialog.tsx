@@ -27,7 +27,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { format, isValid } from 'date-fns';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { useAuth } from './auth-provider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Separator } from './ui/separator';
@@ -36,7 +36,7 @@ import { ScrollArea } from './ui/scroll-area';
 
 const weeklyUpdateSchema = z.object({
     id: z.string(),
-    date: z.date().optional(),
+    date: z.any().optional(),
     status: z.enum(['On Track', 'Delayed', 'Completed', 'At Risk', 'Issue']),
     comment: z.string().min(1, "Comment is required."),
     value: z.coerce.number().optional(),
@@ -51,7 +51,7 @@ const weeklyProgressItemSchema = z.object({
 const actionItemSchema = z.object({
   id: z.string(),
   name: z.string().min(1, "Action description cannot be empty."),
-  dueDate: z.date(),
+  dueDate: z.any(),
   isCompleted: z.boolean(),
   weightage: z.coerce.number().min(0).optional(),
   updates: z.array(weeklyUpdateSchema).optional(),
@@ -300,8 +300,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
         penalty: kra?.penalty || null,
         actions: kra?.actions?.map(a => ({
             ...a,
-            dueDate: new Date(a.dueDate),
-            updates: a.updates?.map(u => ({...u, date: new Date(u.date)})) || []
+            dueDate: ensureDate(a.dueDate),
+            updates: a.updates?.map(u => ({...u, date: ensureDate(u.date)})) || []
         })) || [],
         handover: kra?.handover || '',
         extraWork: kra?.extraWork || '',
@@ -365,7 +365,6 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
 
     const progress = totalTarget > 0 ? Math.round((finalAchieved / totalTarget) * 100) : 0;
 
-    // Detect Changes for Activity Log
     const newActivities: ActivityLog[] = [...(kra?.activities || [])];
     const timestamp = new Date();
     const actorName = loggedInUser?.name || 'System';
@@ -407,8 +406,8 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
       marksAchieved: data.marksAchieved,
       bonus: data.bonus,
       penalty: data.penalty,
-      startDate: kra?.startDate || new Date(),
-      endDate: kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3)),
+      startDate: ensureDate(kra?.startDate || new Date()),
+      endDate: ensureDate(kra?.endDate || new Date(new Date().setMonth(new Date().getMonth() + 3))),
       actions: updatedActions,
       handover: data.handover,
       extraWork: data.extraWork,
@@ -750,11 +749,11 @@ export function AddKraDialog({ children, kra, onSave, employees }: AddKraDialogP
                             <ScrollArea className="h-48">
                                 {kra?.activities && kra.activities.length > 0 ? (
                                     <div className="space-y-4">
-                                        {[...kra.activities].sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).map((activity) => (
+                                        {[...kra.activities].sort((a,b) => ensureDate(b.timestamp).getTime() - ensureDate(a.timestamp).getTime()).map((activity) => (
                                             <div key={activity.id} className="border-l-2 border-primary/30 pl-3 py-1">
                                                 <div className="flex items-center justify-between mb-1">
                                                     <span className="text-[10px] font-bold text-slate-900">{activity.actorName}</span>
-                                                    <span className="text-[9px] text-slate-400">{format(new Date(activity.timestamp), 'MMM d, HH:mm')}</span>
+                                                    <span className="text-[9px] text-slate-400">{format(ensureDate(activity.timestamp), 'MMM d, HH:mm')}</span>
                                                 </div>
                                                 <p className="text-[11px] font-semibold text-primary">{activity.action}</p>
                                                 {activity.details && <p className="text-[10px] text-slate-600 mt-0.5">{activity.details}</p>}

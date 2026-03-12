@@ -24,7 +24,7 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, KRA, KRAStatus, WeeklyUpdateStatus, ActionItem, WeeklyUpdate, WeeklyProgress } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format, isValid } from 'date-fns';
 import { AddKraDialog } from './add-kra-dialog';
 import {
@@ -187,7 +187,7 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
             id={`action-${kra.id}-${action.id}`}
             checked={action.isCompleted}
             onCheckedChange={handleCheckedChange}
-            className="h-3 w-3"
+            className="h-3.5 w-3.5"
         />
         <div className={cn("flex-1", action.isCompleted && 'line-through text-muted-foreground')}>
             <span className="font-medium">{action.name}</span>
@@ -241,15 +241,15 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
                 </TableHeader>
                 <TableBody>
                     {action.updates?.sort((a,b) => {
-                        const dateA = new Date(a.date).getTime();
-                        const dateB = new Date(b.date).getTime();
-                        return (isNaN(dateB) ? 0 : dateB) - (isNaN(dateA) ? 0 : dateA);
+                        const dateA = ensureDate(a.date).getTime();
+                        const dateB = ensureDate(b.date).getTime();
+                        return dateB - dateA;
                     }).map(update => {
-                        const updateDate = new Date(update.date);
+                        const updateDate = ensureDate(update.date);
                         return (
                         <TableRow key={update.id} className="h-6 hover:bg-transparent">
                             <TableCell className='text-[8px] py-0.5 px-1.5 whitespace-nowrap'>
-                                {isValid(updateDate) ? format(updateDate, 'MMM d, HH:mm') : 'N/A'}
+                                {format(updateDate, 'MMM d, HH:mm')}
                             </TableCell>
                             <TableCell className='py-0.5 px-1.5'>
                                 <Badge variant="outline" className={cn('text-[7px] px-0.5 h-3 leading-none', weeklyUpdateStatusStyles[update.status])}>{update.status}</Badge>
@@ -473,7 +473,7 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
                              <Badge variant="outline" className="text-[9px] h-4 py-0 px-1">Goal: {totalTarget}</Badge>
                              <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
                              <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pend: {totalPending}</Badge>
-                             <span className="text-[9px] text-muted-foreground self-center">Due: {kra.endDate && isValid(new Date(kra.endDate)) ? format(new Date(kra.endDate), 'MMM d') : 'N/A'}</span>
+                             <span className="text-[9px] text-muted-foreground self-center">Due: {kra.endDate ? format(ensureDate(kra.endDate), 'MMM d') : 'N/A'}</span>
                           </div>
                       </div>
                   </AddKraDialog>
