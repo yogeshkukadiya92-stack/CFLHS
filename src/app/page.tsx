@@ -103,15 +103,17 @@ function DashboardContent() {
         let krasToProcess = kras;
 
         if (pagePermission === 'employee_only' && user) {
-            krasToProcess = kras.filter(k => k.employee.email === user.email);
+            krasToProcess = kras.filter(k => k.employee?.email === user.email);
         }
+
+        const year = parseInt(selectedYear);
+        const month = parseInt(selectedMonth);
+        const monthStart = startOfMonth(new Date(year, month));
+        const monthEnd = endOfMonth(new Date(year, month));
 
         const filteredKrasByDate = krasToProcess.filter(kra => {
             if (selectedYear === 'all' && selectedMonth === 'all') return true;
-            const year = parseInt(selectedYear);
-            const month = parseInt(selectedMonth);
             
-            // Use ensureDate for robust parsing
             const kraStart = ensureDate(kra.startDate);
             const kraEnd = ensureDate(kra.endDate);
             
@@ -120,8 +122,6 @@ function DashboardContent() {
             }
             
             if (selectedYear !== 'all' && selectedMonth !== 'all') {
-                 const monthStart = startOfMonth(new Date(year, month));
-                 const monthEnd = endOfMonth(new Date(year, month));
                  return kraStart <= monthEnd && kraEnd >= monthStart;
             }
             return true;
@@ -136,7 +136,7 @@ function DashboardContent() {
         });
 
         filteredKrasByDate.forEach(kra => {
-            if (kra.employee && kra.employee.id && employeeMap.has(kra.employee.id)) {
+            if (kra.employee?.id && employeeMap.has(kra.employee.id)) {
                 employeeMap.get(kra.employee.id)!.kras.push(kra);
             }
         });

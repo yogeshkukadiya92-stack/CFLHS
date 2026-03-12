@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { collection, doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance } from '@/lib/types';
 
@@ -73,12 +73,11 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const employees = useMemo(() => users || [], [users]);
   const kras = useMemo(() => krasData || [], [krasData]);
 
-  const loading = !user || usersLoading || krasLoading || branchesLoading || leavesLoading || expensesLoading || routineTasksLoading || habitsLoading || holidaysLoading || recruitsLoading || attendancesLoading;
+  const loading = !user || usersLoading || krasLoading;
 
-  // We no longer use JSON.parse(JSON.stringify) to allow Firestore native types like Dates/Timestamps
   const handleSaveKra = (kra: KRA) => {
     const docRef = doc(db, 'kras', kra.id);
-    setDoc(docRef, kra, { merge: true }).catch(err => {
+    setDoc(docRef, { ...kra, updatedAt: serverTimestamp() }, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));
     });
   };
@@ -94,7 +93,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveEmployee = (employee: Employee) => {
     const docRef = doc(db, 'users', employee.id);
-    setDoc(docRef, employee, { merge: true }).catch(err => {
+    setDoc(docRef, { ...employee, updatedAt: serverTimestamp() }, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: employee }));
     });
   };
@@ -196,7 +195,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleDeleteMultipleRecruits = (ids: string[]) => ids.forEach(id => handleDeleteRecruit(id));
 
   const handleSaveAttendance = (attendance: Attendance) => {
-    const docRef = doc(db, 'attendances', `${attendance.employee.id}-${new Date(attendance.date).toISOString().split('T')[0]}`);
+    if (!attendance.employee?.id) return;
+    const dateStr = new Date(attendance.date).toISOString().split('T')[0];
+    const docRef = doc(db, 'attendances', `${attendance.employee.id}-${dateStr}`);
     setDoc(docRef, attendance, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: attendance }));
     });
