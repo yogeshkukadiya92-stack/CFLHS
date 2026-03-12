@@ -128,39 +128,41 @@ export default function EmployeeKraPage() {
                     <ArrowLeft className="h-3.5 w-3.5" /> Back
                 </Button>
             </Link>
-            <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleGenerateAiReview} disabled={isGenerating} className="h-8 gap-1.5 text-xs border-primary/30">
-                    {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-yellow-500" />}
-                    AI Review
-                </Button>
-                <AddKraDialog onSave={handleSaveKra} employees={employees}>
-                    <Button size="sm" className="h-8 gap-1.5 text-xs">
-                        <Target className="h-3.5 w-3.5" /> Add KRA
+            {employee && (
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleGenerateAiReview} disabled={isGenerating} className="h-8 gap-1.5 text-xs border-primary/30">
+                        {isGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 text-yellow-500" />}
+                        AI Review
                     </Button>
-                </AddKraDialog>
-                <EditEmployeeDialog employee={employee!} onSave={handleSaveEmployee}>
-                    <Button variant="outline" size="icon" className='h-8 w-8'>
-                        <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                </EditEmployeeDialog>
-                <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="icon" className='h-8 w-8'>
-                            <Trash2 className="h-3.5 w-3.5" />
+                    <AddKraDialog onSave={handleSaveKra} employees={employees}>
+                        <Button size="sm" className="h-8 gap-1.5 text-xs">
+                            <Target className="h-3.5 w-3.5" /> Add KRA
                         </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
-                        <AlertDialogDescription>This will permanently remove the employee and all associated KRAs.</AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </div>
+                    </AddKraDialog>
+                    <EditEmployeeDialog employee={employee} onSave={handleSaveEmployee}>
+                        <Button variant="outline" size="icon" className='h-8 w-8'>
+                            <Edit className="h-3.5 w-3.5" />
+                        </Button>
+                    </EditEmployeeDialog>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="icon" className='h-8 w-8'>
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
+                            <AlertDialogDescription>This will permanently remove the employee and all associated KRAs.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </div>
+            )}
         </div>
 
         {employee ? (

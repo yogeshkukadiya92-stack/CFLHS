@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -60,9 +59,9 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
   });
 
   React.useEffect(() => {
-    if (open) {
+    if (open && employee) {
       reset({
-        name: employee.name,
+        name: employee.name || '',
         branch: employee.branch || '',
         role: employee.role || 'Employee',
         address: employee.address || '',
@@ -76,6 +75,8 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
 
 
   const onSubmit = (data: EmployeeFormValues) => {
+    if (!employee) return;
+    
     const updatedEmployee: Employee = {
       ...employee,
       ...data,
@@ -85,10 +86,12 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
     onSave(updatedEmployee);
     toast({
       title: 'Employee Updated',
-      description: `The details for ${employee.name} have been updated.`,
+      description: `The details for ${data.name} have been updated.`,
     });
     setOpen(false);
   };
+
+  if (!employee) return <>{children}</>;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -98,7 +101,7 @@ export function EditEmployeeDialog({ children, employee, onSave }: EditEmployeeD
           <DialogHeader>
             <DialogTitle>Edit Employee Details</DialogTitle>
             <DialogDescription>
-              Update the information for {employee.name}.
+              Update the information for {employee.name || 'this employee'}.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
