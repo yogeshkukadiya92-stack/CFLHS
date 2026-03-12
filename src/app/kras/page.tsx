@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -34,6 +33,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureDate } from '@/lib/utils';
 
 function KraManagementPage() {
   const { 
@@ -60,8 +60,8 @@ function KraManagementPage() {
         const uniqueBranches = ['all', ...Array.from(new Set(employees.map(e => e.branch).filter(Boolean) as string[]))];
         const yearsSet = new Set<number>([getYear(new Date())]);
         kras.forEach(kra => {
-            yearsSet.add(getYear(new Date(kra.startDate)));
-            yearsSet.add(getYear(new Date(kra.endDate)));
+            yearsSet.add(getYear(ensureDate(kra.startDate)));
+            yearsSet.add(getYear(ensureDate(kra.endDate)));
         });
         return { 
             branchOptions: uniqueBranches, 
@@ -83,14 +83,14 @@ function KraManagementPage() {
     if (!selectedEmployeeId) return [];
     
     return kras.filter(kra => {
-        if (kra.employee.id !== selectedEmployeeId) return false;
+        if (!kra.employee || kra.employee.id !== selectedEmployeeId) return false;
         
         if (selectedYear === 'all' && selectedMonth === 'all') return true;
         
         const year = parseInt(selectedYear);
         const month = parseInt(selectedMonth);
-        const kraStart = new Date(kra.startDate);
-        const kraEnd = new Date(kra.endDate);
+        const kraStart = ensureDate(kra.startDate);
+        const kraEnd = ensureDate(kra.endDate);
 
         if (selectedYear !== 'all' && selectedMonth === 'all') {
             return getYear(kraStart) <= year && getYear(kraEnd) >= year;
@@ -111,8 +111,8 @@ function KraManagementPage() {
 
   const handleExportAll = () => {
     const dataToExport = kras.map(k => ({
-        'Employee ID': k.employee.id,
-        'Employee Name': k.employee.name,
+        'Employee ID': k.employee?.id || '',
+        'Employee Name': k.employee?.name || '',
         'Task Description': k.taskDescription,
         'Weightage': k.weightage,
         'Target': k.target,
@@ -120,7 +120,7 @@ function KraManagementPage() {
         'Marks Achieved': k.marksAchieved,
         'Bonus': k.bonus,
         'Penalty': k.penalty,
-        'End Date': format(new Date(k.endDate), 'yyyy-MM-dd')
+        'End Date': format(ensureDate(k.endDate), 'yyyy-MM-dd')
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -155,7 +155,7 @@ function KraManagementPage() {
         'Marks Achieved': k.marksAchieved,
         'Bonus': k.bonus,
         'Penalty': k.penalty,
-        'End Date': format(new Date(k.endDate), 'yyyy-MM-dd')
+        'End Date': format(ensureDate(k.endDate), 'yyyy-MM-dd')
     }));
     
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
@@ -180,7 +180,7 @@ function KraManagementPage() {
             const importedKras: KRA[] = json.map((row, index) => {
                 const target = Number(row['Target'] || 0);
                 const weightage = Number(row['Weightage'] || 0);
-                const endDate = row['End Date'] ? new Date(row['End Date']) : new Date();
+                const endDate = row['End Date'] ? ensureDate(row['End Date']) : new Date();
 
                 return {
                     id: uuidv4(),
@@ -193,7 +193,7 @@ function KraManagementPage() {
                     bonus: 0,
                     penalty: 0,
                     startDate: new Date(),
-                    endDate: isNaN(endDate.getTime()) ? new Date() : endDate,
+                    endDate: endDate,
                     target: target,
                     achieved: 0,
                     actions: [],

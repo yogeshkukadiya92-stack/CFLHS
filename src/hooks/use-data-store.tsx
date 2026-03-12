@@ -75,11 +75,10 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const loading = !user || usersLoading || krasLoading || branchesLoading || leavesLoading || expensesLoading || routineTasksLoading || habitsLoading || holidaysLoading || recruitsLoading || attendancesLoading;
 
-  const serialize = (data: any) => JSON.parse(JSON.stringify(data));
-
+  // We no longer use JSON.parse(JSON.stringify) to allow Firestore native types like Dates/Timestamps
   const handleSaveKra = (kra: KRA) => {
     const docRef = doc(db, 'kras', kra.id);
-    setDoc(docRef, serialize(kra), { merge: true }).catch(err => {
+    setDoc(docRef, kra, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));
     });
   };
@@ -95,7 +94,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveEmployee = (employee: Employee) => {
     const docRef = doc(db, 'users', employee.id);
-    setDoc(docRef, serialize(employee), { merge: true }).catch(err => {
+    setDoc(docRef, employee, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: employee }));
     });
   };
@@ -111,7 +110,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveLeave = (leave: Leave) => {
     const docRef = doc(db, 'leaves', leave.id);
-    setDoc(docRef, serialize(leave), { merge: true }).catch(err => {
+    setDoc(docRef, leave, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: leave }));
     });
   };
@@ -127,7 +126,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveExpense = (expense: Expense) => {
     const docRef = doc(db, 'expenses', expense.id);
-    setDoc(docRef, serialize(expense), { merge: true }).catch(err => {
+    setDoc(docRef, expense, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: expense }));
     });
   };
@@ -143,7 +142,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveRoutineTask = (task: RoutineTask) => {
     const docRef = doc(db, 'routineTasks', task.id);
-    setDoc(docRef, serialize(task), { merge: true }).catch(err => {
+    setDoc(docRef, task, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: task }));
     });
   };
@@ -159,14 +158,14 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveHabit = (habit: Habit) => {
     const docRef = doc(db, 'habits', habit.id);
-    setDoc(docRef, serialize(habit), { merge: true }).catch(err => {
+    setDoc(docRef, habit, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: habit }));
     });
   };
 
   const handleSaveHoliday = (holiday: Holiday) => {
     const docRef = doc(db, 'holidays', holiday.id);
-    setDoc(docRef, serialize(holiday), { merge: true }).catch(err => {
+    setDoc(docRef, holiday, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: holiday }));
     });
   };
@@ -182,7 +181,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveRecruit = (recruit: Recruit) => {
     const docRef = doc(db, 'recruits', recruit.id);
-    setDoc(docRef, serialize(recruit), { merge: true }).catch(err => {
+    setDoc(docRef, recruit, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: recruit }));
     });
   };
@@ -197,8 +196,8 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const handleDeleteMultipleRecruits = (ids: string[]) => ids.forEach(id => handleDeleteRecruit(id));
 
   const handleSaveAttendance = (attendance: Attendance) => {
-    const docRef = doc(db, 'attendances', attendance.id);
-    setDoc(docRef, serialize(attendance), { merge: true }).catch(err => {
+    const docRef = doc(db, 'attendances', `${attendance.employee.id}-${new Date(attendance.date).toISOString().split('T')[0]}`);
+    setDoc(docRef, attendance, { merge: true }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: attendance }));
     });
   };

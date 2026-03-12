@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -52,7 +51,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
 interface EmployeeSummary {
@@ -111,9 +110,15 @@ function DashboardContent() {
             if (selectedYear === 'all' && selectedMonth === 'all') return true;
             const year = parseInt(selectedYear);
             const month = parseInt(selectedMonth);
-            const kraStart = new Date(kra.startDate);
-            const kraEnd = new Date(kra.endDate);
-            if (selectedYear !== 'all' && selectedMonth === 'all') return getYear(kraStart) <= year && getYear(kraEnd) >= year;
+            
+            // Use ensureDate for robust parsing
+            const kraStart = ensureDate(kra.startDate);
+            const kraEnd = ensureDate(kra.endDate);
+            
+            if (selectedYear !== 'all' && selectedMonth === 'all') {
+                return getYear(kraStart) <= year && getYear(kraEnd) >= year;
+            }
+            
             if (selectedYear !== 'all' && selectedMonth !== 'all') {
                  const monthStart = startOfMonth(new Date(year, month));
                  const monthEnd = endOfMonth(new Date(year, month));
@@ -131,14 +136,16 @@ function DashboardContent() {
         });
 
         filteredKrasByDate.forEach(kra => {
-            if (employeeMap.has(kra.employee.id)) employeeMap.get(kra.employee.id)!.kras.push(kra);
+            if (kra.employee && kra.employee.id && employeeMap.has(kra.employee.id)) {
+                employeeMap.get(kra.employee.id)!.kras.push(kra);
+            }
         });
         
         const summaryData: EmployeeSummary[] = [];
         const perfData: EmployeePerformance[] = [];
 
         employeeMap.forEach(({ employee, kras }) => {
-            const displayKras = kras.filter(k => !k.id.startsWith('KRA-placeholder-'));
+            const displayKras = kras.filter(k => k.id && !k.id.startsWith('KRA-placeholder-'));
             const relevantKras = displayKras.filter(k => k.marksAchieved !== null && k.weightage !== null && k.weightage > 0);
             const totalWeightage = relevantKras.reduce((sum, kra) => sum + (kra.weightage || 0), 0);
             const totalMarksAchieved = relevantKras.reduce((sum, kra) => sum + (kra.marksAchieved || 0) + (kra.bonus || 0) - (kra.penalty || 0), 0);
@@ -150,7 +157,10 @@ function DashboardContent() {
 
         const uniqueBranches = ['all', ...Array.from(new Set(employees.map(e => e.branch).filter(Boolean) as string[]))];
         const yearsSet = new Set<number>([getYear(new Date())]);
-        kras.forEach(k => { yearsSet.add(getYear(new Date(k.startDate))); yearsSet.add(getYear(new Date(k.endDate))); });
+        kras.forEach(k => { 
+            yearsSet.add(getYear(ensureDate(k.startDate))); 
+            yearsSet.add(getYear(ensureDate(k.endDate))); 
+        });
 
         return { 
             employeeSummary: summaryData.sort((a,b) => a.employee.name.localeCompare(b.employee.name)), 
@@ -184,8 +194,8 @@ function DashboardContent() {
             'Role': e.role,
             'Address': e.address,
             'Family Contact': e.familyMobileNumber,
-            'Joining Date': e.joiningDate ? format(new Date(e.joiningDate), 'yyyy-MM-dd') : '',
-            'Birth Date': e.birthDate ? format(new Date(e.birthDate), 'yyyy-MM-dd') : '',
+            'Joining Date': e.joiningDate ? format(ensureDate(e.joiningDate), 'yyyy-MM-dd') : '',
+            'Birth Date': e.birthDate ? format(ensureDate(e.birthDate), 'yyyy-MM-dd') : '',
         }));
         const worksheet = XLSX.utils.json_to_sheet(dataToExport);
         const workbook = XLSX.utils.book_new();
@@ -232,8 +242,8 @@ function DashboardContent() {
                     role: (row['Role'] as UserRole) || 'Employee',
                     address: String(row['Address'] || ''),
                     familyMobileNumber: String(row['Family Contact'] || ''),
-                    joiningDate: row['Joining Date'] ? new Date(row['Joining Date']) : undefined,
-                    birthDate: row['Birth Date'] ? new Date(row['Birth Date']) : undefined,
+                    joiningDate: row['Joining Date'] ? ensureDate(row['Joining Date']) : undefined,
+                    birthDate: row['Birth Date'] ? ensureDate(row['Birth Date']) : undefined,
                     avatarUrl: `https://placehold.co/32x32.png?text=${String(row['Name'] || 'A').charAt(0)}`,
                 }));
                 importedEmployees.forEach(handleSaveEmployee);
