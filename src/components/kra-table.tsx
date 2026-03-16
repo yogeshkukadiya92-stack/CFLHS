@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2, History, Fingerprint } from 'lucide-react';
+import { MoreHorizontal, CalendarCheck2, ChevronRight, MessageSquare, Edit, Trash2, History, Fingerprint, GripVertical } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -51,6 +51,24 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useDataStore } from '@/hooks/use-data-store';
 import { v4 as uuidv4 } from 'uuid';
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const statusStyles: Record<KRAStatus, string> = {
   'On Track': 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
@@ -268,10 +286,189 @@ const KpiRow = ({ kra, action, onSave }: { kra: KRA, action: ActionItem, onSave:
   )
 }
 
+interface SortableKraRowProps {
+    kra: KRA;
+    selectedIds: string[];
+    onSelectOne: (id: string, checked: boolean) => void;
+    onSave: (kra: KRA) => void;
+    onDelete: (id: string) => void;
+    employees: Employee[];
+    renderWeekCell: (weekData?: WeeklyProgress) => React.ReactNode;
+}
+
+const SortableKraRow = ({ kra, selectedIds, onSelectOne, onSave, onDelete, employees, renderWeekCell }: SortableKraRowProps) => {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id: kra.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+        zIndex: isDragging ? 100 : 1,
+    };
+
+    const baseMarks = kra.marksAchieved ?? 0;
+    const bonus = kra.bonus ?? 0;
+    const penalty = kra.penalty ?? 0;
+    const finalMarks = baseMarks + bonus - penalty;
+    const hasBonusOrPenalty = bonus > 0 || penalty > 0;
+
+    const totalTarget = kra.actions && kra.actions.length > 0 
+        ? kra.actions.reduce((sum, a) => sum + (a.target || 0), 0)
+        : (kra.target || 0);
+    
+    const totalAchieved = kra.actions && kra.actions.length > 0 
+        ? kra.actions.reduce((sum, a) => sum + (a.achieved || a.updates?.reduce((s, u) => s + (u.value || 0), 0) || 0), 0)
+        : (kra.achieved || 0);
+    
+    const totalPending = Math.max(0, totalTarget - totalAchieved);
+
+    return (
+        <TableRow ref={setNodeRef} style={style} className="align-top hover:bg-slate-50/50">
+            <TableCell className="px-3 pt-2">
+                <div className="flex items-center gap-2">
+                    <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500">
+                        <GripVertical className="h-4 w-4" />
+                    </div>
+                    <Checkbox 
+                        checked={selectedIds.includes(kra.id)}
+                        onCheckedChange={(checked) => onSelectOne(kra.id, !!checked)}
+                        className="h-3.5 w-3.5"
+                    />
+                </div>
+            </TableCell>
+            <TableCell className="pt-2">
+                <div className="flex items-center gap-2">
+                    <Avatar className="h-7 w-7">
+                        <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
+                        <AvatarFallback className="text-[10px]">{kra.employee.name.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <div className="font-semibold text-[11px] leading-tight">{kra.employee.name}</div>
+                        <div className='flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground font-mono'>
+                            <Fingerprint className='h-2 w-2'/> {kra.employee.id.slice(0,6)}
+                        </div>
+                    </div>
+                </div>
+            </TableCell>
+            <TableCell className="max-w-sm pt-2">
+                <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                    <div className="cursor-pointer">
+                        <p className="font-bold text-primary hover:underline text-[11px] leading-tight line-clamp-2">{kra.taskDescription || "General KRA Task"}</p>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                            <Badge variant="outline" className="text-[9px] h-4 py-0 px-1">Goal: {totalTarget}</Badge>
+                            <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
+                            <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pend: {totalPending}</Badge>
+                            <span className="text-[9px] text-muted-foreground self-center">Due: {kra.endDate ? format(ensureDate(kra.endDate), 'MMM d') : 'N/A'}</span>
+                        </div>
+                    </div>
+                </AddKraDialog>
+                {(kra.actions && kra.actions.length > 0) && (
+                    <div className='mt-2 space-y-0.5 pl-2 border-l-2 border-primary/20 ml-1'>
+                        <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider py-0.5 border-b mb-1">
+                            <span className="flex-1">KPI Sub-Goals</span>
+                            <span className='w-10 text-center'>Wght</span>
+                            <span className='w-10 text-center'>Mrks</span>
+                            <span className='w-5'></span>
+                        </div>
+                        {kra.actions.map((action) => (
+                            <KpiRow key={action.id} kra={kra} action={action} onSave={onSave} />
+                        ))}
+                    </div>
+                )}
+            </TableCell>
+            <TableCell className="text-center pt-2">
+                <div className="flex flex-col items-center">
+                    <span className="font-bold text-green-600 text-[11px]">{totalAchieved}</span>
+                    <span className="text-[8px] text-muted-foreground border-t w-8 mt-0.5">Tgt: {totalTarget}</span>
+                </div>
+            </TableCell>
+            <TableCell className="text-center pt-2">
+                {kra.weightage !== null ? (
+                    <span className="font-bold text-[13px] text-slate-600">{kra.weightage}</span>
+                ) : (
+                    <span className="text-muted-foreground text-[11px]">-</span>
+                )}
+            </TableCell>
+            <TableCell className="text-center pt-2">
+                <Tooltip>
+                    <TooltipTrigger>
+                        <span className={cn("font-black text-[14px] block leading-tight", finalMarks >= (kra.weightage || 0) ? 'text-green-600' : 'text-primary', hasBonusOrPenalty && 'underline decoration-dotted')}>
+                            {finalMarks.toFixed(2)}
+                        </span>
+                    </TooltipTrigger>
+                    {hasBonusOrPenalty && (
+                        <TooltipContent className="text-[10px] p-2">
+                            <div className="space-y-0.5">
+                                <p>Base Marks: {baseMarks.toFixed(2)}</p>
+                                {bonus > 0 && <p className="text-green-600 font-medium">Bonus: +{bonus}</p>}
+                                {penalty > 0 && <p className="text-destructive font-medium">Penalty: -{penalty}</p>}
+                                <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
+                            </div>
+                        </TooltipContent>
+                    )}
+                </Tooltip>
+            </TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
+            <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
+            <TableCell className="pt-2">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button aria-haspopup="true" size="icon" variant="ghost" className="h-7 w-7">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                            <span className="sr-only">Toggle menu</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="text-[11px]">
+                        <DropdownMenuLabel className="text-[10px]">Actions</DropdownMenuLabel>
+                        <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 text-[11px] cursor-pointer">
+                                <History className="h-3 w-3"/> Weekly Update
+                            </DropdownMenuItem>
+                        </AddKraDialog>
+                        <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive gap-2 text-[11px] cursor-pointer">
+                            <Trash2 className="h-3 w-3"/> Delete
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+            </TableCell>
+        </TableRow>
+    );
+};
 
 export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-  const { handleDeleteMultipleKras } = useDataStore();
+  const { handleDeleteMultipleKras, handleReorderKras } = useDataStore();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+        activationConstraint: {
+            distance: 8,
+        },
+    }),
+    useSensor(KeyboardSensor, {
+        coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (active.id !== over?.id) {
+        const oldIndex = kras.findIndex((k) => k.id === active.id);
+        const newIndex = kras.findIndex((k) => k.id === over?.id);
+        const newKras = arrayMove(kras, oldIndex, newIndex);
+        handleReorderKras(newKras);
+    }
+  };
 
   const totalWeightage = React.useMemo(() => 
     kras.reduce((sum, kra) => sum + (kra.weightage || 0), 0)
@@ -394,228 +591,127 @@ export function KraTable({ kras, employees, onSave, onDelete }: KraTableProps) {
         </div>
       )}
       <div className='border rounded-lg overflow-hidden bg-white shadow-sm overflow-x-auto'>
-      <Table className="min-w-[1100px]">
-        <TableHeader className="bg-muted/50 h-9">
-          <TableRow className="h-9">
-            <TableHead className="w-[40px] px-3">
-              <Checkbox 
-                checked={selectedIds.length === kras.length && kras.length > 0}
-                onCheckedChange={(checked) => handleSelectAll(!!checked)}
-                className="h-3.5 w-3.5"
-              />
-            </TableHead>
-            <TableHead className="text-[10px] uppercase font-bold py-0 h-9">Employee</TableHead>
-            <TableHead className='w-[300px] text-[10px] uppercase font-bold py-0 h-9'>Task Details</TableHead>
-            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Total Achieved</TableHead>
-            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Weightage</TableHead>
-            <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Performance</TableHead>
-            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W1</TableHead>
-            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W2</TableHead>
-            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W3</TableHead>
-            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W4</TableHead>
-            <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W5</TableHead>
-            <TableHead className="w-10 h-9">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {kras.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={12} className="h-20 text-center text-xs text-muted-foreground">No KRAs found.</TableCell>
-            </TableRow>
-          )}
-          {kras.map((kra) => {
-            const baseMarks = kra.marksAchieved ?? 0;
-            const bonus = kra.bonus ?? 0;
-            const penalty = kra.penalty ?? 0;
-            const finalMarks = baseMarks + bonus - penalty;
-            const hasBonusOrPenalty = bonus > 0 || penalty > 0;
-
-            const totalTarget = kra.actions && kra.actions.length > 0 
-                ? kra.actions.reduce((sum, a) => sum + (a.target || 0), 0)
-                : (kra.target || 0);
-            
-            const totalAchieved = kra.actions && kra.actions.length > 0 
-                ? kra.actions.reduce((sum, a) => sum + (a.achieved || a.updates?.reduce((s, u) => s + (u.value || 0), 0) || 0), 0)
-                : (kra.achieved || 0);
-            
-            const totalPending = Math.max(0, totalTarget - totalAchieved);
-
-            return (
-            <TableRow key={kra.id} className="align-top hover:bg-slate-50/50">
-              <TableCell className="px-3 pt-2">
-                <Checkbox 
-                  checked={selectedIds.includes(kra.id)}
-                  onCheckedChange={(checked) => handleSelectOne(kra.id, !!checked)}
-                  className="h-3.5 w-3.5"
-                />
-              </TableCell>
-              <TableCell className="pt-2">
+      <DndContext 
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <Table className="min-w-[1100px]">
+            <TableHeader className="bg-muted/50 h-9">
+            <TableRow className="h-9">
+                <TableHead className="w-[60px] px-3">
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-7 w-7">
-                    <AvatarImage src={kra.employee.avatarUrl} alt={kra.employee.name} data-ai-hint="people" />
-                    <AvatarFallback className="text-[10px]">{kra.employee.name.charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-semibold text-[11px] leading-tight">{kra.employee.name}</div>
-                    <div className='flex items-center gap-1 mt-0.5 text-[9px] text-muted-foreground font-mono'>
-                        <Fingerprint className='h-2 w-2'/> {kra.employee.id.slice(0,6)}
-                    </div>
-                  </div>
+                    <span className="w-4"></span>
+                    <Checkbox 
+                        checked={selectedIds.length === kras.length && kras.length > 0}
+                        onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                        className="h-3.5 w-3.5"
+                    />
                 </div>
-              </TableCell>
-              <TableCell className="max-w-sm pt-2">
-                  <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                      <div className="cursor-pointer">
-                          <p className="font-bold text-primary hover:underline text-[11px] leading-tight line-clamp-2">{kra.taskDescription || "General KRA Task"}</p>
-                          <div className="flex flex-wrap gap-1.5 mt-1">
-                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1">Goal: {totalTarget}</Badge>
-                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-green-600 bg-green-50 border-green-100">Done: {totalAchieved}</Badge>
-                             <Badge variant="outline" className="text-[9px] h-4 py-0 px-1 text-orange-600 bg-orange-50 border-orange-100 font-bold">Pend: {totalPending}</Badge>
-                             <span className="text-[9px] text-muted-foreground self-center">Due: {kra.endDate ? format(ensureDate(kra.endDate), 'MMM d') : 'N/A'}</span>
-                          </div>
-                      </div>
-                  </AddKraDialog>
-                  {(kra.actions && kra.actions.length > 0) && (
-                      <div className='mt-2 space-y-0.5 pl-2 border-l-2 border-primary/20 ml-1'>
-                          <div className="flex items-center gap-2 text-[9px] font-bold text-muted-foreground uppercase tracking-wider py-0.5 border-b mb-1">
-                              <span className="flex-1">KPI Sub-Goals</span>
-                              <span className='w-10 text-center'>Wght</span>
-                              <span className='w-10 text-center'>Mrks</span>
-                              <span className='w-5'></span>
-                          </div>
-                          {kra.actions.map((action) => (
-                             <KpiRow key={action.id} kra={kra} action={action} onSave={onSave} />
-                          ))}
-                      </div>
-                  )}
-              </TableCell>
-              <TableCell className="text-center pt-2">
-                  <div className="flex flex-col items-center">
-                      <span className="font-bold text-green-600 text-[11px]">{totalAchieved}</span>
-                      <span className="text-[8px] text-muted-foreground border-t w-8 mt-0.5">Tgt: {totalTarget}</span>
-                  </div>
-              </TableCell>
-              <TableCell className="text-center pt-2">
-                   {kra.weightage !== null ? (
-                      <span className="font-bold text-[13px] text-slate-600">{kra.weightage}</span>
-                  ) : (
-                      <span className="text-muted-foreground text-[11px]">-</span>
-                  )}
-              </TableCell>
-              <TableCell className="text-center pt-2">
-                  <Tooltip>
-                      <TooltipTrigger>
-                          <span className={cn("font-black text-[14px] block leading-tight", finalMarks >= (kra.weightage || 0) ? 'text-green-600' : 'text-primary', hasBonusOrPenalty && 'underline decoration-dotted')}>
-                              {finalMarks.toFixed(2)}
-                          </span>
-                      </TooltipTrigger>
-                       {hasBonusOrPenalty && (
-                          <TooltipContent className="text-[10px] p-2">
-                              <div className="space-y-0.5">
-                                  <p>Base Marks: {baseMarks.toFixed(2)}</p>
-                                  {bonus > 0 && <p className="text-green-600 font-medium">Bonus: +{bonus}</p>}
-                                  {penalty > 0 && <p className="text-destructive font-medium">Penalty: -{penalty}</p>}
-                                  <p className="font-bold border-t mt-1 pt-1">Total: {finalMarks.toFixed(2)}</p>
-                              </div>
-                          </TooltipContent>
-                      )}
-                  </Tooltip>
-              </TableCell>
-              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week1)}</TableCell>
-              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week2)}</TableCell>
-              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week3)}</TableCell>
-              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week4)}</TableCell>
-              <TableCell className="text-center pt-2">{renderWeekCell(kra.weeklyProgress?.week5)}</TableCell>
-              <TableCell className="pt-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost" className="h-7 w-7">
-                        <MoreHorizontal className="h-3.5 w-3.5" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="text-[11px]">
-                      <DropdownMenuLabel className="text-[10px]">Actions</DropdownMenuLabel>
-                      <AddKraDialog kra={kra} onSave={onSave} employees={employees}>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="gap-2 text-[11px] cursor-pointer">
-                              <History className="h-3 w-3"/> Weekly Update
-                          </DropdownMenuItem>
-                      </AddKraDialog>
-                      <DropdownMenuItem onClick={() => onDelete(kra.id)} className="text-destructive gap-2 text-[11px] cursor-pointer">
-                          <Trash2 className="h-3 w-3"/> Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-              </TableCell>
+                </TableHead>
+                <TableHead className="text-[10px] uppercase font-bold py-0 h-9">Employee</TableHead>
+                <TableHead className='w-[300px] text-[10px] uppercase font-bold py-0 h-9'>Task Details</TableHead>
+                <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Total Achieved</TableHead>
+                <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Weightage</TableHead>
+                <TableHead className="text-center w-20 text-[10px] uppercase font-bold py-0 h-9">Performance</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W1</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W2</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W3</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W4</TableHead>
+                <TableHead className="text-center w-14 text-[10px] uppercase font-bold py-0 h-9">W5</TableHead>
+                <TableHead className="w-10 h-9">
+                <span className="sr-only">Actions</span>
+                </TableHead>
             </TableRow>
-            );
-          })}
-        </TableBody>
-        {kras.length > 0 && (
-          <TableFooter className="bg-slate-50/80 font-bold border-t-2 h-12">
-            <TableRow className="h-12">
-              <TableCell colSpan={3} className="text-right py-2 pr-4 text-slate-500 uppercase text-[9px] tracking-widest h-12">
-                Monthly Aggregated Totals
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center">
-                    <span className="text-[13px] font-black text-green-600 leading-tight">
-                        {totalOverallAchieved}
-                    </span>
-                    <span className="text-[8px] text-muted-foreground border-t w-10 text-center mt-0.5">Tgt: {totalOverallTarget}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center text-[13px] font-black text-slate-700 h-12 py-1">
-                {totalWeightage}
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center">
-                    <span className="text-[14px] font-black text-primary leading-tight">
-                        {totalPerformance.toFixed(2)}
-                    </span>
-                    <div className="flex gap-1.5 text-[8px] font-bold uppercase mt-0.5">
-                        <span className="text-green-600">B:+{totalBonus}</span>
-                        <span className="text-rose-600">P:-{totalPenalty}</span>
+            </TableHeader>
+            <TableBody>
+            {kras.length === 0 && (
+                <TableRow>
+                <TableCell colSpan={12} className="h-20 text-center text-xs text-muted-foreground">No KRAs found.</TableCell>
+                </TableRow>
+            )}
+            <SortableContext 
+                items={kras.map(k => k.id)}
+                strategy={verticalListSortingStrategy}
+            >
+                {kras.map((kra) => (
+                    <SortableKraRow 
+                        key={kra.id}
+                        kra={kra}
+                        selectedIds={selectedIds}
+                        onSelectOne={handleSelectOne}
+                        onSave={onSave}
+                        onDelete={onDelete}
+                        employees={employees}
+                        renderWeekCell={renderWeekCell}
+                    />
+                ))}
+            </SortableContext>
+            </TableBody>
+            {kras.length > 0 && (
+            <TableFooter className="bg-slate-50/80 font-bold border-t-2 h-12">
+                <TableRow className="h-12">
+                <TableCell colSpan={3} className="text-right py-2 pr-4 text-slate-500 uppercase text-[9px] tracking-widest h-12">
+                    Monthly Aggregated Totals
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center">
+                        <span className="text-[13px] font-black text-green-600 leading-tight">
+                            {totalOverallAchieved}
+                        </span>
+                        <span className="text-[8px] text-muted-foreground border-t w-10 text-center mt-0.5">Tgt: {totalOverallTarget}</span>
                     </div>
-                </div>
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center text-[9px]">
-                    <span className="font-bold text-primary">{weeklyTotals.week1.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week1.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center text-[9px]">
-                    <span className="font-bold text-primary">{weeklyTotals.week2.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week2.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center text-[9px]">
-                    <span className="font-bold text-primary">{weeklyTotals.week3.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week3.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center text-[9px]">
-                    <span className="font-bold text-primary">{weeklyTotals.week4.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week4.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="text-center h-12 py-1">
-                <div className="flex flex-col items-center text-[9px]">
-                    <span className="font-bold text-primary">{weeklyTotals.week5.achieved}</span>
-                    <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week5.target}</span>
-                </div>
-              </TableCell>
-              <TableCell className="h-12" />
-            </TableRow>
-          </TableFooter>
-        )}
-      </Table>
+                </TableCell>
+                <TableCell className="text-center text-[13px] font-black text-slate-700 h-12 py-1">
+                    {totalWeightage}
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center">
+                        <span className="text-[14px] font-black text-primary leading-tight">
+                            {totalPerformance.toFixed(2)}
+                        </span>
+                        <div className="flex gap-1.5 text-[8px] font-bold uppercase mt-0.5">
+                            <span className="text-green-600">B:+{totalBonus}</span>
+                            <span className="text-rose-600">P:-{totalPenalty}</span>
+                        </div>
+                    </div>
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center text-[9px]">
+                        <span className="font-bold text-primary">{weeklyTotals.week1.achieved}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week1.target}</span>
+                    </div>
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center text-[9px]">
+                        <span className="font-bold text-primary">{weeklyTotals.week2.achieved}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week2.target}</span>
+                    </div>
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center text-[9px]">
+                        <span className="font-bold text-primary">{weeklyTotals.week3.achieved}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week3.target}</span>
+                    </div>
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center text-[9px]">
+                        <span className="font-bold text-primary">{weeklyTotals.week4.achieved}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week4.target}</span>
+                    </div>
+                </TableCell>
+                <TableCell className="text-center h-12 py-1">
+                    <div className="flex flex-col items-center text-[9px]">
+                        <span className="font-bold text-primary">{weeklyTotals.week5.achieved}</span>
+                        <span className="text-muted-foreground border-t border-muted-foreground/20 w-6 text-center">{weeklyTotals.week5.target}</span>
+                    </div>
+                </TableCell>
+                <TableCell className="h-12" />
+                </TableRow>
+            </TableFooter>
+            )}
+        </Table>
+      </DndContext>
       </div>
     </div>
     </TooltipProvider>

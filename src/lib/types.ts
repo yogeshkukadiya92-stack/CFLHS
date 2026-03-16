@@ -96,6 +96,7 @@ export interface KRA {
   activities?: ActivityLog[];
   createdAt?: any;
   updatedAt?: any;
+  order?: number;
 }
 
 export interface Branch {

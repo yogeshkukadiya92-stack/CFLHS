@@ -76,11 +76,25 @@
         },
         "type": {
           "type": "string",
-          "enum": ["kra", "leave", "expense", "task", "attendance", "employee"],
+          "enum": [
+            "kra",
+            "leave",
+            "expense",
+            "task",
+            "attendance",
+            "employee"
+          ],
           "description": "The category of the activity for icon mapping."
         }
       },
-      "required": ["id", "timestamp", "actorName", "employeeName", "action", "type"]
+      "required": [
+        "id",
+        "timestamp",
+        "actorName",
+        "employeeName",
+        "action",
+        "type"
+      ]
     },
     "KeyResultArea": {
       "$schema": "http://json-schema.org/draft-07/schema#",
@@ -104,6 +118,10 @@
           "type": "boolean",
           "description": "Indicates whether this KRA definition is currently active."
         },
+        "order": {
+          "type": "number",
+          "description": "The sort order of the KRA."
+        },
         "createdAt": {
           "type": "string",
           "format": "date-time"
@@ -113,7 +131,14 @@
           "format": "date-time"
         }
       },
-      "required": ["id", "name", "description", "isActive", "createdAt", "updatedAt"]
+      "required": [
+        "id",
+        "name",
+        "description",
+        "isActive",
+        "createdAt",
+        "updatedAt"
+      ]
     }
   },
   "auth": {

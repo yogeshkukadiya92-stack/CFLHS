@@ -6,6 +6,7 @@ import { collection, doc, deleteDoc, setDoc, serverTimestamp, query, orderBy, li
 import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance, ActivityLog } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
+import { ensureDate } from '@/lib/utils';
 
 interface DataStoreContextType {
   loading: boolean;
@@ -45,6 +46,7 @@ interface DataStoreContextType {
   handleSaveAttendance: (attendance: Attendance) => void;
   handleSaveBranch: (branch: Branch) => void;
   handleDeleteBranch: (id: string) => void;
+  handleReorderKras: (newOrder: KRA[]) => void;
 }
 
 const DataStoreContext = createContext<DataStoreContextType | undefined>(undefined);
@@ -78,7 +80,17 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { data: activitiesData } = useCollection<ActivityLog>(activitiesQuery);
 
   const employees = useMemo(() => users || [], [users]);
-  const kras = useMemo(() => krasData || [], [krasData]);
+  const kras = useMemo(() => {
+    if (!krasData) return [];
+    return [...krasData].sort((a, b) => {
+        if (a.order !== undefined && b.order !== undefined && a.order !== b.order) {
+            return a.order - b.order;
+        }
+        const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
+        const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
+        return dateA - dateB;
+    });
+  }, [krasData]);
   const activities = useMemo(() => activitiesData || [], [activitiesData]);
 
   const loading = !user || usersLoading || krasLoading;
@@ -105,8 +117,12 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     const docRef = doc(db, 'kras', kra.id);
     const existingKra = kras.find(k => k.id === kra.id);
     
+    // Find highest order to put new KRA at the end if no order exists
+    const maxOrder = kras.reduce((max, k) => Math.max(max, k.order || 0), -1);
+    
     const dataToSave = { 
       ...kra, 
+      order: kra.order ?? (existingKra?.order ?? (maxOrder + 1)),
       updatedAt: serverTimestamp(),
       createdAt: existingKra?.createdAt || serverTimestamp()
     };
@@ -115,6 +131,15 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
         logGlobalActivity(`KRA Update: ${kra.taskDescription?.slice(0, 30)}...`, kra.employee.name, 'kra', `Progress: ${kra.progress}%`);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));
+    });
+  };
+
+  const handleReorderKras = (reorderedKras: KRA[]) => {
+    reorderedKras.forEach((kra, index) => {
+        const docRef = doc(db, 'kras', kra.id);
+        setDoc(docRef, { order: index }, { merge: true }).catch(err => {
+            console.error("Failed to update KRA order:", err);
+        });
     });
   };
 
@@ -274,7 +299,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     activities,
     handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
     handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
-    handleSaveBranch, handleDeleteBranch
+    handleSaveBranch, handleDeleteBranch, handleReorderKras
   };
 
   return <DataStoreContext.Provider value={value}>{children}</DataStoreContext.Provider>;
