@@ -103,7 +103,15 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
 
   const handleSaveKra = (kra: KRA) => {
     const docRef = doc(db, 'kras', kra.id);
-    setDoc(docRef, { ...kra, updatedAt: serverTimestamp() }, { merge: true }).then(() => {
+    const existingKra = kras.find(k => k.id === kra.id);
+    
+    const dataToSave = { 
+      ...kra, 
+      updatedAt: serverTimestamp(),
+      createdAt: existingKra?.createdAt || serverTimestamp()
+    };
+
+    setDoc(docRef, dataToSave, { merge: true }).then(() => {
         logGlobalActivity(`KRA Update: ${kra.taskDescription?.slice(0, 30)}...`, kra.employee.name, 'kra', `Progress: ${kra.progress}%`);
     }).catch(err => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'write', requestResourceData: kra }));

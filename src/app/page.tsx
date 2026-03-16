@@ -148,6 +148,10 @@ function DashboardContent() {
                  return kraStart <= monthEnd && kraEnd >= monthStart;
             }
             return true;
+        }).sort((a, b) => {
+            const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
+            const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
+            return dateA - dateB;
         });
 
         // Use global activities from store

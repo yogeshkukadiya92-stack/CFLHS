@@ -104,6 +104,11 @@ function KraManagementPage() {
              return kraStart <= monthEnd && kraEnd >= monthStart;
         }
         return true;
+    }).sort((a, b) => {
+        // Sort by creation time so new ones are at the bottom
+        const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
+        const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
+        return dateA - dateB;
     });
   }, [kras, selectedEmployeeId, selectedYear, selectedMonth]);
 

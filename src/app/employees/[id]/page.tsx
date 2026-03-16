@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -29,6 +30,7 @@ import { format } from 'date-fns';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { useDataStore } from '@/hooks/use-data-store';
 import { generatePerformanceReview, type PerformanceReviewOutput } from '@/ai/flows/performance-review';
+import { ensureDate } from '@/lib/utils';
 
 
 export default function EmployeeKraPage() {
@@ -61,7 +63,14 @@ export default function EmployeeKraPage() {
     router.push('/');
   };
   
-  const employeeKras = kras.filter((kra) => kra.employee.id === id);
+  const employeeKras = React.useMemo(() => {
+    return kras.filter((kra) => kra.employee.id === id).sort((a, b) => {
+        const dateA = ensureDate(a.createdAt || a.updatedAt).getTime();
+        const dateB = ensureDate(b.createdAt || b.updatedAt).getTime();
+        return dateA - dateB;
+    });
+  }, [kras, id]);
+
   const employee = employees.find(e => e.id === id);
 
   const isManager = React.useMemo(() => {

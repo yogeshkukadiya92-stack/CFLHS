@@ -94,6 +94,8 @@ export interface KRA {
     week5: WeeklyProgress;
   };
   activities?: ActivityLog[];
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface Branch {
