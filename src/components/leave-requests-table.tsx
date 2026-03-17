@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, Leave, LeaveStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import {
   Tooltip,
@@ -53,11 +53,11 @@ const statusConfig: Record<LeaveStatus, { className: string; icon: React.Element
     icon: Hourglass
   },
   'Approved': { 
-    className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-green-800',
+    className: 'bg-green-100 text-green-800 border-green-200 hover:bg-green-200 dark:bg-green-900/40 dark:text-green-300 dark:border-yellow-800',
     icon: CheckCircle
   },
   'Rejected': {
-    className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-800',
+    className: 'bg-red-100 text-red-800 border-red-200 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-yellow-800',
     icon: XCircle
   },
 };
@@ -164,7 +164,7 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
               )}
               {leaves.map((leave) => {
                  const Icon = statusConfig[leave.status].icon;
-                 const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
+                 const duration = leave.duration ?? (differenceInDays(ensureDate(leave.endDate), ensureDate(leave.startDate)) + 1);
                  return(
                 <TableRow key={leave.id}>
                   <TableCell>
@@ -190,7 +190,7 @@ export function LeaveRequestsTable({ leaves, employees, onSave, onDelete }: Leav
                   <TableCell>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>{format(leave.startDate, 'MMM d')} - {format(leave.endDate, 'MMM d, yyyy')}</span>
+                          <span>{format(ensureDate(leave.startDate), 'MMM d')} - {format(ensureDate(leave.endDate), 'MMM d, yyyy')}</span>
                       </div>
                   </TableCell>
                   <TableCell>

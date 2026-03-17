@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, Expense, ExpenseStatus, ExpenseType } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { AddExpenseClaimDialog } from './add-expense-claim-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -65,7 +65,7 @@ export function ExpenseCard({ expense, employees, onSave, onDelete }: ExpenseCar
                 </Avatar>
                 <div>
                     <CardTitle className="text-base">{expense.employee.name}</CardTitle>
-                    <CardDescription className='text-xs'>{format(expense.date, 'MMM d, yyyy')}</CardDescription>
+                    <CardDescription className='text-xs'>{format(ensureDate(expense.date), 'MMM d, yyyy')}</CardDescription>
                 </div>
             </div>
              <DropdownMenu>

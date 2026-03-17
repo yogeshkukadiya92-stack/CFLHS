@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, Expense, ExpenseStatus, ExpenseType } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
   Tooltip,
@@ -202,7 +202,7 @@ export function ExpenseClaimsTable({ expenses, employees, onSave, onDelete }: Ex
                   <TableCell>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
-                          <span>{format(expense.date, 'MMM d, yyyy')}</span>
+                          <span>{format(ensureDate(expense.date), 'MMM d, yyyy')}</span>
                       </div>
                   </TableCell>
                    <TableCell>

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, RoutineTask, RoutineTaskStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import {
   Tooltip,
@@ -194,8 +194,8 @@ export function RoutineTasksTable({ tasks, employees, onSave, onDelete }: Routin
                   </TableCell>
                   <TableCell>
                        <div className="text-sm text-muted-foreground">
-                          <p>Assigned: {format(new Date(task.assignedDate), 'MMM d, yyyy')}</p>
-                          <p className='font-semibold text-foreground'>Due: {format(new Date(task.dueDate), 'MMM d, yyyy')}</p>
+                          <p>Assigned: {format(ensureDate(task.assignedDate), 'MMM d, yyyy')}</p>
+                          <p className='font-semibold text-foreground'>Due: {format(ensureDate(task.dueDate), 'MMM d, yyyy')}</p>
                        </div>
                   </TableCell>
                   <TableCell>

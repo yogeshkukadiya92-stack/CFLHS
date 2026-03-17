@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, RoutineTask, RoutineTaskStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { AddRoutineTaskDialog } from './add-routine-task-dialog';
@@ -59,7 +59,7 @@ export function RoutineTaskCard({ task, employees, onSave, onDelete }: RoutineTa
                     </Tooltip>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                         <Calendar className="h-3 w-3" />
-                        <span>Due: {format(task.dueDate, 'MMM d, yyyy')}</span>
+                        <span>Due: {format(ensureDate(task.dueDate), 'MMM d, yyyy')}</span>
                     </div>
                 </div>
             </div>

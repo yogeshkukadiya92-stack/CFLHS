@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -17,7 +16,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import type { Employee, Leave, LeaveStatus } from '@/lib/types';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { format, differenceInDays } from 'date-fns';
 import { AddLeaveRequestDialog } from './add-leave-request-dialog';
 import { useToast } from '@/hooks/use-toast';
@@ -38,7 +37,7 @@ interface LeaveCardProps {
 export function LeaveCard({ leave, employees, onSave, onDelete }: LeaveCardProps) {
   const { toast } = useToast();
   const Icon = statusConfig[leave.status].icon;
-  const duration = leave.duration ?? (differenceInDays(leave.endDate, leave.startDate) + 1);
+  const duration = leave.duration ?? (differenceInDays(ensureDate(leave.endDate), ensureDate(leave.startDate)) + 1);
 
   const handleStatusChange = (leave: Leave, status: LeaveStatus) => {
     onSave({ ...leave, status });
@@ -94,7 +93,7 @@ export function LeaveCard({ leave, employees, onSave, onDelete }: LeaveCardProps
       <CardContent className="flex-grow space-y-2">
          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
-            <span>{format(leave.startDate, 'MMM d')} - {format(leave.endDate, 'MMM d, yyyy')}</span>
+            <span>{format(ensureDate(leave.startDate), 'MMM d')} - {format(ensureDate(leave.endDate), 'MMM d, yyyy')}</span>
         </div>
         <p className="text-sm text-muted-foreground line-clamp-2">"{leave.reason}"</p>
       </CardContent>

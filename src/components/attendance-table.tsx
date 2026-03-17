@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { Fingerprint } from 'lucide-react';
 
 const statusConfig: Record<AttendanceStatus, { className: string }> = {
@@ -48,7 +48,7 @@ export function AttendanceTable({ employees, attendances, selectedDate, onSave, 
   
   const getAttendanceForEmployee = (employeeId: string, date: Date): Attendance | undefined => {
     return attendances.find(
-      a => a.employee.id === employeeId && format(new Date(a.date), 'yyyy-MM-dd') === format(new Date(date), 'yyyy-MM-dd')
+      a => a.employee.id === employeeId && format(ensureDate(a.date), 'yyyy-MM-dd') === format(ensureDate(date), 'yyyy-MM-dd')
     );
   };
 

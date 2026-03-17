@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -25,7 +24,7 @@ import type { Holiday, HolidayWithEvents } from '@/lib/types';
 import { format } from 'date-fns';
 import { AddHolidayDialog } from './add-holiday-dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 
 interface HolidaysTableProps {
     holidays: HolidayWithEvents[];
@@ -36,7 +35,7 @@ interface HolidaysTableProps {
 
 export function HolidaysTable({ holidays, canEdit, onSave, onDelete }: HolidaysTableProps) {
   
-  const sortedHolidays = [...holidays].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedHolidays = [...holidays].sort((a,b) => ensureDate(a.date).getTime() - ensureDate(b.date).getTime());
 
   return (
       <TooltipProvider>
@@ -65,12 +64,13 @@ export function HolidaysTable({ holidays, canEdit, onSave, onDelete }: HolidaysT
                 )}
                 {sortedHolidays.map((holiday) => {
                     const hasOtherEvents = holiday.otherEvents && holiday.otherEvents.length > 0;
+                    const date = ensureDate(holiday.date);
                     return(
                 <Tooltip key={holiday.id}>
                     <TooltipTrigger asChild>
                         <TableRow className={cn(hasOtherEvents && 'bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30')}>
-                            <TableCell className="font-medium">{format(new Date(holiday.date), 'MMMM d, yyyy')}</TableCell>
-                            <TableCell>{format(new Date(holiday.date), 'EEEE')}</TableCell>
+                            <TableCell className="font-medium">{format(date, 'MMMM d, yyyy')}</TableCell>
+                            <TableCell>{format(date, 'EEEE')}</TableCell>
                             <TableCell>{holiday.name}</TableCell>
                             <TableCell>
                             <Badge variant={holiday.type === 'Half Day' ? 'secondary' : 'outline'}>
