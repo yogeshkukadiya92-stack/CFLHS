@@ -25,7 +25,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
+import { cn, ensureDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { useDataStore } from '@/hooks/use-data-store';
@@ -40,7 +40,7 @@ interface LeaveBalance {
 }
 
 export default function LeaveManagementPage() {
-    const { employees, leaves, loading, handleSaveLeave, handleDeleteLeave, setKras } = useDataStore();
+    const { employees, leaves, loading, handleSaveLeave, handleDeleteLeave, handleSaveEmployee } = useDataStore();
     const [statusFilter, setStatusFilter] = React.useState('all');
     const [yearFilter, setYearFilter] = React.useState<string>('all');
     const [monthFilter, setMonthFilter] = React.useState<string>('all');
@@ -89,20 +89,16 @@ export default function LeaveManagementPage() {
             return;
         }
 
-        setKras(prevKras => {
-            return prevKras.map(kra => {
-                if (kra.employee.id === selectedEmployeeForExtra) {
-                    const updatedEmployee = {
-                        ...kra.employee,
-                        extraLeaves: (kra.employee.extraLeaves || 0) + extraLeaves
-                    };
-                    return { ...kra, employee: updatedEmployee };
-                }
-                return kra;
-            });
-        });
-        const employee = employees.find(e => e.id === selectedEmployeeForExtra);
-        toast({ title: 'Success', description: `Added ${extraLeaves} extra leaves to ${employee?.name}'s account.` });
+        const employeeToUpdate = employees.find(e => e.id === selectedEmployeeForExtra);
+        if (employeeToUpdate) {
+            const updatedEmployee = {
+                ...employeeToUpdate,
+                extraLeaves: (employeeToUpdate.extraLeaves || 0) + extraLeaves
+            };
+            handleSaveEmployee(updatedEmployee);
+            toast({ title: 'Success', description: `Added ${extraLeaves} extra leaves to ${employeeToUpdate.name}'s account.` });
+        }
+        
         setSelectedEmployeeForExtra('');
         setExtraLeaves(0);
     }
@@ -110,7 +106,7 @@ export default function LeaveManagementPage() {
     const { availableYears, availableMonths } = React.useMemo(() => {
         const years = new Set<number>();
         leaves.forEach(leave => {
-            years.add(getYear(new Date(leave.startDate)));
+            years.add(getYear(ensureDate(leave.startDate)));
         });
         const monthMap = [
             'January', 'February', 'March', 'April', 'May', 'June', 
@@ -128,11 +124,12 @@ export default function LeaveManagementPage() {
             leavesToFilter = leaves.filter(l => l.employee.id === currentUser.id);
         }
         return leavesToFilter.filter(leave => {
+            const start = ensureDate(leave.startDate);
             const statusMatch = statusFilter === 'all' || leave.status === statusFilter;
-            const yearMatch = yearFilter === 'all' || getYear(new Date(leave.startDate)) === parseInt(yearFilter);
-            const monthMatch = monthFilter === 'all' || getMonth(new Date(leave.startDate)) === parseInt(monthFilter);
+            const yearMatch = yearFilter === 'all' || getYear(start) === parseInt(yearFilter);
+            const monthMatch = monthFilter === 'all' || getMonth(start) === parseInt(monthFilter);
             return statusMatch && yearMatch && monthMatch;
-        }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
+        }).sort((a, b) => ensureDate(b.startDate).getTime() - ensureDate(a.startDate).getTime());
     }, [leaves, statusFilter, yearFilter, monthFilter, pagePermission, currentUser]);
     
     const handleViewChange = (newView: 'list' | 'grid') => {
@@ -144,8 +141,8 @@ export default function LeaveManagementPage() {
         const dataToExport = leaves.map(l => ({
             'Employee ID': l.employee.id,
             'Employee Name': l.employee.name,
-            'Start Date': format(new Date(l.startDate), 'yyyy-MM-dd'),
-            'End Date': format(new Date(l.endDate), 'yyyy-MM-dd'),
+            'Start Date': format(ensureDate(l.startDate), 'yyyy-MM-dd'),
+            'End Date': format(ensureDate(l.endDate), 'yyyy-MM-dd'),
             'Duration': l.duration,
             'Reason': l.reason,
             'Status': l.status
@@ -199,8 +196,8 @@ export default function LeaveManagementPage() {
                     return {
                         id: `imported-${index}-${Date.now()}`,
                         employee: employee,
-                        startDate: new Date(row['Start Date']),
-                        endDate: new Date(row['End Date']),
+                        startDate: ensureDate(row['Start Date']),
+                        endDate: ensureDate(row['End Date']),
                         duration: Number(row['Duration']),
                         reason: row['Reason'],
                         status: row['Status'] || 'Pending'
