@@ -309,20 +309,27 @@ function DashboardContent() {
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
                 const json = XLSX.utils.sheet_to_json(worksheet) as any[];
-                const importedEmployees: Employee[] = json.map((row, index) => ({
-                    id: row['ID'] || `EMP-${Date.now()}-${index}`,
-                    name: String(row['Name'] || ''),
-                    email: String(row['Email'] || ''),
-                    branch: String(row['Branch'] || ''),
-                    role: (row['Role'] as UserRole) || 'Employee',
-                    address: String(row['Address'] || ''),
-                    familyMobileNumber: String(row['Family Contact'] || ''),
-                    joiningDate: row['Joining Date'] ? ensureDate(row['Joining Date']) : undefined,
-                    birthDate: row['Birth Date'] ? ensureDate(row['Birth Date']) : undefined,
-                    avatarUrl: `https://placehold.co/32x32.png?text=${String(row['Name'] || 'A').charAt(0)}`,
-                }));
+                
+                const importedEmployees: Employee[] = json.map((row, index) => {
+                    const email = String(row['Email'] || '').toLowerCase().trim();
+                    const existingEmployee = employees.find(emp => emp.email?.toLowerCase().trim() === email);
+                    
+                    return {
+                        id: existingEmployee?.id || row['ID'] || `EMP-${Date.now()}-${index}`,
+                        name: String(row['Name'] || existingEmployee?.name || ''),
+                        email: email,
+                        branch: String(row['Branch'] || existingEmployee?.branch || ''),
+                        role: (row['Role'] as UserRole) || existingEmployee?.role || 'Employee',
+                        address: String(row['Address'] || existingEmployee?.address || ''),
+                        familyMobileNumber: String(row['Family Contact'] || existingEmployee?.familyMobileNumber || ''),
+                        joiningDate: row['Joining Date'] ? ensureDate(row['Joining Date']) : existingEmployee?.joiningDate,
+                        birthDate: row['Birth Date'] ? ensureDate(row['Birth Date']) : existingEmployee?.birthDate,
+                        avatarUrl: existingEmployee?.avatarUrl || `https://placehold.co/32x32.png?text=${String(row['Name'] || 'A').charAt(0)}`,
+                    };
+                });
+                
                 importedEmployees.forEach(handleSaveEmployee);
-                toast({ title: "Import Successful", description: `${json.length} employees imported.` });
+                toast({ title: "Import Successful", description: `${json.length} records processed (New or Updated).` });
             } catch(error: any) {
                 toast({ title: "Import Failed", description: error.message, variant: 'destructive' });
             } finally {

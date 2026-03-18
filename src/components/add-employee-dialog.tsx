@@ -24,6 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { format } from 'date-fns';
 import { useAuth } from './auth-provider';
+import { useDataStore } from '@/hooks/use-data-store';
 
 const employeeSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters.'),
@@ -47,6 +48,7 @@ export function AddEmployeeDialog({ children, onSave }: AddEmployeeDialogProps) 
   const [open, setOpen] = React.useState(false);
   const { toast } = useToast();
   const { getPermission } = useAuth();
+  const { employees } = useDataStore();
   const isAdmin = getPermission('settings') === 'download';
 
 
@@ -86,10 +88,19 @@ export function AddEmployeeDialog({ children, onSave }: AddEmployeeDialogProps) 
 
 
   const onSubmit = (data: EmployeeFormValues) => {
+    const email = data.email.toLowerCase().trim();
+    const existing = employees.find(e => e.email?.toLowerCase().trim() === email);
+    
+    if (existing) {
+        toast({ title: "Email Already Exists", description: "A profile with this email is already in the system.", variant: "destructive" });
+        return;
+    }
+
     const newEmployee: Employee = {
       id: uuidv4(),
       avatarUrl: `https://placehold.co/32x32.png?text=${data.name.charAt(0)}`,
       ...data,
+      email: email,
       joiningDate: data.joiningDate,
       birthDate: data.birthDate,
     };

@@ -74,114 +74,84 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (firebaseUser) {
         const isInitialAdmin = firebaseUser.email === 'connect@luvfitnessworld.com';
         
-        // 1. Check if user document already exists for this UID
+        // 1. Get UID-based reference
         const userRef = doc(db, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userRef);
+        let userDoc = await getDoc(userRef);
 
-        let finalUserData: Employee | null = null;
+        // 2. Check for existing manual/duplicate profiles by email
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', firebaseUser.email));
+        const querySnapshot = await getDocs(q);
+        
+        const otherProfiles = querySnapshot.docs.filter(d => d.id !== firebaseUser.uid);
 
-        if (userDoc.exists()) {
-          finalUserData = userDoc.data() as Employee;
+        // 3. Migration Logic: If we find a profile with same email but different ID
+        if (otherProfiles.length > 0) {
+          const sourceDoc = otherProfiles[0];
+          const sourceData = sourceDoc.data() as Employee;
           
-          // Check for potential duplicate profiles created manually by admin with the same email
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', firebaseUser.email));
-          const querySnapshot = await getDocs(q);
-          
-          const otherProfiles = querySnapshot.docs.filter(d => d.id !== firebaseUser.uid);
-          
-          // If we found duplicates and the current one is just a "New User" placeholder,
-          // migrate the data from the real (manual) profile to the UID profile.
-          if (otherProfiles.length > 0 && finalUserData.name === 'New User') {
-            const sourceProfile = otherProfiles[0].data() as Employee;
-            if (sourceProfile.name !== 'New User') {
-                const migratedData: Employee = {
-                    ...sourceProfile,
-                    id: firebaseUser.uid,
-                    updatedAt: serverTimestamp() as any,
-                };
-                await setDoc(userRef, migratedData);
-                finalUserData = migratedData;
-                
-                // Cleanup and update references
-                for (const dupeDoc of otherProfiles) {
-                    const oldId = dupeDoc.id;
-                    await deleteDoc(dupeDoc.ref);
-                    
-                    const collections = ['kras', 'leaves', 'expenses', 'routineTasks', 'habits', 'attendances', 'activities'];
-                    for (const colName of collections) {
-                        const colRef = collection(db, colName);
-                        const relatedQ = query(colRef, where('employee.id', '==', oldId));
-                        const relatedSnap = await getDocs(relatedQ);
-                        if (!relatedSnap.empty) {
-                            const batch = writeBatch(db);
-                            relatedSnap.docs.forEach(d => batch.update(d.ref, { 'employee.id': firebaseUser.uid }));
-                            await batch.commit();
-                        }
-                    }
-                }
-            }
-          }
-        } else {
-          // 2. UID doc doesn't exist. Search for an existing profile by email (invited by admin)
-          const usersRef = collection(db, 'users');
-          const q = query(usersRef, where('email', '==', firebaseUser.email));
-          const querySnapshot = await getDocs(q);
-
-          if (!querySnapshot.empty) {
-            const existingDoc = querySnapshot.docs[0];
-            const oldId = existingDoc.id;
-            const existingData = existingDoc.data() as Employee;
-
-            const migratedUser: Employee = {
-              ...existingData,
-              id: firebaseUser.uid,
-              name: existingData.name === 'New User' ? (firebaseUser.displayName || 'New User') : existingData.name,
-              avatarUrl: (existingData.avatarUrl && !existingData.avatarUrl.includes('placehold.co')) 
-                ? existingData.avatarUrl 
-                : (firebaseUser.photoURL || `https://placehold.co/32x32.png?text=${firebaseUser.email![0].toUpperCase()}`),
+          // Migrate if:
+          // a) UID doc doesn't exist yet
+          // b) UID doc exists but is a "New User" and the manual one has a real name
+          if (!userDoc.exists() || (userDoc.data()?.name === 'New User' && sourceData.name !== 'New User')) {
+            const mergedData: Employee = {
+              ...sourceData,
+              id: firebaseUser.uid, // Adopt the UID as the permanent ID
               updatedAt: serverTimestamp() as any,
             };
-
-            await setDoc(userRef, migratedUser);
-            await deleteDoc(existingDoc.ref);
-
-            // Update all related records to point to the new permanent UID
+            
+            await setDoc(userRef, mergedData);
+            
+            // Move all related records to point to the permanent UID
+            const oldId = sourceDoc.id;
             const collections = ['kras', 'leaves', 'expenses', 'routineTasks', 'habits', 'attendances', 'activities'];
             for (const colName of collections) {
               const colRef = collection(db, colName);
               const relatedQ = query(colRef, where('employee.id', '==', oldId));
               const relatedSnap = await getDocs(relatedQ);
+              
               if (!relatedSnap.empty) {
                 const batch = writeBatch(db);
-                relatedSnap.docs.forEach(d => batch.update(d.ref, { 'employee.id': firebaseUser.uid }));
+                relatedSnap.docs.forEach(d => {
+                  batch.update(d.ref, { 
+                    'employee.id': firebaseUser.uid,
+                    'employee.email': firebaseUser.email 
+                  });
+                });
                 await batch.commit();
               }
             }
-            finalUserData = migratedUser;
-          } else {
-            // 3. No existing profile found, create a brand new one
-            const newUser: Employee = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || 'New User',
-              email: firebaseUser.email!,
-              avatarUrl: firebaseUser.photoURL || `https://placehold.co/32x32.png?text=${firebaseUser.email![0].toUpperCase()}`,
-              role: isInitialAdmin ? 'Admin' : 'Employee',
-              permissions: isInitialAdmin ? adminPermissions : defaultPermissions,
-              createdAt: serverTimestamp() as any,
-              updatedAt: serverTimestamp() as any,
-            };
-            await setDoc(userRef, newUser);
-            finalUserData = newUser;
+            
+            // Delete the old duplicate/manual profile
+            await deleteDoc(sourceDoc.ref);
+            
+            // Update local userDoc reference for the final state setting
+            userDoc = await getDoc(userRef);
           }
+        } else if (!userDoc.exists()) {
+          // 4. Truly brand new user (no existing profile by email)
+          const newUser: Employee = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'New User',
+            email: firebaseUser.email!,
+            avatarUrl: firebaseUser.photoURL || `https://placehold.co/32x32.png?text=${firebaseUser.email![0].toUpperCase()}`,
+            role: isInitialAdmin ? 'Admin' : 'Employee',
+            permissions: isInitialAdmin ? adminPermissions : defaultPermissions,
+            createdAt: serverTimestamp() as any,
+            updatedAt: serverTimestamp() as any,
+          };
+          await setDoc(userRef, newUser);
+          userDoc = await getDoc(userRef);
         }
 
-        if (finalUserData) {
-          if (finalUserData.role === 'Admin' || isInitialAdmin) {
-            finalUserData.permissions = adminPermissions;
-            finalUserData.role = 'Admin';
+        // Finalize the current user state
+        if (userDoc.exists()) {
+          const finalData = userDoc.data() as Employee;
+          if (finalData.role === 'Admin' || isInitialAdmin) {
+            finalData.permissions = adminPermissions;
+            finalData.role = 'Admin';
           }
-          setCurrentUser(finalUserData);
+          setCurrentUser(finalData);
         }
 
         // Ensure roles_admin entry for the master admin
