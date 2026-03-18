@@ -21,6 +21,11 @@ service cloud.firestore {
       allow write: if isOwner(userId) || isAdmin();
     }
 
+    // Deleted users (Recycle Bin)
+    match /deleted_users/{userId} {
+      allow read, write: if isAdmin();
+    }
+
     // KRAs - Allow access based on UID or Email
     match /kras/{id} {
       allow read: if isSignedIn();

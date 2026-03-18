@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import type { Branch, Employee, UserRole, EmployeePermissions, PermissionLevel } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, KeySquare, Share2, Download, Upload, Fingerprint } from 'lucide-react';
+import { Check, ChevronsUpDown, Edit, PlusCircle, Trash2, KeySquare, Share2, Download, Upload, Fingerprint, RotateCcw, Archive } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +30,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/components/auth-provider';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { useDataStore } from '@/hooks/use-data-store';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const navItems = [
@@ -237,7 +238,7 @@ const BranchDialog = ({
 
 
 export default function SettingsPage() {
-    const { employees, branches, loading, handleSaveEmployee, handleSaveBranch, handleDeleteBranch } = useDataStore();
+    const { employees, deletedEmployees, branches, loading, handleSaveEmployee, handleSaveBranch, handleDeleteBranch, handleRestoreEmployee, handlePermanentDeleteEmployee } = useDataStore();
     const { toast } = useToast();
     const { getPermission } = useAuth();
     const pagePermission = getPermission('settings');
@@ -303,221 +304,324 @@ export default function SettingsPage() {
         }
     };
 
+    const onRestoreAction = (id: string) => {
+        handleRestoreEmployee(id);
+        toast({ title: "Employee Restored", description: "The employee profile has been brought back." });
+    };
+
+    const onPermanentDeleteAction = (id: string) => {
+        handlePermanentDeleteEmployee(id);
+        toast({ title: "Permanently Deleted", description: "The profile has been removed from recycle bin." });
+    };
+
     return (
         <div className="flex flex-col gap-6">
             <h1 className="text-2xl font-semibold">Settings</h1>
             
-            <Card>
-                <CardHeader>
-                    <div className='flex items-center gap-4'>
-                        <Share2 className="h-8 w-8 text-primary" />
-                        <div>
-                            <CardTitle>Google Sheets & Excel Integration</CardTitle>
-                            <CardDescription>
-                                Fully compatible with Google Sheets for advanced reporting and bulk updates.
-                            </CardDescription>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                        You can sync your application data with **Google Sheets** using the **Import/Export** features available on all management pages (Employees, KRA, Tasks, Attendance, etc.).
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-4 border rounded-lg bg-muted/30">
-                            <div className='flex items-center gap-2 mb-2'>
-                                <Download className="h-4 w-4 text-primary" />
-                                <h4 className="font-semibold">Step 1: Export to Sheets</h4>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                1. Go to any page (e.g., Attendance).<br/>
-                                2. Click **Export**. An Excel (.xlsx) file will download.<br/>
-                                3. Upload this file to **Google Drive** and open it with **Google Sheets**.
-                            </p>
-                        </div>
-                        <div className="p-4 border rounded-lg bg-muted/30">
-                            <div className='flex items-center gap-2 mb-2'>
-                                <Upload className="h-4 w-4 text-primary" />
-                                <h4 className="font-semibold">Step 2: Sync back from Sheets</h4>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                1. In your Google Sheet, go to **File > Download > Microsoft Excel (.xlsx)**.<br/>
-                                2. Go back to the application and click **Import**.<br/>
-                                3. Select the downloaded file to sync all changes instantly.
-                            </p>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            <Tabs defaultValue="general" className="w-full">
+                <TabsList className="grid w-full grid-cols-2 max-w-[400px]">
+                    <TabsTrigger value="general">General Settings</TabsTrigger>
+                    <TabsTrigger value="recycle" className="gap-2">
+                        <Archive className="h-4 w-4" /> Recycle Bin
+                        {deletedEmployees.length > 0 && (
+                            <Badge variant="destructive" className="h-4 min-w-4 p-0 flex items-center justify-center text-[10px] rounded-full">
+                                {deletedEmployees.length}
+                            </Badge>
+                        )}
+                    </TabsTrigger>
+                </TabsList>
 
-            <Card>
-                <CardHeader className='flex-row items-center justify-between'>
-                    <div>
-                        <CardTitle>Branch Management</CardTitle>
-                        <CardDescription>
-                            Add, view, or manage branches and assign managers.
-                        </CardDescription>
-                    </div>
-                    {pagePermission === 'download' && (
-                        <BranchDialog onSave={onSaveBranchAction} employees={sortedEmployees}>
-                            <Button>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Branch
-                            </Button>
-                        </BranchDialog>
-                    )}
-                </CardHeader>
-                <CardContent className="grid gap-6">
-                    <div className="border rounded-lg">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Branch Name</TableHead>
-                                    <TableHead>Manager</TableHead>
-                                    {pagePermission === 'download' && <TableHead className="text-right w-[100px]">Actions</TableHead>}
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow>
-                                        <TableCell colSpan={3} className="text-center">Loading branches...</TableCell>
-                                    </TableRow>
-                                ) : branches.length > 0 ? (
-                                    branches.map((branch) => {
-                                        const manager = sortedEmployees.find(e => e.id === branch.managerId);
-                                        return (
-                                        <TableRow key={branch.id}>
-                                            <TableCell className="font-medium">{branch.name}</TableCell>
-                                             <TableCell>
-                                                {manager ? (
-                                                    <div className="flex items-center gap-2">
-                                                        <Avatar className="h-6 w-6">
-                                                            <AvatarImage src={manager.avatarUrl} alt={manager.name} />
-                                                            <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
+                <TabsContent value="general" className="space-y-6 pt-4">
+                    <Card>
+                        <CardHeader>
+                            <div className='flex items-center gap-4'>
+                                <Share2 className="h-8 w-8 text-primary" />
+                                <div>
+                                    <CardTitle>Google Sheets & Excel Integration</CardTitle>
+                                    <CardDescription>
+                                        Fully compatible with Google Sheets for advanced reporting and bulk updates.
+                                    </CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                You can sync your application data with **Google Sheets** using the **Import/Export** features available on all management pages (Employees, KRA, Tasks, Attendance, etc.).
+                            </p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-4 border rounded-lg bg-muted/30">
+                                    <div className='flex items-center gap-2 mb-2'>
+                                        <Download className="h-4 w-4 text-primary" />
+                                        <h4 className="font-semibold">Step 1: Export to Sheets</h4>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        1. Go to any page (e.g., Attendance).<br/>
+                                        2. Click **Export**. An Excel (.xlsx) file will download.<br/>
+                                        3. Upload this file to **Google Drive** and open it with **Google Sheets**.
+                                    </p>
+                                </div>
+                                <div className="p-4 border rounded-lg bg-muted/30">
+                                    <div className='flex items-center gap-2 mb-2'>
+                                        <Upload className="h-4 w-4 text-primary" />
+                                        <h4 className="font-semibold">Step 2: Sync back from Sheets</h4>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        1. In your Google Sheet, go to **File > Download > Microsoft Excel (.xlsx)**.<br/>
+                                        2. Go back to the application and click **Import**.<br/>
+                                        3. Select the downloaded file to sync all changes instantly.
+                                    </p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className='flex-row items-center justify-between'>
+                            <div>
+                                <CardTitle>Branch Management</CardTitle>
+                                <CardDescription>
+                                    Add, view, or manage branches and assign managers.
+                                </CardDescription>
+                            </div>
+                            {pagePermission === 'download' && (
+                                <BranchDialog onSave={onSaveBranchAction} employees={sortedEmployees}>
+                                    <Button>
+                                        <PlusCircle className="mr-2 h-4 w-4" />
+                                        Add Branch
+                                    </Button>
+                                </BranchDialog>
+                            )}
+                        </CardHeader>
+                        <CardContent className="grid gap-6">
+                            <div className="border rounded-lg">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Branch Name</TableHead>
+                                            <TableHead>Manager</TableHead>
+                                            {pagePermission === 'download' && <TableHead className="text-right w-[100px]">Actions</TableHead>}
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow>
+                                                <TableCell colSpan={3} className="text-center">Loading branches...</TableCell>
+                                            </TableRow>
+                                        ) : branches.length > 0 ? (
+                                            branches.map((branch) => {
+                                                const manager = sortedEmployees.find(e => e.id === branch.managerId);
+                                                return (
+                                                <TableRow key={branch.id}>
+                                                    <TableCell className="font-medium">{branch.name}</TableCell>
+                                                    <TableCell>
+                                                        {manager ? (
+                                                            <div className="flex items-center gap-2">
+                                                                <Avatar className="h-6 w-6">
+                                                                    <AvatarImage src={manager.avatarUrl} alt={manager.name} />
+                                                                    <AvatarFallback>{manager.name.charAt(0)}</AvatarFallback>
+                                                                </Avatar>
+                                                                <span>{manager.name}</span>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">Not Assigned</span>
+                                                        )}
+                                                    </TableCell>
+                                                    {pagePermission === 'download' && (
+                                                    <TableCell className="text-right">
+                                                        <div className="flex items-center justify-end gap-2">
+                                                            <BranchDialog branch={branch} onSave={onSaveBranchAction} employees={sortedEmployees}>
+                                                                <Button variant="ghost" size="icon">
+                                                                    <Edit className="h-4 w-4" />
+                                                                </Button>
+                                                            </BranchDialog>
+                                                            <AlertDialog>
+                                                                <AlertDialogTrigger asChild>
+                                                                    <Button variant="ghost" size="icon">
+                                                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                                                    </Button>
+                                                                </AlertDialogTrigger>
+                                                                <AlertDialogContent>
+                                                                    <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This action cannot be undone. Deleting this branch might affect employees assigned to it.
+                                                                    </AlertDialogDescription>
+                                                                    </AlertDialogHeader>
+                                                                    <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => onDeleteBranchAction(branch.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
+                                                                    </AlertDialogFooter>
+                                                                </AlertDialogContent>
+                                                            </AlertDialog>
+                                                        </div>
+                                                    </TableCell>
+                                                    )}
+                                                </TableRow>
+                                            )})
+                                        ) : (
+                                            <TableRow>
+                                                <TableCell colSpan={pagePermission === 'download' ? 3 : 2} className="text-center">No branches found. Add one to get started.</TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>User & Permission Management</CardTitle>
+                            <CardDescription>
+                                Assign roles and page access level. 'Download' level enables external spreadsheet sync.
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="border rounded-lg">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className='w-[100px]'>ID</TableHead>
+                                            <TableHead>Employee</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead className="w-[200px]">Role</TableHead>
+                                            <TableHead className="w-[150px]">Permissions</TableHead>
+                                            <TableHead className="text-right w-[100px]">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {loading ? (
+                                            <TableRow><TableCell colSpan={6} className="text-center">Loading users...</TableCell></TableRow>
+                                        ) : sortedEmployees.map(employee => (
+                                            <TableRow key={employee.id}>
+                                                <TableCell className='font-mono text-xs text-muted-foreground'>{employee.id.slice(0, 8)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <Avatar className="h-8 w-8">
+                                                            <AvatarImage src={employee.avatarUrl} alt={employee.name} />
+                                                            <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
                                                         </Avatar>
-                                                        <span>{manager.name}</span>
+                                                        <span>{employee.name}</span>
                                                     </div>
-                                                ) : (
-                                                    <span className="text-muted-foreground">Not Assigned</span>
-                                                )}
-                                            </TableCell>
-                                            {pagePermission === 'download' && (
-                                            <TableCell className="text-right">
-                                                 <div className="flex items-center justify-end gap-2">
-                                                     <BranchDialog branch={branch} onSave={onSaveBranchAction} employees={sortedEmployees}>
-                                                        <Button variant="ghost" size="icon">
+                                                </TableCell>
+                                                <TableCell>{employee.email || 'N/A'}</TableCell>
+                                                <TableCell>
+                                                    <Select 
+                                                        value={employee.role || 'Employee'}
+                                                        onValueChange={(value: UserRole) => handleRoleChange(employee.id, value)}
+                                                        disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select role" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            <SelectItem value="Admin">Admin</SelectItem>
+                                                            <SelectItem value="Manager">Manager</SelectItem>
+                                                            <SelectItem value="Employee">Employee</SelectItem>
+                                                        </SelectContent>
+                                                    </Select>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <PermissionDialog employee={employee} onSave={handlePermissionChange}>
+                                                        <Button variant="outline" size="sm" disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}>
+                                                            <KeySquare className="mr-2 h-4 w-4" />
+                                                            Edit Permissions
+                                                        </Button>
+                                                    </PermissionDialog>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <EditEmployeeDialog employee={employee} onSave={onSaveEmployeeAction}>
+                                                        <Button variant="ghost" size="icon" disabled={pagePermission !== 'download'}>
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
-                                                     </BranchDialog>
-                                                     <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button variant="ghost" size="icon">
-                                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                This action cannot be undone. Deleting this branch might affect employees assigned to it.
-                                                            </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={() => onDeleteBranchAction(branch.id)} className="bg-destructive hover:bg-destructive/90">Delete</AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                 </div>
-                                            </TableCell>
-                                            )}
-                                        </TableRow>
-                                    )})
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={pagePermission === 'download' ? 3 : 2} className="text-center">No branches found. Add one to get started.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                                                    </EditEmployeeDialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>User & Permission Management</CardTitle>
-                    <CardDescription>
-                        Assign roles and page access level. 'Download' level enables external spreadsheet sync.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                     <div className="border rounded-lg">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className='w-[100px]'>ID</TableHead>
-                                    <TableHead>Employee</TableHead>
-                                    <TableHead>Email</TableHead>
-                                    <TableHead className="w-[200px]">Role</TableHead>
-                                    <TableHead className="w-[150px]">Permissions</TableHead>
-                                    <TableHead className="text-right w-[100px]">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {loading ? (
-                                    <TableRow><TableCell colSpan={6} className="text-center">Loading users...</TableCell></TableRow>
-                                ) : sortedEmployees.map(employee => (
-                                    <TableRow key={employee.id}>
-                                        <TableCell className='font-mono text-xs text-muted-foreground'>{employee.id}</TableCell>
-                                        <TableCell>
-                                             <div className="flex items-center gap-3">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={employee.avatarUrl} alt={employee.name} />
-                                                    <AvatarFallback>{employee.name.charAt(0)}</AvatarFallback>
-                                                </Avatar>
-                                                <span>{employee.name}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{employee.email || 'N/A'}</TableCell>
-                                        <TableCell>
-                                            <Select 
-                                                value={employee.role || 'Employee'}
-                                                onValueChange={(value: UserRole) => handleRoleChange(employee.id, value)}
-                                                disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select role" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="Admin">Admin</SelectItem>
-                                                    <SelectItem value="Manager">Manager</SelectItem>
-                                                    <SelectItem value="Employee">Employee</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                        </TableCell>
-                                         <TableCell>
-                                            <PermissionDialog employee={employee} onSave={handlePermissionChange}>
-                                                 <Button variant="outline" size="sm" disabled={pagePermission !== 'download' || employee.email === 'connect@luvfitnessworld.com'}>
-                                                    <KeySquare className="mr-2 h-4 w-4" />
-                                                    Edit Permissions
-                                                </Button>
-                                            </PermissionDialog>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <EditEmployeeDialog employee={employee} onSave={onSaveEmployeeAction}>
-                                                <Button variant="ghost" size="icon" disabled={pagePermission !== 'download'}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </EditEmployeeDialog>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </div>
-                </CardContent>
-            </Card>
+                <TabsContent value="recycle" className="pt-4">
+                    <Card>
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <Archive className="h-6 w-6 text-orange-500" />
+                                <div>
+                                    <CardTitle>Recycle Bin</CardTitle>
+                                    <CardDescription>Restore accidentally deleted employee profiles.</CardDescription>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="border rounded-lg">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Employee</TableHead>
+                                            <TableHead>Email</TableHead>
+                                            <TableHead>Branch</TableHead>
+                                            <TableHead className="text-right">Actions</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {deletedEmployees.length === 0 ? (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground italic">
+                                                    Recycle bin is empty.
+                                                </TableCell>
+                                            </TableRow>
+                                        ) : (
+                                            deletedEmployees.map(emp => (
+                                                <TableRow key={emp.id}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-3">
+                                                            <Avatar className="h-8 w-8 grayscale opacity-70">
+                                                                <AvatarImage src={emp.avatarUrl} alt={emp.name} />
+                                                                <AvatarFallback>{emp.name.charAt(0)}</AvatarFallback>
+                                                            </Avatar>
+                                                            <span className="font-medium text-muted-foreground">{emp.name}</span>
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell className="text-muted-foreground">{emp.email}</TableCell>
+                                                    <TableCell className="text-muted-foreground">{emp.branch}</TableCell>
+                                                    <TableCell className="text-right space-x-2">
+                                                        <Button variant="outline" size="sm" onClick={() => onRestoreAction(emp.id)} className="h-8 gap-1.5 text-xs">
+                                                            <RotateCcw className="h-3.5 w-3.5" /> Restore
+                                                        </Button>
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
+                                                                <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10 text-xs">
+                                                                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Permanent Delete
+                                                                </Button>
+                                                            </AlertDialogTrigger>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>Delete Permanently?</AlertDialogTitle>
+                                                                    <AlertDialogDescription>
+                                                                        This will remove {emp.name} from the Recycle Bin. This action cannot be undone.
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                                    <AlertDialogAction onClick={() => onPermanentDeleteAction(emp.id)} className="bg-destructive hover:bg-destructive/90">Delete Forever</AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        )}
+                                    </TableBody>
+                                </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </div>
     )
 }

@@ -1,8 +1,7 @@
-
 'use client';
 
 import React, { createContext, useContext, useMemo } from 'react';
-import { collection, doc, deleteDoc, setDoc, serverTimestamp, query, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, deleteDoc, setDoc, serverTimestamp, query, orderBy, limit, getDoc } from 'firebase/firestore';
 import { useFirestore, useUser, useCollection, useMemoFirebase, FirestorePermissionError, errorEmitter } from '@/firebase';
 import type { Employee, KRA, Branch, Leave, Expense, RoutineTask, Habit, Holiday, Recruit, Attendance, ActivityLog } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +11,7 @@ interface DataStoreContextType {
   loading: boolean;
   kras: KRA[];
   employees: Employee[];
+  deletedEmployees: Employee[];
   branches: Branch[];
   leaves: Leave[];
   expenses: Expense[];
@@ -27,6 +27,8 @@ interface DataStoreContextType {
   handleSaveEmployee: (employee: Employee) => void;
   handleDeleteEmployee: (employeeId: string) => void;
   handleDeleteMultipleEmployees: (ids: string[]) => void;
+  handleRestoreEmployee: (employeeId: string) => void;
+  handlePermanentDeleteEmployee: (employeeId: string) => void;
   handleSaveLeave: (leave: Leave) => void;
   handleDeleteLeave: (leaveId: string) => void;
   handleDeleteMultipleLeaves: (ids: string[]) => void;
@@ -56,6 +58,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const db = useFirestore();
 
   const usersQuery = useMemoFirebase(() => user ? collection(db, 'users') : null, [db, user]);
+  const deletedUsersQuery = useMemoFirebase(() => user ? collection(db, 'deleted_users') : null, [db, user]);
   const krasQuery = useMemoFirebase(() => user ? collection(db, 'kras') : null, [db, user]);
   const branchesQuery = useMemoFirebase(() => user ? collection(db, 'branches') : null, [db, user]);
   const leavesQuery = useMemoFirebase(() => user ? collection(db, 'leaves') : null, [db, user]);
@@ -68,6 +71,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const activitiesQuery = useMemoFirebase(() => user ? query(collection(db, 'activities'), orderBy('timestamp', 'desc'), limit(50)) : null, [db, user]);
 
   const { data: users, isLoading: usersLoading } = useCollection<Employee>(usersQuery);
+  const { data: deletedUsers, isLoading: deletedUsersLoading } = useCollection<Employee>(deletedUsersQuery);
   const { data: krasData, isLoading: krasLoading } = useCollection<KRA>(krasQuery);
   const { data: branches, isLoading: branchesLoading } = useCollection<Branch>(branchesQuery);
   const { data: leaves, isLoading: leavesLoading } = useCollection<Leave>(leavesQuery);
@@ -80,6 +84,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const { data: activitiesData } = useCollection<ActivityLog>(activitiesQuery);
 
   const employees = useMemo(() => users || [], [users]);
+  const deletedEmployees = useMemo(() => deletedUsers || [], [deletedUsers]);
   const kras = useMemo(() => {
     if (!krasData) return [];
     return sortKras(krasData);
@@ -158,14 +163,53 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     });
   };
 
-  const handleDeleteEmployee = (id: string) => {
+  const handleDeleteEmployee = async (id: string) => {
     const emp = employees.find(e => e.id === id);
-    const docRef = doc(db, 'users', id);
-    deleteDoc(docRef).then(() => {
-        if(emp) logGlobalActivity(`Employee Removed`, emp.name, 'employee', undefined, id, id);
-    }).catch(err => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: docRef.path, operation: 'delete' }));
-    });
+    if (!emp) return;
+
+    try {
+        // Move to recycle bin
+        const deletedRef = doc(db, 'deleted_users', id);
+        await setDoc(deletedRef, { ...emp, deletedAt: serverTimestamp() });
+        
+        // Remove from main users
+        const userRef = doc(db, 'users', id);
+        await deleteDoc(userRef);
+        
+        logGlobalActivity(`Employee Moved to Recycle Bin`, emp.name, 'employee', undefined, id, id);
+    } catch (err) {
+        console.error("Failed to delete employee:", err);
+    }
+  };
+
+  const handleRestoreEmployee = async (id: string) => {
+    const emp = deletedEmployees.find(e => e.id === id);
+    if (!emp) return;
+
+    try {
+        // Move back to users
+        const userRef = doc(db, 'users', id);
+        await setDoc(userRef, { ...emp, updatedAt: serverTimestamp() });
+        
+        // Remove from recycle bin
+        const deletedRef = doc(db, 'deleted_users', id);
+        await deleteDoc(deletedRef);
+        
+        logGlobalActivity(`Employee Restored`, emp.name, 'employee', undefined, id, id);
+    } catch (err) {
+        console.error("Failed to restore employee:", err);
+    }
+  };
+
+  const handlePermanentDeleteEmployee = async (id: string) => {
+    const emp = deletedEmployees.find(e => e.id === id);
+    try {
+        const deletedRef = doc(db, 'deleted_users', id);
+        await deleteDoc(deletedRef);
+        if(emp) logGlobalActivity(`Employee Deleted Permanently`, emp.name, 'employee', undefined, id, id);
+    } catch (err) {
+        console.error("Failed to permanently delete employee:", err);
+    }
   };
 
   const handleDeleteMultipleEmployees = (ids: string[]) => ids.forEach(id => handleDeleteEmployee(id));
@@ -289,9 +333,9 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   };
 
   const value = {
-    loading, kras, employees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
+    loading, kras, employees, deletedEmployees, branches: branches || [], leaves: leaves || [], expenses: expenses || [], routineTasks: routineTasks || [], habits: habits || [], holidays: holidays || [], recruits: recruits || [], attendances: attendances || [],
     activities,
-    handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
+    handleSaveKra, handleDeleteKra, handleDeleteMultipleKras, handleSaveEmployee, handleDeleteEmployee, handleDeleteMultipleEmployees, handleRestoreEmployee, handlePermanentDeleteEmployee, handleSaveLeave, handleDeleteLeave, handleDeleteMultipleLeaves, handleSaveExpense, handleDeleteExpense, handleDeleteMultipleExpenses,
     handleSaveRoutineTask, handleDeleteRoutineTask, handleDeleteMultipleRoutineTasks, handleSaveHabit, handleSaveHoliday, handleDeleteHoliday, handleDeleteMultipleHolidays, handleSaveRecruit, handleDeleteRecruit, handleDeleteMultipleRecruits, handleSaveAttendance,
     handleSaveBranch, handleDeleteBranch, handleReorderKras
   };
