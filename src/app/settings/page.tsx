@@ -31,6 +31,7 @@ import { useAuth } from '@/components/auth-provider';
 import { EditEmployeeDialog } from '@/components/edit-employee-dialog';
 import { useDataStore } from '@/hooks/use-data-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 
 
 const navItems = [
