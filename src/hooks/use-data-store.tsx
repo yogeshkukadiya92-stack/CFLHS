@@ -100,17 +100,22 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
   const logGlobalActivity = (action: string, employeeName: string, type: ActivityLog['type'], details?: string, relatedId?: string, employeeId?: string) => {
     const id = uuidv4();
     const docRef = doc(db, 'activities', id);
-    setDoc(docRef, {
+    
+    // Construct object avoiding undefined values which Firestore rejects
+    const activityRecord: any = {
         id,
         timestamp: serverTimestamp(),
-        actorName: currentActorName,
-        employeeName,
-        action,
-        type,
-        details,
-        relatedId,
-        employeeId
-    }).catch(err => console.error("Failed to log activity:", err));
+        actorName: currentActorName || 'System',
+        employeeName: employeeName || 'Employee',
+        action: action || 'Activity',
+        type: type || 'kra'
+    };
+    
+    if (details !== undefined) activityRecord.details = details;
+    if (relatedId !== undefined) activityRecord.relatedId = relatedId;
+    if (employeeId !== undefined) activityRecord.employeeId = employeeId;
+
+    setDoc(docRef, activityRecord).catch(err => console.error("Failed to log activity:", err));
   };
 
   const handleSaveKra = (kra: KRA) => {
