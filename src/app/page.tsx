@@ -38,6 +38,7 @@ export default function Dashboard() {
   const [newHabitDesc, setNewHabitDesc] = React.useState('');
   const [isNewShared, setIsNewShared] = React.useState(false);
   const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
+  const [isSavingHabit, setIsSavingHabit] = React.useState(false);
 
   const myHabitsQuery = useMemoFirebase(
     () => (user ? query(collection(db, 'habitShareHabits'), where('userId', '==', user.uid)) : null),
@@ -175,32 +176,65 @@ export default function Dashboard() {
   };
 
   const saveHabit = async () => {
-    if (!user || !currentUser || !newHabitName.trim()) return;
+    if (!user || !newHabitName.trim()) {
+      toast({
+        title: 'Missing details',
+        description: 'Please enter a habit name before saving.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
-    const habitId = `habit_${Date.now()}`;
-    const habit: HabitShareHabit = {
-      id: habitId,
-      userId: user.uid,
-      userName: currentUser.name,
-      userEmail: user.email || '',
-      name: newHabitName.trim(),
-      description: newHabitDesc.trim(),
-      checkIns: [],
-      isShared: isNewShared,
-      sharedWithIds: isNewShared ? sharedWithIds : [],
-      cheers: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const ownerName =
+      currentUser?.name?.trim() ||
+      user.displayName?.trim() ||
+      user.email?.split('@')[0] ||
+      'User';
+    const selectedFriendIds = isNewShared ? sharedWithIds.filter(Boolean) : [];
+    const shouldShare = selectedFriendIds.length > 0;
 
-    await setDoc(doc(db, 'habitShareHabits', habitId), habit);
+    setIsSavingHabit(true);
 
-    setNewHabitName('');
-    setNewHabitDesc('');
-    setIsNewShared(false);
-    setSharedWithIds([]);
-    setIsAddOpen(false);
-    toast({ title: 'Habit Added', description: 'Your habit has been saved.' });
+    try {
+      const habitId = `habit_${Date.now()}`;
+      const habit: HabitShareHabit = {
+        id: habitId,
+        userId: user.uid,
+        userName: ownerName,
+        userEmail: user.email || '',
+        name: newHabitName.trim(),
+        description: newHabitDesc.trim(),
+        checkIns: [],
+        isShared: shouldShare,
+        sharedWithIds: selectedFriendIds,
+        cheers: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, 'habitShareHabits', habitId), habit);
+
+      setNewHabitName('');
+      setNewHabitDesc('');
+      setIsNewShared(false);
+      setSharedWithIds([]);
+      setIsAddOpen(false);
+      toast({
+        title: 'Habit Added',
+        description: shouldShare
+          ? 'Your habit has been saved and shared with friends.'
+          : 'Your habit has been saved.',
+      });
+    } catch (error) {
+      console.error('Failed to save habit:', error);
+      toast({
+        title: 'Save failed',
+        description: 'We could not save this habit. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSavingHabit(false);
+    }
   };
 
   const shareReport = async (range: ReportRange) => {
@@ -373,7 +407,9 @@ export default function Dashboard() {
           </div>
           <DialogFooter className="mt-8 flex justify-between gap-4">
             <Button variant="ghost" onClick={() => setIsAddOpen(false)} className="rounded-2xl h-12 font-black text-slate-400">Cancel</Button>
-            <Button onClick={saveHabit} className="rounded-2xl h-12 bg-primary font-black px-10 shadow-xl shadow-primary/20">SAVE HABIT</Button>
+            <Button onClick={saveHabit} disabled={isSavingHabit} className="rounded-2xl h-12 bg-primary font-black px-10 shadow-xl shadow-primary/20 disabled:opacity-70">
+              {isSavingHabit ? 'SAVING...' : 'SAVE HABIT'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
