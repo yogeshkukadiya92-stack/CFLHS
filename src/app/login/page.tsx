@@ -10,8 +10,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Eye, EyeOff } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { defaultLoginCredential } from '@/lib/default-login';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -28,8 +26,6 @@ export default function LoginPage() {
       router.push('/');
     }
   }, [user, isUserLoading, router]);
-
-  const starterCredential = defaultLoginCredential;
 
   const getAuthErrorMessage = (error: any) => {
     const code = error?.code || '';
@@ -79,43 +75,10 @@ export default function LoginPage() {
     }
   };
 
-  const handleStarterAccess = async () => {
-    setLoading(true);
-    setEmail(starterCredential.email);
-    setPassword(starterCredential.password);
-
-    try {
-      await ensureEmailAccount(auth, starterCredential.email, starterCredential.password);
-      toast({
-        title: 'Starter Access Ready',
-        description: 'Signed in with the starter account, or created it if this is the first run.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Starter Access Failed',
-        description: getAuthErrorMessage(error),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
       <div className="w-full max-w-[400px] space-y-4">
-        <Alert>
-          <AlertTitle>Starter login credential</AlertTitle>
-          <AlertDescription className="space-y-3">
-            <div className="space-y-1">
-              <p>Email: {starterCredential.email}</p>
-              <p>Password: {starterCredential.password}</p>
-            </div>
-            <Button type="button" variant="outline" className="w-full" onClick={handleStarterAccess} disabled={loading}>
-              {loading ? 'Preparing starter access...' : 'Use starter credential'}
-            </Button>
-          </AlertDescription>
-        </Alert>
         <Tabs defaultValue="signin" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Sign In</TabsTrigger>
