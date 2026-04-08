@@ -31,7 +31,11 @@ export function FirebaseErrorListener() {
 
   // On re-render, if an error exists in state, throw it.
   if (error) {
-    throw error;
+    if (process.env.NODE_ENV !== 'production') {
+      throw error;
+    }
+
+    console.error('Firebase permission error:', error);
   }
 
   // This component renders nothing.
