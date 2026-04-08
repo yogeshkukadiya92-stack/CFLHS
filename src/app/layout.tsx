@@ -3,8 +3,6 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/components/auth-provider';
 import { Navbar } from '@/components/navbar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { SidebarProvider, Sidebar, SidebarInset } from '@/components/ui/sidebar';
 import { DataStoreProvider } from '@/hooks/use-data-store';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
@@ -30,20 +28,15 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             <DataStoreProvider>
-              <SidebarProvider>
-                <Sidebar className="border-none">
-                    <AppSidebar/>
-                </Sidebar>
-                <SidebarInset className="bg-transparent overflow-x-hidden">
-                    <Navbar />
-                    <main className="w-full p-4 sm:px-8 sm:py-8">
-                        <div className="w-full">
-                          {children}
-                        </div>
-                    </main>
-                    <Toaster />
-                </SidebarInset>
-              </SidebarProvider>
+              <div className="min-h-screen bg-transparent overflow-x-hidden">
+                <Navbar />
+                <main className="w-full p-4 sm:px-8 sm:py-8">
+                  <div className="w-full">
+                    {children}
+                  </div>
+                </main>
+                <Toaster />
+              </div>
             </DataStoreProvider>
           </AuthProvider>
         </FirebaseClientProvider>
