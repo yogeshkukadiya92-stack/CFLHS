@@ -7,18 +7,50 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from './auth-provider';
 import { auth } from '@/lib/firebase';
 import { Button } from './ui/button';
-import { ShieldCheck, Settings, UserRound } from 'lucide-react';
+import { Check, ShieldCheck, Settings, UserRound } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from './ui/sheet';
 import { Separator } from './ui/separator';
+import { Input } from './ui/input';
+import { useDataStore } from '@/hooks/use-data-store';
+import { useToast } from '@/hooks/use-toast';
 
 export const Navbar = () => {
   const { user, currentUser } = useAuth();
+  const { handleSaveEmployee } = useDataStore();
+  const { toast } = useToast();
   const router = useRouter();
+  const [displayName, setDisplayName] = React.useState('');
+  const [isSavingName, setIsSavingName] = React.useState(false);
 
   const handleLogout = async () => {
     await signOut(auth);
     router.push('/login');
+  };
+
+  React.useEffect(() => {
+    setDisplayName(currentUser?.name || '');
+  }, [currentUser?.name]);
+
+  const handleSaveName = () => {
+    if (!currentUser) return;
+    const trimmedName = displayName.trim();
+    if (!trimmedName) {
+      toast({ title: 'Name Required', description: 'Please enter a valid name.', variant: 'destructive' });
+      return;
+    }
+    if (trimmedName === currentUser.name) return;
+
+    setIsSavingName(true);
+    try {
+      handleSaveEmployee({
+        ...currentUser,
+        name: trimmedName,
+      });
+      toast({ title: 'Profile Updated', description: 'Your name has been updated.' });
+    } finally {
+      setIsSavingName(false);
+    }
   };
 
   const isAdmin = currentUser?.role === 'Admin';
@@ -57,7 +89,17 @@ export const Navbar = () => {
               <div className="mt-6 space-y-4 text-sm">
                 <div className="rounded-lg border bg-slate-50/60 p-4">
                   <p className="text-xs uppercase tracking-wider text-slate-500">Name</p>
-                  <p className="mt-1 font-medium text-slate-800">{currentUser?.name || 'N/A'}</p>
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="h-9"
+                    />
+                    <Button type="button" onClick={handleSaveName} size="sm" className="h-9 px-3" disabled={isSavingName}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
                 <div className="rounded-lg border bg-slate-50/60 p-4">
                   <p className="text-xs uppercase tracking-wider text-slate-500">Email</p>

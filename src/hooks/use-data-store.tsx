@@ -96,7 +96,7 @@ export const DataStoreProvider = ({ children }: { children: React.ReactNode }) =
     [currentEmployee, user]
   );
 
-  const filterByEmployee = <T extends { employee?: { id?: string } }>(items: T[] | undefined): T[] => {
+  const filterByEmployee = <T extends { employee?: { id?: string } }>(items: T[] | null | undefined): T[] => {
     if (!items) return [];
     if (isAdmin || !user?.uid) return items;
     return items.filter((item) => item.employee?.id === user.uid);

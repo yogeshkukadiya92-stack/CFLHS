@@ -114,6 +114,46 @@ service cloud.firestore {
       allow create: if isSignedIn();
       allow update, delete: if isAdmin();
     }
+
+    // Habit Share social habits
+    match /habitShareHabits/{habitId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && (
+                    resource.data.userId == request.auth.uid
+                    || request.auth.uid in resource.data.sharedWithIds
+                  ));
+
+      allow create: if isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.userId == request.auth.uid);
+
+      allow update, delete: if isAdmin()
+                            || (isSignedIn()
+                                && resource.data.userId == request.auth.uid);
+    }
+
+    // Habit Share friend requests
+    match /habitFriendRequests/{requestId} {
+      allow read: if isAdmin()
+                  || (isSignedIn() && (
+                    resource.data.requesterId == request.auth.uid
+                    || resource.data.receiverId == request.auth.uid
+                  ));
+
+      allow create: if isAdmin()
+                    || (isSignedIn()
+                        && request.resource.data.requesterId == request.auth.uid);
+
+      allow update: if isAdmin()
+                    || (isSignedIn() && (
+                      resource.data.requesterId == request.auth.uid
+                      || resource.data.receiverId == request.auth.uid
+                    ));
+
+      allow delete: if isAdmin()
+                    || (isSignedIn()
+                        && resource.data.requesterId == request.auth.uid);
+    }
     
     // Roles management
     match /roles_admin/{userId} {

@@ -8,12 +8,16 @@ export interface HabitShareUser {
 export interface HabitShareHabit {
   id: string;
   userId: string;
+  userName?: string;
+  userEmail?: string;
   name: string;
   description?: string;
   checkIns: string[]; 
   cheers?: number;
   isShared: boolean;
+  sharedWithIds?: string[];
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface FriendConnection {
@@ -21,6 +25,18 @@ export interface FriendConnection {
   requesterId: string;
   receiverId: string;
   status: 'Pending' | 'Accepted';
+}
+
+export interface HabitFriendRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  requesterEmail: string;
+  receiverId: string;
+  receiverName: string;
+  receiverEmail: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: string;
 }
 
 export type KRAStatus = 'On Track' | 'At Risk' | 'Completed' | 'Pending';
