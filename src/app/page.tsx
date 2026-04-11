@@ -205,47 +205,100 @@ export default function Dashboard() {
     setIsDashboardLoading(true);
 
     try {
-      // First load groups to get user's group IDs
+      // First load groups to get user's group IDs. If group support is not available yet,
+      // continue without group sharing instead of failing the whole dashboard.
+      let userGroups: Array<{ id: string }> = [];
       const groupsResult = await supabase
         .from('habit_groups')
         .select('*')
         .or(`created_by.eq.${user.id},member_ids.cs.{${user.id}}`)
         .order('created_at', { ascending: false });
 
-      if (groupsResult.error) throw groupsResult.error;
-      const userGroups = groupsResult.data || [];
-      const userGroupIds = userGroups.map(g => g.id);
+      if (!groupsResult.error) {
+        userGroups = groupsResult.data || [];
+      } else {
+        console.warn('Could not load habit groups, continuing without group sharing:', groupsResult.error);
+      }
 
-      const [
-        myHabitsResult,
-        sharedHabitsResult,
-        groupSharedHabitsResult,
-        myGratitudeResult,
-        sharedGratitudeResult,
-        groupSharedGratitudeResult,
-        incomingResult,
-        outgoingResult,
-        acceptedSentResult,
-        acceptedReceivedResult,
-      ] = await Promise.all([
-        supabase.from('habit_share_habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('habit_share_habits').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true),
-        userGroupIds.length > 0 ? supabase.from('habit_share_habits').select('*').overlaps('shared_with_groups', userGroupIds).eq('is_shared', true) : Promise.resolve({ data: [], error: null }),
-        supabase.from('habit_gratitude_entries').select('*').eq('user_id', user.id).order('entry_date', { ascending: false }),
-        supabase.from('habit_gratitude_entries').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true).order('entry_date', { ascending: false }),
-        userGroupIds.length > 0 ? supabase.from('habit_gratitude_entries').select('*').overlaps('shared_with_groups', userGroupIds).eq('is_shared', true).order('entry_date', { ascending: false }) : Promise.resolve({ data: [], error: null }),
-        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
-        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
-        supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
-        supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
-      ]);
+      const userGroupIds = userGroups.map((g) => g.id);
+
+      const myHabitsResult = await supabase
+        .from('habit_share_habits')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      const sharedHabitsResult = await supabase
+        .from('habit_share_habits')
+        .select('*')
+        .contains('shared_with_ids', [user.id])
+        .eq('is_shared', true);
+
+      const groupSharedHabitsResult = userGroupIds.length > 0
+        ? await supabase
+            .from('habit_share_habits')
+            .select('*')
+            .overlaps('shared_with_groups', userGroupIds)
+            .eq('is_shared', true)
+        : { data: [], error: null };
+      if (groupSharedHabitsResult.error) {
+        console.warn('Could not load group-shared habits, skipping group shares:', groupSharedHabitsResult.error);
+      }
+
+      const myGratitudeResult = await supabase
+        .from('habit_gratitude_entries')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('entry_date', { ascending: false });
+      const sharedGratitudeResult = await supabase
+        .from('habit_gratitude_entries')
+        .select('*')
+        .contains('shared_with_ids', [user.id])
+        .eq('is_shared', true)
+        .order('entry_date', { ascending: false });
+
+      const groupSharedGratitudeResult = userGroupIds.length > 0
+        ? await supabase
+            .from('habit_gratitude_entries')
+            .select('*')
+            .overlaps('shared_with_groups', userGroupIds)
+            .eq('is_shared', true)
+            .order('entry_date', { ascending: false })
+        : { data: [], error: null };
+      if (groupSharedGratitudeResult.error) {
+        console.warn('Could not load group-shared gratitude, skipping group shares:', groupSharedGratitudeResult.error);
+      }
+
+      const incomingResult = await supabase
+        .from('habit_friend_requests')
+        .select('*')
+        .eq('receiver_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      const outgoingResult = await supabase
+        .from('habit_friend_requests')
+        .select('*')
+        .eq('requester_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+      const acceptedSentResult = await supabase
+        .from('habit_friend_requests')
+        .select('*')
+        .eq('requester_id', user.id)
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false });
+      const acceptedReceivedResult = await supabase
+        .from('habit_friend_requests')
+        .select('*')
+        .eq('receiver_id', user.id)
+        .eq('status', 'accepted')
+        .order('created_at', { ascending: false });
 
       if (myHabitsResult.error) throw myHabitsResult.error;
       if (sharedHabitsResult.error) throw sharedHabitsResult.error;
-      if (groupSharedHabitsResult.error) throw groupSharedHabitsResult.error;
+      // Group sharing is optional; don't fail whole dashboard if this table/column is not ready yet.
       if (myGratitudeResult.error) throw myGratitudeResult.error;
       if (sharedGratitudeResult.error) throw sharedGratitudeResult.error;
-      if (groupSharedGratitudeResult.error) throw groupSharedGratitudeResult.error;
+      // Group sharing is optional; don't fail whole dashboard if this table/column is not ready yet.
       if (incomingResult.error) throw incomingResult.error;
       if (outgoingResult.error) throw outgoingResult.error;
       if (acceptedSentResult.error) throw acceptedSentResult.error;
@@ -1047,7 +1100,16 @@ export default function Dashboard() {
 
       {/* Groups section */}
       <section className="glass-panel rounded-[30px] p-6">
-        <Groups currentUser={currentUser} friends={friends} />
+        <Groups
+          currentUser={currentUser}
+          friends={friends}
+          habits={[...myHabits, ...friendHabits]}
+          gratitudeEntries={[...myGratitudeEntries, ...friendGratitudeEntries]}
+          currentDate={currentDate}
+          onGroupChanged={loadDashboardData}
+          onCheer={handleCheer}
+          onViewDetails={setSelectedHabitId}
+        />
       </section>
 
       {/* Analytics section moved below */}

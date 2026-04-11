@@ -135,8 +135,6 @@ export function GroupFeed({
                       onViewDetails={onViewDetails}
                       isFriendView={true}
                       currentDate={currentDate}
-                      showMemberName={true}
-                      memberName={member.name}
                     />
                   </div>
                 );
