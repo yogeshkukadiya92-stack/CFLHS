@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { format, subDays, addDays, isSameDay } from 'date-fns';
-import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle, Sparkles, Flame, Target, Trophy, Wand2 } from 'lucide-react';
+import { CheckCircle2, LayoutDashboard, PlusCircle, Users, ChevronLeft, ChevronRight, MessageCircle, Sparkles, Flame, Target, Trophy, Wand2, ArrowRight, Lock, Share2, Rocket, Check, Compass, ShieldCheck, PlayCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,9 +94,11 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = React.useState('habits');
   const [currentDate, setCurrentDate] = React.useState<Date>(new Date());
   const [isAddOpen, setIsAddOpen] = React.useState(false);
+  const [createHabitStep, setCreateHabitStep] = React.useState<0 | 1 | 2>(0);
   const [isShareReportOpen, setIsShareReportOpen] = React.useState(false);
   const [reportRange, setReportRange] = React.useState<ReportRange>('weekly');
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
+  const [isOnboardingDismissed, setIsOnboardingDismissed] = React.useState(false);
   const [newHabitName, setNewHabitName] = React.useState('');
   const [newHabitDesc, setNewHabitDesc] = React.useState('');
   const [isNewShared, setIsNewShared] = React.useState(false);
@@ -115,6 +117,30 @@ export default function Dashboard() {
     { name: 'Deep Focus', description: '25 minutes distraction free' },
     { name: 'Reading Sprint', description: '10 pages before bed' },
   ];
+
+  const onboardingCards = [
+    {
+      title: 'Create your first anchor habit',
+      description: 'Start with one tiny repeatable routine that feels impossible to miss.',
+      icon: Target,
+    },
+    {
+      title: 'Connect one accountability friend',
+      description: 'Invite a trusted person so progress becomes visible and social.',
+      icon: Users,
+    },
+    {
+      title: 'Protect momentum with reports',
+      description: 'Use daily, monthly, and yearly trends to keep the streak real.',
+      icon: ShieldCheck,
+    },
+  ] as const;
+
+  const createHabitSteps = [
+    { title: 'Identity', caption: 'Name the routine' },
+    { title: 'Sharing', caption: 'Choose accountability' },
+    { title: 'Review', caption: 'Launch your streak' },
+  ] as const;
 
   const loadDashboardData = React.useCallback(async () => {
     if (!user) {
@@ -181,6 +207,13 @@ export default function Dashboard() {
       loadDashboardData();
     }
   }, [authLoading, loadDashboardData]);
+
+  React.useEffect(() => {
+    const stored = window.localStorage.getItem('habitshare:onboarding-dismissed');
+    if (stored === 'true') {
+      setIsOnboardingDismissed(true);
+    }
+  }, []);
 
   const friends = React.useMemo(() => {
     const allAccepted = [...acceptedSent, ...acceptedReceived];
@@ -343,6 +376,52 @@ export default function Dashboard() {
     setSharedWithIds((prev) => (prev.includes(friendId) ? prev.filter((id) => id !== friendId) : [...prev, friendId]));
   };
 
+  const resetCreateHabitFlow = React.useCallback(() => {
+    setCreateHabitStep(0);
+    setNewHabitName('');
+    setNewHabitDesc('');
+    setIsNewShared(false);
+    setSharedWithIds([]);
+  }, []);
+
+  const closeCreateHabitDialog = React.useCallback((open: boolean) => {
+    setIsAddOpen(open);
+    if (!open) {
+      resetCreateHabitFlow();
+    }
+  }, [resetCreateHabitFlow]);
+
+  const openCreateHabitDialog = React.useCallback((template?: { name: string; description: string }) => {
+    if (template) {
+      setNewHabitName(template.name);
+      setNewHabitDesc(template.description);
+      setCreateHabitStep(1);
+    } else {
+      setCreateHabitStep(0);
+      setNewHabitName('');
+      setNewHabitDesc('');
+      setIsNewShared(false);
+      setSharedWithIds([]);
+    }
+    setIsAddOpen(true);
+  }, []);
+
+  const handleCreateNext = () => {
+    if (createHabitStep === 0 && !newHabitName.trim()) {
+      toast({
+        title: 'Name your habit',
+        description: 'Give this routine a clear name so we can build the plan around it.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setCreateHabitStep((prev) => Math.min(prev + 1, 2) as 0 | 1 | 2);
+  };
+
+  const handleCreateBack = () => {
+    setCreateHabitStep((prev) => Math.max(prev - 1, 0) as 0 | 1 | 2);
+  };
+
   const saveHabit = async () => {
     if (!user || !newHabitName.trim()) {
       toast({
@@ -382,11 +461,7 @@ export default function Dashboard() {
       const { error } = await supabase.from('habit_share_habits').insert(habitDoc);
       if (error) throw error;
 
-      setNewHabitName('');
-      setNewHabitDesc('');
-      setIsNewShared(false);
-      setSharedWithIds([]);
-      setIsAddOpen(false);
+      closeCreateHabitDialog(false);
       toast({
         title: 'Habit Added',
         description: shouldShare ? 'Your habit has been saved and shared with friends.' : 'Your habit has been saved.',
@@ -432,6 +507,14 @@ export default function Dashboard() {
   const totalCheckIns = myHabits.reduce((sum, habit) => sum + habit.checkIns.length, 0);
   const longestStreak = myHabits.reduce((best, habit) => Math.max(best, habit.checkIns.length), 0);
   const sharedCount = myHabits.filter((habit) => habit.isShared).length;
+  const selectedShareFriends = friends.filter((friend) => sharedWithIds.includes(friend.id));
+  const shouldShowOnboarding =
+    !isOnboardingDismissed &&
+    !isDashboardLoading &&
+    myHabits.length === 0 &&
+    friends.length === 0 &&
+    incomingRequests.length === 0 &&
+    outgoingRequests.length === 0;
 
   React.useEffect(() => {
     if (user) {
@@ -515,11 +598,7 @@ export default function Dashboard() {
               <button
                 key={template.name}
                 type="button"
-                onClick={() => {
-                  setNewHabitName(template.name);
-                  setNewHabitDesc(template.description);
-                  setIsAddOpen(true);
-                }}
+                onClick={() => openCreateHabitDialog(template)}
                 className="rounded-[24px] border border-white/70 bg-white/85 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="text-sm font-black text-slate-900">{template.name}</div>
@@ -535,12 +614,66 @@ export default function Dashboard() {
           <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
             High-growth users keep one minimum version for every routine. On low-energy days, do that version and keep the chain alive.
           </p>
-          <Button onClick={() => setIsAddOpen(true)} className="mt-5 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
+          <Button onClick={() => openCreateHabitDialog()} className="mt-5 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
             <PlusCircle className="mr-2 h-4 w-4" />
             Start a fresh habit
           </Button>
         </div>
       </section>
+
+      {shouldShowOnboarding ? (
+        <section className="glass-panel relative overflow-hidden rounded-[32px] p-5 sm:p-6">
+          <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.14),transparent_60%)]" />
+          <div className="relative flex flex-col gap-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="max-w-2xl">
+                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                  <Compass className="h-3.5 w-3.5" />
+                  First-time onboarding
+                </div>
+                <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">Let&apos;s turn this into a habit system you&apos;ll actually keep.</h2>
+                <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-slate-500">
+                  You&apos;re one guided setup away from a premium accountability flow. Start with a tiny anchor routine, then layer in friends and reports as the streak grows.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl px-5 font-black shadow-xl shadow-primary/20">
+                  <PlayCircle className="mr-2 h-4 w-4" />
+                  Start onboarding
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setIsOnboardingDismissed(true);
+                    window.localStorage.setItem('habitshare:onboarding-dismissed', 'true');
+                  }}
+                  className="h-12 rounded-2xl font-black text-slate-500"
+                >
+                  Skip for now
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-3">
+              {onboardingCards.map((card, index) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.title} className="rounded-[26px] border border-white/80 bg-white/80 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-md">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-300">0{index + 1}</div>
+                    </div>
+                    <h3 className="mt-5 text-lg font-black text-slate-900">{card.title}</h3>
+                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">{card.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
@@ -569,16 +702,16 @@ export default function Dashboard() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-white/70 backdrop-blur-md border border-slate-200/50 p-1.5 rounded-[24px] mb-8 shadow-xl shadow-slate-100/50">
-              <TabsTrigger value="habits" className="rounded-[18px] px-8 py-3 text-sm font-black data-[state=active]:bg-primary data-[state=active]:text-white transition-all">
+            <TabsList className="mb-8 grid h-auto grid-cols-2 gap-2 rounded-[28px] border border-slate-200/60 bg-white/75 p-2 shadow-xl shadow-slate-100/50 backdrop-blur-xl">
+              <TabsTrigger value="habits" className="group rounded-[20px] px-4 py-4 text-sm font-black transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-violet-500 data-[state=active]:text-white data-[state=active]:shadow-[0_18px_40px_-18px_rgba(79,70,229,0.7)]">
                 <LayoutDashboard className="h-4 w-4 mr-2" /> DASHBOARD
               </TabsTrigger>
-              <TabsTrigger value="friends" className="rounded-[18px] px-8 py-3 text-sm font-black data-[state=active]:bg-indigo-500 data-[state=active]:text-white transition-all">
+              <TabsTrigger value="friends" className="group rounded-[20px] px-4 py-4 text-sm font-black transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-500 data-[state=active]:to-sky-500 data-[state=active]:text-white data-[state=active]:shadow-[0_18px_40px_-18px_rgba(59,130,246,0.75)]">
                 <Users className="h-4 w-4 mr-2" /> FRIENDS
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="habits" className="space-y-6">
+            <TabsContent value="habits" className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
                 <div className="flex items-center gap-4">
                   <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active Habits</h2>
@@ -601,6 +734,34 @@ export default function Dashboard() {
                 <div className="rounded-3xl border border-dashed border-slate-200 bg-white/40 p-10 text-center text-slate-500">
                   Loading your Supabase habits...
                 </div>
+              ) : myHabits.length === 0 ? (
+                <div className="rounded-[32px] border border-dashed border-slate-200 bg-white/70 p-6 shadow-sm sm:p-8">
+                  <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="max-w-xl">
+                      <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                        <Rocket className="h-3.5 w-3.5" />
+                        First habit launch
+                      </div>
+                      <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-900">Your dashboard is ready for its first streak.</h3>
+                      <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+                        Start with one routine that feels lightweight enough to repeat daily. We&apos;ll turn it into momentum, analytics, and social accountability.
+                      </p>
+                    </div>
+                    <div className="flex flex-col gap-3 sm:min-w-[240px]">
+                      <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl font-black">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Build first habit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => openCreateHabitDialog(quickTemplates[0])}
+                        className="h-12 rounded-2xl border-slate-200 bg-white/85 font-black"
+                      >
+                        Use starter template
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {myHabits.map((habit) => (
@@ -610,7 +771,7 @@ export default function Dashboard() {
               )}
             </TabsContent>
 
-            <TabsContent value="friends">
+            <TabsContent value="friends" className="animate-in fade-in slide-in-from-bottom-2 duration-500">
               <FriendsFeed
                 friends={friends}
                 friendHabits={friendHabits}
@@ -635,43 +796,273 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md rounded-[40px] border-none shadow-3xl p-8">
-          <DialogTitle className="text-3xl font-black tracking-tight mb-4">Create Habit</DialogTitle>
-          <div className="space-y-6 py-2">
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase text-slate-400 ml-1 tracking-widest">HABIT NAME</Label>
-              <Input value={newHabitName} onChange={(e) => setNewHabitName(e.target.value)} placeholder="e.g. Morning Run" className="h-14 rounded-2xl bg-slate-50 border-none font-bold text-lg" />
-            </div>
-            <div className="space-y-2">
-              <Label className="text-xs font-black uppercase text-slate-400 ml-1 tracking-widest">DESCRIPTION</Label>
-              <Input value={newHabitDesc} onChange={(e) => setNewHabitDesc(e.target.value)} placeholder="Keep it short..." className="h-14 rounded-2xl bg-slate-50 border-none font-medium" />
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <Checkbox id="share-habit" checked={isNewShared} onCheckedChange={(value) => setIsNewShared(Boolean(value))} />
-                <Label htmlFor="share-habit" className="font-semibold">Share this habit with selected friends</Label>
-              </div>
-              {isNewShared ? (
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {friends.length === 0 ? <p className="text-sm text-slate-500">No accepted friends yet.</p> : null}
-                  {friends.map((friend) => (
-                    <div key={friend.id} className="flex items-center gap-3">
-                      <Checkbox id={`friend-${friend.id}`} checked={sharedWithIds.includes(friend.id)} onCheckedChange={() => toggleSharedWithFriend(friend.id)} />
-                      <Label htmlFor={`friend-${friend.id}`} className="font-medium">{friend.name} ({friend.email})</Label>
+      <Dialog open={isAddOpen} onOpenChange={closeCreateHabitDialog}>
+        <DialogContent className="max-w-[96vw] overflow-hidden rounded-[34px] border-none p-0 shadow-[0_30px_120px_rgba(15,23,42,0.25)] sm:max-w-2xl">
+          <div className="relative bg-[linear-gradient(180deg,rgba(244,247,255,0.98),rgba(255,255,255,0.98))]">
+            <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.22),transparent_72%)]" />
+            <div className="relative flex max-h-[90vh] flex-col">
+              <div className="border-b border-white/70 px-5 pb-5 pt-6 sm:px-8">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.3em] text-slate-500">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      Guided builder
                     </div>
-                  ))}
+                    <DialogTitle className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Create Habit</DialogTitle>
+                    <p className="mt-2 max-w-lg text-sm font-medium leading-6 text-slate-500">
+                      Build a habit that feels premium from day one, then decide if it stays private or becomes a shared accountability ritual.
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-white/75 px-4 py-3 shadow-sm">
+                    <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Step</div>
+                    <div className="mt-1 text-lg font-black text-slate-900">{createHabitStep + 1}/3</div>
+                  </div>
                 </div>
-              ) : null}
+
+                <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                  {createHabitSteps.map((step, index) => {
+                    const isActive = createHabitStep === index;
+                    const isDone = createHabitStep > index;
+                    return (
+                      <button
+                        key={step.title}
+                        type="button"
+                        onClick={() => {
+                          if (index <= createHabitStep || newHabitName.trim()) {
+                            setCreateHabitStep(index as 0 | 1 | 2);
+                          }
+                        }}
+                        className={`rounded-[24px] border px-4 py-4 text-left transition-all ${
+                          isActive
+                            ? 'border-primary bg-white shadow-lg shadow-primary/10'
+                            : isDone
+                              ? 'border-emerald-200 bg-emerald-50/80'
+                              : 'border-white/70 bg-white/60'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-black ${isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            {isDone ? <Check className="h-4 w-4" /> : index + 1}
+                          </span>
+                          <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">{step.caption}</span>
+                        </div>
+                        <div className="mt-4 text-base font-black text-slate-900">{step.title}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-8 sm:py-6">
+                {createHabitStep === 0 ? (
+                  <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+                    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                      <div className="space-y-2">
+                        <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Habit name</Label>
+                        <Input
+                          value={newHabitName}
+                          onChange={(e) => setNewHabitName(e.target.value)}
+                          placeholder="Morning walk, reading sprint, deep work..."
+                          className="h-14 rounded-2xl border-white/70 bg-white/85 text-base font-black shadow-sm"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="ml-1 text-xs font-black uppercase tracking-widest text-slate-400">Small promise</Label>
+                        <textarea
+                          value={newHabitDesc}
+                          onChange={(e) => setNewHabitDesc(e.target.value)}
+                          placeholder="Describe the smallest successful version of this habit."
+                          className="min-h-[150px] w-full rounded-[24px] border border-white/70 bg-white/85 px-4 py-4 text-sm font-medium text-slate-700 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-primary focus:ring-2 focus:ring-primary/20"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="rounded-[28px] border border-white/80 bg-slate-950 p-5 text-white shadow-2xl shadow-slate-900/20 animate-in fade-in zoom-in-95 duration-500">
+                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-white/45">Preview</div>
+                      <div className="mt-5 rounded-[24px] bg-white/10 p-5 backdrop-blur">
+                        <div className="text-2xl font-black">{newHabitName.trim() || 'Your next great habit'}</div>
+                        <p className="mt-3 text-sm leading-6 text-white/70">
+                          {newHabitDesc.trim() || 'Keep the first version light, repeatable, and easy to keep alive even on busy days.'}
+                        </p>
+                      </div>
+                      <div className="mt-5 space-y-3 text-sm text-white/70">
+                        <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
+                          <Target className="h-4 w-4 text-violet-300" />
+                          Easy habits scale faster than intense habits.
+                        </div>
+                        <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
+                          <Flame className="h-4 w-4 text-amber-300" />
+                          We&apos;re optimizing for streak stability first.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                {createHabitStep === 1 ? (
+                  <div className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr]">
+                    <div className="rounded-[28px] border border-white/80 bg-white/80 p-5 shadow-sm animate-in fade-in slide-in-from-left-3 duration-500">
+                      <div className="flex items-center gap-3">
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${isNewShared ? 'bg-primary text-white' : 'bg-slate-100 text-slate-500'}`}>
+                          {isNewShared ? <Share2 className="h-5 w-5" /> : <Lock className="h-5 w-5" />}
+                        </div>
+                        <div>
+                          <div className="text-lg font-black text-slate-900">{isNewShared ? 'Shared accountability' : 'Private launch'}</div>
+                          <p className="text-sm font-medium text-slate-500">
+                            {isNewShared ? 'Let friends see progress and cheer you on.' : 'Start privately and share later anytime.'}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-5 rounded-[24px] border border-slate-200/80 bg-slate-50/70 p-4">
+                        <div className="flex items-center gap-3">
+                          <Checkbox id="share-habit" checked={isNewShared} onCheckedChange={(value) => setIsNewShared(Boolean(value))} />
+                          <Label htmlFor="share-habit" className="text-sm font-bold text-slate-800">
+                            Share this habit with selected friends
+                          </Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="animate-in fade-in slide-in-from-right-3 duration-500">
+                      {isNewShared ? (
+                        <div className="rounded-[28px] border border-white/80 bg-white/85 p-5 shadow-sm">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-lg font-black text-slate-900">Choose your circle</div>
+                              <p className="mt-1 text-sm font-medium text-slate-500">Pick the people who should see this streak.</p>
+                            </div>
+                            <div className="rounded-full bg-primary/10 px-3 py-1 text-xs font-black text-primary">
+                              {selectedShareFriends.length} selected
+                            </div>
+                          </div>
+
+                          {friends.length === 0 ? (
+                            <div className="mt-5 rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-6 text-center">
+                              <Users className="mx-auto h-10 w-10 text-slate-300" />
+                              <div className="mt-4 text-base font-black text-slate-900">No accepted friends yet</div>
+                              <p className="mt-2 text-sm font-medium text-slate-500">
+                                You can still save this habit now and connect your accountability circle later from the Friends tab.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                              {friends.map((friend) => {
+                                const selected = sharedWithIds.includes(friend.id);
+                                return (
+                                  <button
+                                    key={friend.id}
+                                    type="button"
+                                    onClick={() => toggleSharedWithFriend(friend.id)}
+                                    className={`rounded-[24px] border p-4 text-left transition-all ${
+                                      selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div>
+                                        <div className="text-sm font-black text-slate-900">{friend.name}</div>
+                                        <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
+                                      </div>
+                                      <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-slate-300 text-transparent'}`}>
+                                        <Check className="h-3.5 w-3.5" />
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="rounded-[28px] border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(241,245,255,0.82))] p-6 shadow-sm">
+                          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white">
+                            <Lock className="h-5 w-5" />
+                          </div>
+                          <h3 className="mt-4 text-xl font-black text-slate-900">Quiet start, strong foundation.</h3>
+                          <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+                            Private habits are perfect when you want to build confidence first. Once it becomes natural, you can share it with friends in one tap.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
+                {createHabitStep === 2 ? (
+                  <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+                    <div className="rounded-[30px] border border-slate-200/80 bg-white/90 p-6 shadow-sm animate-in fade-in slide-in-from-bottom-3 duration-500">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
+                          <Rocket className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Ready to launch</div>
+                          <div className="text-2xl font-black tracking-tight text-slate-950">{newHabitName.trim() || 'Untitled habit'}</div>
+                        </div>
+                      </div>
+                      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-[24px] bg-slate-50 p-4">
+                          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Description</div>
+                          <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+                            {newHabitDesc.trim() || 'No description yet. This habit will still be saved cleanly and can be refined later.'}
+                          </p>
+                        </div>
+                        <div className="rounded-[24px] bg-slate-50 p-4">
+                          <div className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-400">Visibility</div>
+                          <div className="mt-3 text-base font-black text-slate-900">{isNewShared && selectedShareFriends.length > 0 ? 'Shared with friends' : 'Private to you'}</div>
+                          <p className="mt-2 text-sm font-medium text-slate-500">
+                            {isNewShared && selectedShareFriends.length > 0
+                              ? `${selectedShareFriends.length} friend${selectedShareFriends.length > 1 ? 's' : ''} will be able to follow along.`
+                              : 'Only you will see this habit until you decide to share it.'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[30px] bg-slate-950 p-6 text-white shadow-2xl shadow-slate-900/25 animate-in fade-in zoom-in-95 duration-500">
+                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-white/45">Launch checklist</div>
+                      <div className="mt-5 space-y-3">
+                        {[
+                          `Habit is clearly named${newHabitName.trim() ? '' : ' - add a better title if you want a cleaner dashboard.'}`,
+                          newHabitDesc.trim() ? 'Description gives this habit a practical floor.' : 'Description is optional, but adding one helps on low-motivation days.',
+                          isNewShared && selectedShareFriends.length > 0 ? 'Accountability circle selected.' : 'Private mode keeps the first version simple.',
+                        ].map((item) => (
+                          <div key={item} className="flex items-start gap-3 rounded-[22px] bg-white/10 px-4 py-3">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 text-emerald-300" />
+                            <span className="text-sm font-medium leading-6 text-white/75">{item}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+
+              <DialogFooter className="border-t border-white/70 bg-white/80 px-5 py-4 backdrop-blur sm:px-8">
+                <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <Button
+                    variant="ghost"
+                    onClick={createHabitStep === 0 ? () => closeCreateHabitDialog(false) : handleCreateBack}
+                    className="h-12 rounded-2xl font-black text-slate-500"
+                  >
+                    {createHabitStep === 0 ? 'Cancel' : 'Back'}
+                  </Button>
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row">
+                    {createHabitStep < 2 ? (
+                      <Button onClick={handleCreateNext} className="h-12 rounded-2xl px-6 font-black shadow-xl shadow-primary/20">
+                        Continue
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    ) : (
+                      <Button onClick={saveHabit} disabled={isSavingHabit} className="h-12 rounded-2xl px-6 font-black shadow-xl shadow-primary/20 disabled:opacity-70">
+                        {isSavingHabit ? 'Saving...' : 'Launch habit'}
+                        {!isSavingHabit ? <Rocket className="ml-2 h-4 w-4" /> : null}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </DialogFooter>
             </div>
           </div>
-          <DialogFooter className="mt-8 flex justify-between gap-4">
-            <Button variant="ghost" onClick={() => setIsAddOpen(false)} className="rounded-2xl h-12 font-black text-slate-400">Cancel</Button>
-            <Button onClick={saveHabit} disabled={isSavingHabit} className="rounded-2xl h-12 bg-primary font-black px-10 shadow-xl shadow-primary/20 disabled:opacity-70">
-              {isSavingHabit ? 'SAVING...' : 'SAVE HABIT'}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 

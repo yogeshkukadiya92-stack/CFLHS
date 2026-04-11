@@ -6,7 +6,7 @@ import { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { UserPlus, Users, Search, QrCode, ScanLine, ChevronDown, CheckCircle2, Clock3, XCircle } from 'lucide-react';
+import { UserPlus, Users, Search, QrCode, ScanLine, ChevronDown, CheckCircle2, Clock3, ArrowUpRight } from 'lucide-react';
 import { HabitCard } from './habit-card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import dynamic from 'next/dynamic';
@@ -152,10 +152,24 @@ export function FriendsFeed({
         <h3 className="text-lg font-black text-slate-800 px-1 border-b pb-2">Friends' Shared Habits</h3>
 
         {uniqueFriends.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-400 bg-white/40 rounded-2xl border border-dashed border-slate-300">
-            <Users className="h-12 w-12 opacity-20 mb-3" />
-            <p className="text-sm font-medium">No accepted friends yet.</p>
-            <p className="text-xs">Send request and ask friend to accept.</p>
+          <div className="overflow-hidden rounded-[28px] border border-dashed border-slate-300 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(238,242,255,0.82))] p-6 shadow-sm">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="max-w-md">
+                <div className="inline-flex items-center gap-2 rounded-full bg-indigo-100 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-indigo-700">
+                  <Users className="h-3.5 w-3.5" />
+                  Accountability circle
+                </div>
+                <h4 className="mt-4 text-2xl font-black tracking-tight text-slate-900">Add your first friend and make progress visible.</h4>
+                <p className="mt-3 text-sm font-medium leading-6 text-slate-500">
+                  Invite by email, share your QR, or scan theirs. Once accepted, habits become a social feed instead of a solo to-do list.
+                </p>
+              </div>
+              <div className="grid gap-3 sm:min-w-[240px]">
+                <div className="rounded-[22px] bg-white/90 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">Send an email invite</div>
+                <div className="rounded-[22px] bg-white/90 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">Share your personal QR card</div>
+                <div className="rounded-[22px] bg-white/90 px-4 py-3 text-sm font-bold text-slate-700 shadow-sm">Accept requests and unlock shared habits</div>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
@@ -184,7 +198,13 @@ export function FriendsFeed({
                   {isExpanded ? (
                     <div className="mt-3 px-3 pb-3 pt-2 border-t border-slate-100 animate-in slide-in-from-top-4 fade-in duration-300 flex flex-col gap-3">
                       {habits.length === 0 ? (
-                        <div className="text-sm font-medium text-slate-400 italic bg-slate-50 p-6 text-center rounded-2xl border border-slate-100">No shared habits yet.</div>
+                        <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/90 p-6 text-center">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-400 shadow-sm">
+                            <ArrowUpRight className="h-5 w-5" />
+                          </div>
+                          <div className="mt-4 text-sm font-black text-slate-800">No shared habits yet</div>
+                          <p className="mt-2 text-xs font-medium text-slate-500">This friend is connected, but they haven&apos;t shared a streak with you yet.</p>
+                        </div>
                       ) : (
                         <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2">
                           {habits.map((habit) => (
