@@ -33,28 +33,57 @@ Create these tables in Supabase:
 - `user_id` `uuid`
 - `user_name` `text`
 - `user_email` `text`
+- `group_id` `text` (nullable)
+- `group_name` `text` (nullable)
 - `name` `text`
 - `description` `text`
 - `check_ins` `text[]` default `'{}'`
 - `cheers` `integer` default `0`
 - `is_shared` `boolean` default `false`
 - `shared_with_ids` `text[]` default `'{}'`
+- `shared_with_groups` `text[]` default `'{}'`
 - `created_at` `timestamptz` default `now()`
 - `updated_at` `timestamptz` default `now()`
 
-### `habit_friend_requests`
+### `habit_gratitude_entries`
 
 - `id` `text` primary key
-- `requester_id` `uuid`
-- `requester_name` `text`
-- `requester_email` `text`
-- `receiver_id` `uuid`
-- `receiver_name` `text`
-- `receiver_email` `text`
-- `status` `text`
+- `user_id` `uuid`
+- `user_name` `text`
+- `user_email` `text`
+- `group_id` `text` (nullable)
+- `group_name` `text` (nullable)
+- `content` `text`
+- `entry_date` `text`
+- `is_shared` `boolean` default `false`
+- `shared_with_ids` `text[]` default `'{}'`
+- `shared_with_groups` `text[]` default `'{}'`
 - `created_at` `timestamptz` default `now()`
+- `updated_at` `timestamptz` default `now()`
 
-## Notes
+### `habit_groups`
+
+- `id` `text` primary key
+- `name` `text`
+- `description` `text`
+- `created_by` `uuid`
+- `created_by_name` `text`
+- `created_by_email` `text`
+- `member_ids` `text[]` default `'{}'`
+- `member_count` `integer` default `1`
+- `is_public` `boolean` default `false`
+- `created_at` `timestamptz` default `now()`
+- `updated_at` `timestamptz` default `now()`
+
+### `habit_group_members`
+
+- `id` `text` primary key
+- `group_id` `text`
+- `user_id` `uuid`
+- `user_name` `text`
+- `user_email` `text`
+- `role` `text` default `'member'`
+- `joined_at` `timestamptz` default `now()`
 
 - The live habit-share dashboard and auth now read from Supabase.
 - Legacy HR/KRA screens in this repo still contain Firebase-specific code and should be migrated in a second pass before removing Firebase dependencies completely.

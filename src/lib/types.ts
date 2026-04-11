@@ -5,17 +5,44 @@ export interface HabitShareUser {
   avatarUrl: string;
 }
 
+export interface HabitShareGroup {
+  id: string;
+  name: string;
+  description?: string;
+  createdBy: string;
+  createdByName: string;
+  createdByEmail: string;
+  memberIds: string[];
+  memberCount: number;
+  isPublic: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface GroupMember {
+  id: string;
+  groupId: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  role: 'admin' | 'member';
+  joinedAt: string;
+}
+
 export interface HabitShareHabit {
   id: string;
   userId: string;
   userName?: string;
   userEmail?: string;
+  groupId?: string;
+  groupName?: string;
   name: string;
   description?: string;
   checkIns: string[];
   cheers?: number;
   isShared: boolean;
   sharedWithIds?: string[];
+  sharedWithGroups?: string[];
   createdAt: string;
   updatedAt?: string;
 }
@@ -37,10 +64,13 @@ export interface GratitudeEntry {
   userId: string;
   userName?: string;
   userEmail?: string;
+  groupId?: string;
+  groupName?: string;
   content: string;
   entryDate: string;
   isShared: boolean;
   sharedWithIds?: string[];
+  sharedWithGroups?: string[];
   createdAt: string;
   updatedAt?: string;
 }

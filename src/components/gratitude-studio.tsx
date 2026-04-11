@@ -6,7 +6,7 @@ import { CalendarDays, CheckCircle2, HeartHandshake, MessageCircle, NotebookPen,
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { GratitudeEntry, HabitShareUser } from '@/lib/types';
+import type { GratitudeEntry, HabitShareUser, HabitShareGroup } from '@/lib/types';
 import type { ReportRange } from '@/lib/habit-reports';
 import { buildGratitudeReport, buildGratitudeShareText, getGratitudeRangeLabel } from '@/lib/gratitude-reports';
 
@@ -15,14 +15,17 @@ interface GratitudeStudioProps {
   currentDate: Date;
   range: ReportRange;
   friends: HabitShareUser[];
+  groups: HabitShareGroup[];
   draft: string;
   isShared: boolean;
   sharedWithIds: string[];
+  sharedWithGroups: string[];
   isReportOpen: boolean;
   isSaving: boolean;
   onDraftChange: (value: string) => void;
   onToggleShared: (value: boolean) => void;
   onToggleFriend: (friendId: string) => void;
+  onToggleGroup: (groupId: string) => void;
   onToggleReportOpen: () => void;
   onRangeChange: (range: ReportRange) => void;
   onSave: () => Promise<void> | void;
@@ -36,14 +39,17 @@ export function GratitudeStudio({
   currentDate,
   range,
   friends,
+  groups,
   draft,
   isShared,
   sharedWithIds,
+  sharedWithGroups,
   isReportOpen,
   isSaving,
   onDraftChange,
   onToggleShared,
   onToggleFriend,
+  onToggleGroup,
   onToggleReportOpen,
   onRangeChange,
   onSave,
@@ -101,35 +107,66 @@ export function GratitudeStudio({
             <div className="flex items-center gap-3">
               <Checkbox id="share-gratitude" checked={isShared} onCheckedChange={(value) => onToggleShared(Boolean(value))} />
               <label htmlFor="share-gratitude" className="text-sm font-bold text-slate-800">
-                Share this gratitude with selected friends
+                Share this gratitude with selected friends and groups
               </label>
             </div>
 
             {isShared ? (
-              <div className="mt-4 space-y-3">
-                {friends.length === 0 ? (
+              <div className="mt-4 space-y-4">
+                {friends.length === 0 && groups.length === 0 ? (
                   <div className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/80 p-4 text-sm font-medium text-slate-500">
-                    No accepted friends yet. You can still save gratitude privately and share later.
+                    No accepted friends or groups yet. You can still save gratitude privately and share later.
                   </div>
                 ) : (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {friends.map((friend) => {
-                      const selected = sharedWithIds.includes(friend.id);
-                      return (
-                        <button
-                          key={friend.id}
-                          type="button"
-                          onClick={() => onToggleFriend(friend.id)}
-                          className={`rounded-[22px] border p-4 text-left transition-all ${
-                            selected ? 'border-rose-300 bg-rose-50 shadow-md shadow-rose-100' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
-                          }`}
-                        >
-                          <div className="text-sm font-black text-slate-900">{friend.name}</div>
-                          <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <>
+                    {friends.length > 0 && (
+                      <div>
+                        <div className="text-sm font-bold text-slate-700 mb-3">Share with friends</div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {friends.map((friend) => {
+                            const selected = sharedWithIds.includes(friend.id);
+                            return (
+                              <button
+                                key={friend.id}
+                                type="button"
+                                onClick={() => onToggleFriend(friend.id)}
+                                className={`rounded-[22px] border p-4 text-left transition-all ${
+                                  selected ? 'border-rose-300 bg-rose-50 shadow-md shadow-rose-100' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="text-sm font-black text-slate-900">{friend.name}</div>
+                                <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {groups.length > 0 && (
+                      <div>
+                        <div className="text-sm font-bold text-slate-700 mb-3">Share with groups</div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {groups.map((group) => {
+                            const selected = sharedWithGroups.includes(group.id);
+                            return (
+                              <button
+                                key={group.id}
+                                type="button"
+                                onClick={() => onToggleGroup(group.id)}
+                                className={`rounded-[22px] border p-4 text-left transition-all ${
+                                  selected ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                                }`}
+                              >
+                                <div className="text-sm font-black text-slate-900">{group.name}</div>
+                                <div className="mt-1 text-xs font-medium text-slate-500">{group.memberCount} members</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ) : null}

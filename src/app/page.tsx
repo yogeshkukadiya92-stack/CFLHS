@@ -18,12 +18,13 @@ import { HabitAnalytics } from '@/components/habit-analytics';
 import { MoodTracker } from '@/components/mood-tracker';
 import { GratitudeStudio } from '@/components/gratitude-studio';
 import { GratitudeFeed } from '@/components/gratitude-feed';
+import { Groups } from '@/components/groups';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { buildShareReportText, type ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
 import { buildGratitudeShareText } from '@/lib/gratitude-reports';
-import type { GratitudeEntry, HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
+import type { GratitudeEntry, HabitFriendRequest, HabitShareHabit, HabitShareUser, HabitShareGroup } from '@/lib/types';
 
 type HabitRow = {
   id: string;
@@ -84,6 +85,7 @@ function mapHabit(row: HabitRow): HabitShareHabit {
     cheers: row.cheers || 0,
     isShared: Boolean(row.is_shared),
     sharedWithIds: row.shared_with_ids || [],
+    sharedWithGroups: row.shared_with_groups || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -113,6 +115,7 @@ function mapGratitude(row: GratitudeRow): GratitudeEntry {
     entryDate: row.entry_date,
     isShared: Boolean(row.is_shared),
     sharedWithIds: row.shared_with_ids || [],
+    sharedWithGroups: row.shared_with_groups || [],
     createdAt: row.created_at,
     updatedAt: row.updated_at || row.created_at,
   };
@@ -133,11 +136,13 @@ export default function Dashboard() {
   const [newHabitDesc, setNewHabitDesc] = React.useState('');
   const [isNewShared, setIsNewShared] = React.useState(false);
   const [sharedWithIds, setSharedWithIds] = React.useState<string[]>([]);
+  const [sharedWithGroups, setSharedWithGroups] = React.useState<string[]>([]);
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
   const [gratitudeDraft, setGratitudeDraft] = React.useState('');
   const [gratitudeRange, setGratitudeRange] = React.useState<ReportRange>('weekly');
   const [isGratitudeShared, setIsGratitudeShared] = React.useState(false);
   const [gratitudeSharedWithIds, setGratitudeSharedWithIds] = React.useState<string[]>([]);
+  const [gratitudeSharedWithGroups, setGratitudeSharedWithGroups] = React.useState<string[]>([]);
   const [isGratitudeReportOpen, setIsGratitudeReportOpen] = React.useState(false);
   const [isSavingGratitude, setIsSavingGratitude] = React.useState(false);
   const [isDashboardLoading, setIsDashboardLoading] = React.useState(true);
@@ -147,6 +152,7 @@ export default function Dashboard() {
   const [friendGratitudeEntries, setFriendGratitudeEntries] = React.useState<GratitudeEntry[]>([]);
   const [incomingRequests, setIncomingRequests] = React.useState<HabitFriendRequest[]>([]);
   const [outgoingRequests, setOutgoingRequests] = React.useState<HabitFriendRequest[]>([]);
+  const [groups, setGroups] = React.useState<HabitShareGroup[]>([]);
   const [acceptedSent, setAcceptedSent] = React.useState<HabitFriendRequest[]>([]);
   const [acceptedReceived, setAcceptedReceived] = React.useState<HabitFriendRequest[]>([]);
 
@@ -197,11 +203,24 @@ export default function Dashboard() {
     setIsDashboardLoading(true);
 
     try {
+      // First load groups to get user's group IDs
+      const groupsResult = await supabase
+        .from('habit_groups')
+        .select('*')
+        .or(`created_by.eq.${user.id},member_ids.cs.{${user.id}}`)
+        .order('created_at', { ascending: false });
+
+      if (groupsResult.error) throw groupsResult.error;
+      const userGroups = groupsResult.data || [];
+      const userGroupIds = userGroups.map(g => g.id);
+
       const [
         myHabitsResult,
         sharedHabitsResult,
+        groupSharedHabitsResult,
         myGratitudeResult,
         sharedGratitudeResult,
+        groupSharedGratitudeResult,
         incomingResult,
         outgoingResult,
         acceptedSentResult,
@@ -209,8 +228,10 @@ export default function Dashboard() {
       ] = await Promise.all([
         supabase.from('habit_share_habits').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
         supabase.from('habit_share_habits').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true),
+        userGroupIds.length > 0 ? supabase.from('habit_share_habits').select('*').overlaps('shared_with_groups', userGroupIds).eq('is_shared', true) : Promise.resolve({ data: [], error: null }),
         supabase.from('habit_gratitude_entries').select('*').eq('user_id', user.id).order('entry_date', { ascending: false }),
         supabase.from('habit_gratitude_entries').select('*').contains('shared_with_ids', [user.id]).eq('is_shared', true).order('entry_date', { ascending: false }),
+        userGroupIds.length > 0 ? supabase.from('habit_gratitude_entries').select('*').overlaps('shared_with_groups', userGroupIds).eq('is_shared', true).order('entry_date', { ascending: false }) : Promise.resolve({ data: [], error: null }),
         supabase.from('habit_friend_requests').select('*').eq('receiver_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'pending').order('created_at', { ascending: false }),
         supabase.from('habit_friend_requests').select('*').eq('requester_id', user.id).eq('status', 'accepted').order('created_at', { ascending: false }),
@@ -219,29 +240,49 @@ export default function Dashboard() {
 
       if (myHabitsResult.error) throw myHabitsResult.error;
       if (sharedHabitsResult.error) throw sharedHabitsResult.error;
+      if (groupSharedHabitsResult.error) throw groupSharedHabitsResult.error;
       if (myGratitudeResult.error) throw myGratitudeResult.error;
       if (sharedGratitudeResult.error) throw sharedGratitudeResult.error;
+      if (groupSharedGratitudeResult.error) throw groupSharedGratitudeResult.error;
       if (incomingResult.error) throw incomingResult.error;
       if (outgoingResult.error) throw outgoingResult.error;
       if (acceptedSentResult.error) throw acceptedSentResult.error;
       if (acceptedReceivedResult.error) throw acceptedReceivedResult.error;
 
       setMyHabits((myHabitsResult.data || []).map((row) => mapHabit(row as HabitRow)));
-      setFriendHabits(
-        (sharedHabitsResult.data || [])
-          .map((row) => mapHabit(row as HabitRow))
-          .filter((habit) => habit.userId !== user.id),
-      );
+      const friendSharedHabits = (sharedHabitsResult.data || [])
+        .map((row) => mapHabit(row as HabitRow))
+        .filter((habit) => habit.userId !== user.id);
+      const groupSharedHabits = (groupSharedHabitsResult.data || [])
+        .map((row) => mapHabit(row as HabitRow))
+        .filter((habit) => habit.userId !== user.id);
+      setFriendHabits([...friendSharedHabits, ...groupSharedHabits]);
+      
       setMyGratitudeEntries((myGratitudeResult.data || []).map((row) => mapGratitude(row as GratitudeRow)));
-      setFriendGratitudeEntries(
-        (sharedGratitudeResult.data || [])
-          .map((row) => mapGratitude(row as GratitudeRow))
-          .filter((entry) => entry.userId !== user.id),
-      );
+      const friendSharedGratitude = (sharedGratitudeResult.data || [])
+        .map((row) => mapGratitude(row as GratitudeRow))
+        .filter((entry) => entry.userId !== user.id);
+      const groupSharedGratitude = (groupSharedGratitudeResult.data || [])
+        .map((row) => mapGratitude(row as GratitudeRow))
+        .filter((entry) => entry.userId !== user.id);
+      setFriendGratitudeEntries([...friendSharedGratitude, ...groupSharedGratitude]);
       setIncomingRequests((incomingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
       setOutgoingRequests((outgoingResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
       setAcceptedSent((acceptedSentResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
       setAcceptedReceived((acceptedReceivedResult.data || []).map((row) => mapFriendRequest(row as FriendRequestRow)));
+      setGroups((groupsResult.data || []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        createdBy: row.created_by,
+        createdByName: row.created_by_name,
+        createdByEmail: row.created_by_email,
+        memberIds: row.member_ids || [],
+        memberCount: row.member_count || 0,
+        isPublic: row.is_public || false,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      })));
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
       toast({
@@ -432,6 +473,10 @@ export default function Dashboard() {
     setGratitudeSharedWithIds((prev) => (prev.includes(friendId) ? prev.filter((id) => id !== friendId) : [...prev, friendId]));
   };
 
+  const toggleGratitudeGroup = (groupId: string) => {
+    setGratitudeSharedWithGroups((prev) => (prev.includes(groupId) ? prev.filter((id) => id !== groupId) : [...prev, groupId]));
+  };
+
   const resetCreateHabitFlow = React.useCallback(() => {
     setCreateHabitStep(0);
     setNewHabitName('');
@@ -494,7 +539,8 @@ export default function Dashboard() {
       user.email?.split('@')[0] ||
       'User';
     const selectedFriendIds = isNewShared ? sharedWithIds.filter(Boolean) : [];
-    const shouldShare = selectedFriendIds.length > 0;
+    const selectedGroupIds = isNewShared ? sharedWithGroups.filter(Boolean) : [];
+    const shouldShare = selectedFriendIds.length > 0 || selectedGroupIds.length > 0;
 
     setIsSavingHabit(true);
 
@@ -509,6 +555,7 @@ export default function Dashboard() {
         check_ins: [] as string[],
         is_shared: shouldShare,
         shared_with_ids: selectedFriendIds,
+        shared_with_groups: selectedGroupIds,
         cheers: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -611,6 +658,7 @@ export default function Dashboard() {
         user.email?.split('@')[0] ||
         'User';
       const selectedFriendIds = isGratitudeShared ? gratitudeSharedWithIds.filter(Boolean) : [];
+      const selectedGroupIds = isGratitudeShared ? gratitudeSharedWithGroups.filter(Boolean) : [];
       const payload = {
         id: gratitudeEntryForDate?.id || `gratitude_${Date.now()}`,
         user_id: user.id,
@@ -618,8 +666,9 @@ export default function Dashboard() {
         user_email: user.email || '',
         content: gratitudeDraft.trim(),
         entry_date: gratitudeTodayKey,
-        is_shared: selectedFriendIds.length > 0,
+        is_shared: selectedFriendIds.length > 0 || selectedGroupIds.length > 0,
         shared_with_ids: selectedFriendIds,
+        shared_with_groups: selectedGroupIds,
         created_at: gratitudeEntryForDate?.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
@@ -791,14 +840,17 @@ export default function Dashboard() {
               currentDate={currentDate}
               range={gratitudeRange}
               friends={friends}
+              groups={groups}
               draft={gratitudeDraft}
               isShared={isGratitudeShared}
               sharedWithIds={gratitudeSharedWithIds}
+              sharedWithGroups={gratitudeSharedWithGroups}
               isReportOpen={isGratitudeReportOpen}
               isSaving={isSavingGratitude}
               onDraftChange={setGratitudeDraft}
               onToggleShared={setIsGratitudeShared}
               onToggleFriend={toggleGratitudeFriend}
+              onToggleGroup={toggleGratitudeGroup}
               onToggleReportOpen={() => setIsGratitudeReportOpen((open) => !open)}
               onRangeChange={setGratitudeRange}
               onSave={saveGratitude}
@@ -973,6 +1025,11 @@ export default function Dashboard() {
         </div>
       </section>
 
+      {/* Groups section */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <Groups currentUser={currentUser} friends={friends} />
+      </section>
+
       {/* Analytics section moved below */}
       <section className="glass-panel rounded-[30px] p-6">
         <div className="flex items-center justify-between gap-4 mb-6">
@@ -1137,39 +1194,77 @@ export default function Dashboard() {
                             </div>
                           </div>
 
-                          {friends.length === 0 ? (
+                          {friends.length === 0 && groups.length === 0 ? (
                             <div className="mt-5 rounded-[24px] border border-dashed border-slate-200 bg-slate-50/80 p-6 text-center">
                               <Users className="mx-auto h-10 w-10 text-slate-300" />
-                              <div className="mt-4 text-base font-black text-slate-900">No accepted friends yet</div>
+                              <div className="mt-4 text-base font-black text-slate-900">No friends or groups yet</div>
                               <p className="mt-2 text-sm font-medium text-slate-500">
                                 You can still save this habit now and connect your accountability circle later from the Friends tab.
                               </p>
                             </div>
                           ) : (
-                            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                              {friends.map((friend) => {
-                                const selected = sharedWithIds.includes(friend.id);
-                                return (
-                                  <button
-                                    key={friend.id}
-                                    type="button"
-                                    onClick={() => toggleSharedWithFriend(friend.id)}
-                                    className={`rounded-[24px] border p-4 text-left transition-all ${
-                                      selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
-                                    }`}
-                                  >
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div>
-                                        <div className="text-sm font-black text-slate-900">{friend.name}</div>
-                                        <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
-                                      </div>
-                                      <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-slate-300 text-transparent'}`}>
-                                        <Check className="h-3.5 w-3.5" />
-                                      </div>
-                                    </div>
-                                  </button>
-                                );
-                              })}
+                            <div className="mt-5 space-y-4">
+                              {friends.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-bold text-slate-700 mb-3">Share with friends</div>
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    {friends.map((friend) => {
+                                      const selected = sharedWithIds.includes(friend.id);
+                                      return (
+                                        <button
+                                          key={friend.id}
+                                          type="button"
+                                          onClick={() => toggleSharedWithFriend(friend.id)}
+                                          className={`rounded-[24px] border p-4 text-left transition-all ${
+                                            selected ? 'border-primary bg-primary/5 shadow-md shadow-primary/10' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <div className="text-sm font-black text-slate-900">{friend.name}</div>
+                                              <div className="mt-1 text-xs font-medium text-slate-500">{friend.email}</div>
+                                            </div>
+                                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-primary bg-primary text-white' : 'border-slate-300 text-transparent'}`}>
+                                              <Check className="h-3.5 w-3.5" />
+                                            </div>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {groups.length > 0 && (
+                                <div>
+                                  <div className="text-sm font-bold text-slate-700 mb-3">Share with groups</div>
+                                  <div className="grid gap-3 sm:grid-cols-2">
+                                    {groups.map((group) => {
+                                      const selected = sharedWithGroups.includes(group.id);
+                                      return (
+                                        <button
+                                          key={group.id}
+                                          type="button"
+                                          onClick={() => setSharedWithGroups(prev => prev.includes(group.id) ? prev.filter(id => id !== group.id) : [...prev, group.id])}
+                                          className={`rounded-[24px] border p-4 text-left transition-all ${
+                                            selected ? 'border-indigo-500 bg-indigo-50 shadow-md shadow-indigo-100' : 'border-slate-200 bg-slate-50/70 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                              <div className="text-sm font-black text-slate-900">{group.name}</div>
+                                              <div className="mt-1 text-xs font-medium text-slate-500">{group.memberCount} members</div>
+                                            </div>
+                                            <div className={`flex h-6 w-6 items-center justify-center rounded-full border ${selected ? 'border-indigo-500 bg-indigo-500 text-white' : 'border-slate-300 text-transparent'}`}>
+                                              <Check className="h-3.5 w-3.5" />
+                                            </div>
+                                          </div>
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
