@@ -20,9 +20,11 @@ interface HabitCardProps {
   onViewDetails?: (habitId: string) => void;
   isFriendView?: boolean;
   currentDate?: Date;
+  showMemberName?: boolean;
+  memberName?: string;
 }
 
-export function HabitCard({ habit, onToggleCheckIn, onCheer, onViewDetails, isFriendView = false, currentDate = new Date() }: HabitCardProps) {
+export function HabitCard({ habit, onToggleCheckIn, onCheer, onViewDetails, isFriendView = false, currentDate = new Date(), showMemberName = false, memberName }: HabitCardProps) {
   const checkInStrings = React.useMemo(
     () => habit.checkIns.map((checkIn) => (typeof checkIn === 'string' ? checkIn : format(new Date(checkIn), 'yyyy-MM-dd'))),
     [habit.checkIns],
@@ -87,6 +89,9 @@ export function HabitCard({ habit, onToggleCheckIn, onCheer, onViewDetails, isFr
               <CardDescription className="mt-3 line-clamp-2 text-sm font-medium leading-6 text-slate-500">
                 {habit.description}
               </CardDescription>
+            )}
+            {showMemberName && memberName && (
+              <div className="mt-2 text-sm font-semibold text-slate-600">By {memberName}</div>
             )}
           </div>
           <div className="flex shrink-0 items-center gap-2">

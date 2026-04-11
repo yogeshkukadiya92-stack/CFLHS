@@ -9,11 +9,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Users, Plus, Settings, Crown, UserPlus, Search, X } from 'lucide-react';
-import { HabitShareGroup, GroupMember, HabitShareUser } from '@/lib/types';
+import { Employee, HabitShareGroup, GroupMember, HabitShareUser } from '@/lib/types';
 import { supabase } from '@/lib/supabase';
 
 interface GroupsProps {
-  currentUser: HabitShareUser;
+  currentUser?: Employee | null;
   friends: HabitShareUser[];
   onGroupCreated?: (group: HabitShareGroup) => void;
 }
@@ -31,16 +31,20 @@ export function Groups({ currentUser, friends, onGroupCreated }: GroupsProps) {
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
+    if (!currentUser?.id) return;
     loadGroups();
-  }, [currentUser.id]);
+  }, [currentUser?.id]);
 
   const loadGroups = async () => {
+    if (!currentUser?.id) return;
+
     try {
+      const userId = currentUser.id;
       // Load user's groups
       const { data: userGroups, error: groupsError } = await supabase
         .from('habit_groups')
         .select('*')
-        .or(`created_by.eq.${currentUser.id},member_ids.cs.{${currentUser.id}}`);
+        .or(`created_by.eq.${userId},member_ids.cs.{${userId}}`);
 
       if (groupsError) throw groupsError;
 
@@ -65,20 +69,23 @@ export function Groups({ currentUser, friends, onGroupCreated }: GroupsProps) {
   };
 
   const createGroup = async () => {
-    if (!groupName.trim()) return;
+    if (!currentUser?.id || !groupName.trim()) return;
 
+    const currentUserId = currentUser.id;
+    const currentUserName = currentUser.name;
+    const currentUserEmail = currentUser.email || '';
     setLoading(true);
     try {
       const groupId = `group_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const memberIds = [currentUser.id, ...selectedFriends];
+      const memberIds = [currentUserId, ...selectedFriends];
 
       const groupData = {
         id: groupId,
         name: groupName.trim(),
         description: groupDescription.trim(),
-        created_by: currentUser.id,
-        created_by_name: currentUser.name,
-        created_by_email: currentUser.email,
+        created_by: currentUserId,
+        created_by_name: currentUserName,
+        created_by_email: currentUserEmail,
         member_ids: memberIds,
         member_count: memberIds.length,
         is_public: isPublic,
@@ -90,16 +97,15 @@ export function Groups({ currentUser, friends, onGroupCreated }: GroupsProps) {
 
       if (groupError) throw groupError;
 
-      // Add group members
       const memberInserts = memberIds.map(userId => {
         const friend = friends.find(f => f.id === userId);
         return {
           id: `member_${Date.now()}_${userId}`,
           group_id: groupId,
           user_id: userId,
-          user_name: friend?.name || currentUser.name,
-          user_email: friend?.email || currentUser.email,
-          role: userId === currentUser.id ? 'admin' : 'member',
+          user_name: userId === currentUserId ? currentUserName : friend?.name || 'Member',
+          user_email: userId === currentUserId ? currentUserEmail : friend?.email || '',
+          role: userId === currentUserId ? 'admin' : 'member',
         };
       });
 
@@ -119,9 +125,22 @@ export function Groups({ currentUser, friends, onGroupCreated }: GroupsProps) {
       // Reload groups
       await loadGroups();
 
-      // Notify parent
+      const newGroup: HabitShareGroup = {
+        id: groupId,
+        name: groupName.trim(),
+        description: groupDescription.trim(),
+        createdBy: currentUserId,
+        createdByName: currentUserName,
+        createdByEmail: currentUserEmail,
+        memberIds,
+        memberCount: memberIds.length,
+        isPublic,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
       if (onGroupCreated) {
-        onGroupCreated(groupData as HabitShareGroup);
+        onGroupCreated(newGroup);
       }
     } catch (error) {
       console.error('Failed to create group:', error);
@@ -260,7 +279,8 @@ export function Groups({ currentUser, friends, onGroupCreated }: GroupsProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((group) => {
           const members = groupMembers[group.id] || [];
-          const isAdmin = members.find(m => m.userId === currentUser.id)?.role === 'admin';
+          const currentUserId = currentUser?.id;
+          const isAdmin = currentUserId ? members.find(m => m.userId === currentUserId)?.role === 'admin' : false;
 
           return (
             <Card key={group.id} className="creative-card border-none bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(248,250,255,0.84))]">

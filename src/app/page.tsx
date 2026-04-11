@@ -37,6 +37,7 @@ type HabitRow = {
   cheers: number | null;
   is_shared: boolean | null;
   shared_with_ids: string[] | null;
+  shared_with_groups: string[] | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -69,6 +70,7 @@ type GratitudeRow = {
   entry_date: string;
   is_shared: boolean | null;
   shared_with_ids: string[] | null;
+  shared_with_groups: string[] | null;
   created_at: string;
   updated_at: string | null;
 };
@@ -483,6 +485,7 @@ export default function Dashboard() {
     setNewHabitDesc('');
     setIsNewShared(false);
     setSharedWithIds([]);
+    setSharedWithGroups([]);
   }, []);
 
   const closeCreateHabitDialog = React.useCallback((open: boolean) => {
@@ -503,6 +506,7 @@ export default function Dashboard() {
       setNewHabitDesc('');
       setIsNewShared(false);
       setSharedWithIds([]);
+      setSharedWithGroups([]);
     }
     setIsAddOpen(true);
   }, []);
@@ -545,7 +549,7 @@ export default function Dashboard() {
     setIsSavingHabit(true);
 
     try {
-      const habitDoc = {
+      const habitDoc: Record<string, unknown> = {
         id: `habit_${Date.now()}`,
         user_id: user.id,
         user_name: ownerName,
@@ -555,11 +559,13 @@ export default function Dashboard() {
         check_ins: [] as string[],
         is_shared: shouldShare,
         shared_with_ids: selectedFriendIds,
-        shared_with_groups: selectedGroupIds,
         cheers: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      if (selectedGroupIds.length > 0) {
+        habitDoc.shared_with_groups = selectedGroupIds;
+      }
 
       const { error } = await supabase.from('habit_share_habits').insert(habitDoc);
       if (error) throw error;
@@ -574,7 +580,12 @@ export default function Dashboard() {
       console.error('Failed to save habit:', error);
       toast({
         title: 'Save failed',
-        description: error instanceof Error ? error.message : 'We could not save this habit. Please try again.',
+        description:
+          error instanceof Error
+            ? error.message
+            : error && typeof error === 'object'
+            ? JSON.stringify(error)
+            : 'We could not save this habit. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -632,12 +643,14 @@ export default function Dashboard() {
       setGratitudeDraft('');
       setIsGratitudeShared(false);
       setGratitudeSharedWithIds([]);
+      setGratitudeSharedWithGroups([]);
       return;
     }
 
     setGratitudeDraft(gratitudeEntryForDate.content);
     setIsGratitudeShared(gratitudeEntryForDate.isShared);
     setGratitudeSharedWithIds(gratitudeEntryForDate.sharedWithIds || []);
+    setGratitudeSharedWithGroups(gratitudeEntryForDate.sharedWithGroups || []);
   }, [gratitudeEntryForDate]);
 
   const saveGratitude = async () => {
@@ -659,7 +672,7 @@ export default function Dashboard() {
         'User';
       const selectedFriendIds = isGratitudeShared ? gratitudeSharedWithIds.filter(Boolean) : [];
       const selectedGroupIds = isGratitudeShared ? gratitudeSharedWithGroups.filter(Boolean) : [];
-      const payload = {
+      const payload: Record<string, unknown> = {
         id: gratitudeEntryForDate?.id || `gratitude_${Date.now()}`,
         user_id: user.id,
         user_name: ownerName,
@@ -668,10 +681,12 @@ export default function Dashboard() {
         entry_date: gratitudeTodayKey,
         is_shared: selectedFriendIds.length > 0 || selectedGroupIds.length > 0,
         shared_with_ids: selectedFriendIds,
-        shared_with_groups: selectedGroupIds,
         created_at: gratitudeEntryForDate?.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
+      if (selectedGroupIds.length > 0) {
+        payload.shared_with_groups = selectedGroupIds;
+      }
 
       if (gratitudeEntryForDate) {
         const { error } = await supabase.from('habit_gratitude_entries').update(payload).eq('id', gratitudeEntryForDate.id);
@@ -690,7 +705,12 @@ export default function Dashboard() {
       console.error('Failed to save gratitude:', error);
       toast({
         title: 'Save failed',
-        description: error instanceof Error ? error.message : 'We could not save your gratitude right now.',
+        description:
+          error instanceof Error
+            ? error.message
+            : error && typeof error === 'object'
+            ? JSON.stringify(error)
+            : 'We could not save your gratitude right now.',
         variant: 'destructive',
       });
     } finally {

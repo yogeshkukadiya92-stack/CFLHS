@@ -302,23 +302,27 @@ export function FriendsFeed({
                   }}
                   onError={(error) => {
                     console.error('QR Scanner error:', error);
-                    let errorMessage = 'Camera access failed';
+                    const errorMessage =
+                      error && typeof error === 'object' && 'message' in error && typeof (error as any).message === 'string'
+                        ? (error as any).message
+                        : '';
+                    let friendlyMessage = 'Camera access failed';
 
-                    if (error?.message?.includes('Permission denied')) {
-                      errorMessage = 'Camera permission denied. Please allow camera access and try again.';
-                    } else if (error?.message?.includes('NotAllowedError')) {
-                      errorMessage = 'Camera access blocked. Please enable camera permissions in your browser.';
-                    } else if (error?.message?.includes('NotFoundError')) {
-                      errorMessage = 'No camera found on this device.';
-                    } else if (error?.message?.includes('NotReadableError')) {
-                      errorMessage = 'Camera is being used by another application.';
-                    } else if (error?.message?.includes('OverconstrainedError')) {
-                      errorMessage = 'Camera does not support required settings.';
-                    } else if (error?.message?.includes('SecurityError')) {
-                      errorMessage = 'Camera access requires HTTPS. Please use a secure connection.';
+                    if (errorMessage.includes('Permission denied')) {
+                      friendlyMessage = 'Camera permission denied. Please allow camera access and try again.';
+                    } else if (errorMessage.includes('NotAllowedError')) {
+                      friendlyMessage = 'Camera access blocked. Please enable camera permissions in your browser.';
+                    } else if (errorMessage.includes('NotFoundError')) {
+                      friendlyMessage = 'No camera found on this device.';
+                    } else if (errorMessage.includes('NotReadableError')) {
+                      friendlyMessage = 'Camera is being used by another application.';
+                    } else if (errorMessage.includes('OverconstrainedError')) {
+                      friendlyMessage = 'Camera does not support required settings.';
+                    } else if (errorMessage.includes('SecurityError')) {
+                      friendlyMessage = 'Camera access requires HTTPS. Please use a secure connection.';
                     }
 
-                    setScanError(errorMessage);
+                    setScanError(friendlyMessage);
                   }}
                   constraints={{
                     facingMode: 'environment',
