@@ -665,7 +665,7 @@ export default function Dashboard() {
         <div className="absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
         <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-slate-500">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-[11px] font-black tracking-[0.35em] text-slate-500">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Premium habit operating system
             </div>
@@ -680,36 +680,36 @@ export default function Dashboard() {
             <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base">
               Build disciplined routines, stay accountable with friends, and turn your daily consistency into something that feels premium.
             </p>
-            <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-normal">
-              Welcome back, <span className="text-primary font-black uppercase tracking-tight">{currentUser?.name || 'Explorer'}</span>.
+            <p className="mt-3 text-xs font-bold tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-normal">
+              Welcome back, <span className="text-primary font-black tracking-tight">{currentUser?.name || 'Explorer'}</span>.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:min-w-[430px]">
             <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Habits</span>
+                <span className="text-[11px] font-black tracking-[0.3em] text-slate-400">Habits</span>
                 <Target className="h-4 w-4 text-primary" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{myHabits.length}</div>
             </div>
             <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Check-ins</span>
+                <span className="text-[11px] font-black tracking-[0.3em] text-slate-400">Check-ins</span>
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{totalCheckIns}</div>
             </div>
             <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Best streak</span>
+                <span className="text-[11px] font-black tracking-[0.3em] text-slate-400">Best streak</span>
                 <Flame className="h-4 w-4 text-amber-500" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{longestStreak}</div>
             </div>
             <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Shared</span>
+                <span className="text-[11px] font-black tracking-[0.3em] text-slate-400">Shared</span>
                 <Trophy className="h-4 w-4 text-sky-500" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{sharedCount}</div>
