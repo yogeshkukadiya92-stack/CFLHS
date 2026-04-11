@@ -657,15 +657,15 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="relative flex min-h-screen w-full flex-col space-y-6 p-2 animate-in fade-in duration-1000 sm:p-4 lg:space-y-8 lg:p-6">
+    <div className="relative flex min-h-screen w-full flex-col space-y-8 p-4 animate-in fade-in duration-1000 sm:p-6 lg:p-8">
       <div className="hero-orb left-8 top-20 h-32 w-32 bg-violet-300/50" />
       <div className="hero-orb right-20 top-24 h-36 w-36 bg-sky-300/40" />
 
-      <header className="glass-panel relative overflow-hidden rounded-[30px] p-5 sm:p-6">
+      <header className="glass-panel relative overflow-hidden rounded-[30px] p-6">
         <div className="absolute inset-y-0 right-0 w-[34%] bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),transparent_58%)]" />
-        <div className="relative flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
           <div className="max-w-3xl">
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-slate-500">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-slate-950/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-slate-500">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Premium habit operating system
             </div>
@@ -677,37 +677,37 @@ export default function Dashboard() {
                 Habit Share
               </h1>
             </div>
-            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base">
+            <p className="mt-4 max-w-2xl text-sm font-medium leading-6 text-slate-600 sm:text-base">
               Build disciplined routines, stay accountable with friends, and turn your daily consistency into something that feels premium.
             </p>
-            <p className="mt-2 text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-normal">
+            <p className="mt-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500 sm:text-sm sm:tracking-normal">
               Welcome back, <span className="text-primary font-black uppercase tracking-tight">{currentUser?.name || 'Explorer'}</span>.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:min-w-[430px]">
-            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 xl:min-w-[430px]">
+            <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Habits</span>
                 <Target className="h-4 w-4 text-primary" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{myHabits.length}</div>
             </div>
-            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Check-ins</span>
                 <CheckCircle2 className="h-4 w-4 text-emerald-500" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{totalCheckIns}</div>
             </div>
-            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Best streak</span>
                 <Flame className="h-4 w-4 text-amber-500" />
               </div>
               <div className="mt-2 text-2xl font-black text-slate-900">{longestStreak}</div>
             </div>
-            <div className="rounded-[22px] bg-white/80 p-3.5 shadow-sm">
+            <div className="rounded-[22px] bg-white/80 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Shared</span>
                 <Trophy className="h-4 w-4 text-sky-500" />
@@ -718,16 +718,16 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="glass-panel rounded-[30px] p-5">
+      <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="glass-panel rounded-[30px] p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-black text-slate-900">Quick Start Templates</h2>
+              <h2 className="text-xl font-black text-slate-900">Quick start templates</h2>
               <p className="mt-1 text-sm font-medium text-slate-500">Launch a polished routine in one tap and customize it later.</p>
             </div>
             <Wand2 className="h-5 w-5 text-primary" />
           </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
             {quickTemplates.map((template) => (
               <button
                 key={template.name}
@@ -742,13 +742,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="glass-panel rounded-[30px] p-5">
+        <div className="glass-panel rounded-[30px] p-6">
           <div className="text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">Focus prompt</div>
-          <h3 className="mt-3 text-2xl font-black text-slate-900">Protect your streak with a habit that feels too easy to skip.</h3>
-          <p className="mt-3 text-sm font-medium leading-6 text-slate-600">
+          <h3 className="mt-4 text-2xl font-black text-slate-900">Protect your streak with a habit that feels too easy to skip.</h3>
+          <p className="mt-4 text-sm font-medium leading-6 text-slate-600">
             High-growth users keep one minimum version for every routine. On low-energy days, do that version and keep the chain alive.
           </p>
-          <Button onClick={() => openCreateHabitDialog()} className="mt-5 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
+          <Button onClick={() => openCreateHabitDialog()} className="mt-6 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
             <PlusCircle className="mr-2 h-4 w-4" />
             Start a fresh habit
           </Button>
@@ -759,9 +759,9 @@ export default function Dashboard() {
         <div className="lg:col-span-8 space-y-8">
           {/* Habits Section */}
           <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4">
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active Habits</h2>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Active habits</h2>
                 <div className="flex items-center gap-1 bg-white/90 backdrop-blur rounded-2xl p-1.5 border border-slate-200/80 shadow-sm">
                   <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" onClick={() => setCurrentDate(subDays(currentDate, 1))}>
                     <ChevronLeft className="h-4 w-4" />
@@ -773,7 +773,8 @@ export default function Dashboard() {
                 </div>
               </div>
               <Button onClick={() => setIsShareReportOpen(true)} variant="outline" className="rounded-2xl bg-green-50/50 text-green-700 border-green-200/50 font-black h-11">
-                <MessageCircle className="h-4 w-4 mr-2" /> REPORTS
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Reports
               </Button>
             </div>
 
@@ -851,15 +852,15 @@ export default function Dashboard() {
       </div>
 
       {/* Additional sections moved below */}
-      <section className="glass-panel rounded-[30px] border border-white/70 bg-gradient-to-br from-slate-950/5 via-white/70 to-slate-950/10 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <section className="glass-panel rounded-[30px] p-6">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               Premium experience
             </span>
             <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">A premium routine experience, designed to feel luxurious and effortless.</h2>
-            <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-slate-600">
+            <p className="mt-4 max-w-xl text-sm font-medium leading-6 text-slate-600">
               Get fast access to the best habit patterns, rich accountability insights, and a cleaner dashboard that makes progress feel meaningful every day.
             </p>
           </div>
@@ -895,55 +896,52 @@ export default function Dashboard() {
       </section>
 
       {shouldShowOnboarding ? (
-        <section className="glass-panel relative overflow-hidden rounded-[32px] p-5 sm:p-6">
-          <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.14),transparent_60%)]" />
-          <div className="relative flex flex-col gap-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div className="max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
-                  <Compass className="h-3.5 w-3.5" />
-                  First-time onboarding
-                </div>
-                <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">Let&apos;s turn this into a habit system you&apos;ll actually keep.</h2>
-                <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-slate-500">
-                  You&apos;re one guided setup away from a premium accountability flow. Start with a tiny anchor routine, then layer in friends and reports as the streak grows.
-                </p>
+        <section className="glass-panel rounded-[30px] p-6">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.3em] text-primary">
+                <Compass className="h-3.5 w-3.5" />
+                First-time onboarding
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl px-5 font-black shadow-xl shadow-primary/20">
-                  <PlayCircle className="mr-2 h-4 w-4" />
-                  Start onboarding
-                </Button>
-                <Button
-                  variant="ghost"
-                  onClick={() => {
-                    setIsOnboardingDismissed(true);
-                    window.localStorage.setItem('habitshare:onboarding-dismissed', 'true');
-                  }}
-                  className="h-12 rounded-2xl font-black text-slate-500"
-                >
-                  Skip for now
-                </Button>
-              </div>
+              <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950">Let&apos;s turn this into a habit system you&apos;ll actually keep.</h2>
+              <p className="mt-4 max-w-xl text-sm font-medium leading-6 text-slate-500">
+                You&apos;re one guided setup away from a premium accountability flow. Start with a tiny anchor routine, then layer in friends and reports as the streak grows.
+              </p>
             </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl px-5 font-black shadow-xl shadow-primary/20">
+                <PlayCircle className="mr-2 h-4 w-4" />
+                Start onboarding
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setIsOnboardingDismissed(true);
+                  window.localStorage.setItem('habitshare:onboarding-dismissed', 'true');
+                }}
+                className="h-12 rounded-2xl font-black text-slate-500"
+              >
+                Skip for now
+              </Button>
+            </div>
+          </div>
 
-            <div className="grid gap-4 lg:grid-cols-3">
-              {onboardingCards.map((card, index) => {
-                const Icon = card.icon;
-                return (
-                  <div key={card.title} className="rounded-[26px] border border-white/80 bg-white/80 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-md">
-                        <Icon className="h-5 w-5" />
-                      </div>
-                      <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-300">0{index + 1}</div>
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            {onboardingCards.map((card, index) => {
+              const Icon = card.icon;
+              return (
+                <div key={card.title} className="rounded-[26px] border border-white/80 bg-white/80 p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-md">
+                      <Icon className="h-5 w-5" />
                     </div>
-                    <h3 className="mt-5 text-lg font-black text-slate-900">{card.title}</h3>
-                    <p className="mt-2 text-sm font-medium leading-6 text-slate-500">{card.description}</p>
+                    <div className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-300">0{index + 1}</div>
                   </div>
-                );
-              })}
-            </div>
+                  <h3 className="mt-5 text-lg font-black text-slate-900">{card.title}</h3>
+                  <p className="mt-2 text-sm font-medium leading-6 text-slate-500">{card.description}</p>
+                </div>
+              );
+            })}
           </div>
         </section>
       ) : null}
@@ -952,7 +950,7 @@ export default function Dashboard() {
       <section className="glass-panel rounded-[30px] p-6">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Friends & Community</h2>
+            <h2 className="text-2xl font-black text-slate-900">Friends & community</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">Connect with friends and see their progress.</p>
           </div>
           <Users className="h-6 w-6 text-primary" />
@@ -979,7 +977,7 @@ export default function Dashboard() {
       <section className="glass-panel rounded-[30px] p-6">
         <div className="flex items-center justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-2xl font-black text-slate-900">Analytics & Insights</h2>
+            <h2 className="text-2xl font-black text-slate-900">Analytics & insights</h2>
             <p className="mt-1 text-sm font-medium text-slate-500">Deep dive into your habit patterns and progress.</p>
           </div>
           <div className="flex flex-wrap gap-2">

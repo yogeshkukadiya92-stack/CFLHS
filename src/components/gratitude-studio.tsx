@@ -137,7 +137,7 @@ export function GratitudeStudio({
 
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button onClick={onSave} disabled={isSaving} className="h-12 rounded-2xl font-black shadow-xl shadow-rose-200/60">
-              {isSaving ? 'Saving...' : todaysEntry ? 'Update Gratitude' : 'Save Gratitude'}
+              {isSaving ? 'Saving...' : todaysEntry ? 'Update gratitude' : 'Save gratitude'}
               <CheckCircle2 className="ml-2 h-4 w-4" />
             </Button>
             <Button onClick={onShareWhatsApp} variant="outline" className="h-12 rounded-2xl border-rose-200 bg-white/85 font-black text-rose-600">
