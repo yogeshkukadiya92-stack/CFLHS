@@ -718,43 +718,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="glass-panel rounded-[30px] p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-xl font-black text-slate-900">Quick start templates</h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">Launch a polished routine in one tap and customize it later.</p>
-            </div>
-            <Wand2 className="h-5 w-5 text-primary" />
-          </div>
-          <div className="mt-6 grid gap-4 md:grid-cols-3">
-            {quickTemplates.map((template) => (
-              <button
-                key={template.name}
-                type="button"
-                onClick={() => openCreateHabitDialog(template)}
-                className="rounded-[24px] border border-white/70 bg-white/85 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="text-sm font-black text-slate-900">{template.name}</div>
-                <div className="mt-2 text-sm font-medium text-slate-500">{template.description}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="glass-panel rounded-[30px] p-6">
-          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">Focus prompt</div>
-          <h3 className="mt-4 text-2xl font-black text-slate-900">Protect your streak with a habit that feels too easy to skip.</h3>
-          <p className="mt-4 text-sm font-medium leading-6 text-slate-600">
-            High-growth users keep one minimum version for every routine. On low-energy days, do that version and keep the chain alive.
-          </p>
-          <Button onClick={() => openCreateHabitDialog()} className="mt-6 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Start a fresh habit
-          </Button>
-        </div>
-      </section>
-
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
           {/* Habits Section */}
@@ -850,6 +813,43 @@ export default function Dashboard() {
           <Achievements habits={myHabits} />
         </div>
       </div>
+
+      <section className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
+        <div className="glass-panel rounded-[30px] p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Quick start templates</h2>
+              <p className="mt-1 text-sm font-medium text-slate-500">Launch a polished routine in one tap and customize it later.</p>
+            </div>
+            <Wand2 className="h-5 w-5 text-primary" />
+          </div>
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {quickTemplates.map((template) => (
+              <button
+                key={template.name}
+                type="button"
+                onClick={() => openCreateHabitDialog(template)}
+                className="rounded-[24px] border border-white/70 bg-white/85 p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              >
+                <div className="text-sm font-black text-slate-900">{template.name}</div>
+                <div className="mt-2 text-sm font-medium text-slate-500">{template.description}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="glass-panel rounded-[30px] p-6">
+          <div className="text-[11px] font-black uppercase tracking-[0.35em] text-slate-400">Focus prompt</div>
+          <h3 className="mt-4 text-2xl font-black text-slate-900">Protect your streak with a habit that feels too easy to skip.</h3>
+          <p className="mt-4 text-sm font-medium leading-6 text-slate-600">
+            High-growth users keep one minimum version for every routine. On low-energy days, do that version and keep the chain alive.
+          </p>
+          <Button onClick={() => openCreateHabitDialog()} className="mt-6 h-12 rounded-2xl bg-slate-900 px-5 font-black text-white hover:bg-slate-800">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Start a fresh habit
+          </Button>
+        </div>
+      </section>
 
       {/* Additional sections moved below */}
       <section className="glass-panel rounded-[30px] p-6">
