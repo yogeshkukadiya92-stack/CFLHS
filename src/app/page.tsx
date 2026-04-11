@@ -755,6 +755,49 @@ export default function Dashboard() {
         </div>
       </section>
 
+      <section className="glass-panel rounded-[30px] border border-white/70 bg-gradient-to-br from-slate-950/5 via-white/70 to-slate-950/10 p-6 shadow-[0_20px_80px_rgba(15,23,42,0.08)]">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.35em] text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
+              Premium experience
+            </span>
+            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">A premium routine experience, designed to feel luxurious and effortless.</h2>
+            <p className="mt-3 max-w-xl text-sm font-medium leading-6 text-slate-600">
+              Get fast access to the best habit patterns, rich accountability insights, and a cleaner dashboard that makes progress feel meaningful every day.
+            </p>
+          </div>
+          <Button onClick={() => openCreateHabitDialog()} className="h-12 rounded-2xl bg-slate-950 px-6 font-black text-white shadow-xl shadow-slate-950/20 hover:bg-slate-800">
+            <Rocket className="mr-2 h-4 w-4" />
+            Explore premium flow
+          </Button>
+        </div>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          <div className="rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+              <Wand2 className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-lg font-black text-slate-900">Premium habit recipes</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Launch better routines with curated templates and structure that help you win the day.</p>
+          </div>
+          <div className="rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+              <Users className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-lg font-black text-slate-900">Shared streak clubs</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Invite friends and turn accountability into a premium social momentum loop.</p>
+          </div>
+          <div className="rounded-[28px] border border-white/70 bg-white/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-lg font-black text-slate-900">Insights that matter</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-500">Focus on your highest-impact habits with analytics built for consistency, not complexity.</p>
+          </div>
+        </div>
+      </section>
+
       {shouldShowOnboarding ? (
         <section className="glass-panel relative overflow-hidden rounded-[32px] p-5 sm:p-6">
           <div className="absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.14),transparent_60%)]" />
