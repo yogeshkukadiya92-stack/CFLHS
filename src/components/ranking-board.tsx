@@ -151,13 +151,16 @@ export const calculateLeaderboard = (
     row.bonusPoints += longestStreak(checkins) * pointRules.streakBonusMultiplier;
   });
 
-  return Array.from(scoreMap.values())
+  const rows = Array.from(scoreMap.values())
     .map((row) => ({
       ...row,
       totalPoints: row.habitPoints + row.gratitudePoints + row.bonusPoints,
-    }))
-    .filter((row) => row.totalPoints > 0)
-    .sort((a, b) => b.totalPoints - a.totalPoints);
+    }));
+
+  return rows.sort((a, b) => {
+    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+    return a.name.localeCompare(b.name);
+  });
 };
 
 export function RankingBoard({
@@ -189,7 +192,7 @@ export function RankingBoard({
           <div>
             <CardTitle className="flex items-center gap-2 text-xl font-black text-slate-900">
               <Trophy className="h-5 w-5 text-amber-500" />
-              Ranking System
+              Leaderboard
             </CardTitle>
             <CardDescription className="mt-1 text-sm font-medium text-slate-500">
               Points from habit follow + gratitude writing
@@ -225,12 +228,12 @@ export function RankingBoard({
         {leaderboard.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-200 bg-white/80 p-5 text-center">
             <Sparkles className="mx-auto h-8 w-8 text-slate-300" />
-            <p className="mt-3 text-sm font-bold text-slate-700">No ranking data yet</p>
-            <p className="mt-1 text-xs text-slate-500">Complete habits and write gratitude to start earning points.</p>
+            <p className="mt-3 text-sm font-bold text-slate-700">No ranking participants yet</p>
+            <p className="mt-1 text-xs text-slate-500">Invite users to your network and their scores will appear here.</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {leaderboard.slice(0, 10).map((row, index) => {
+            {leaderboard.map((row, index) => {
               const level = getLevel(row.totalPoints);
               const medal =
                 index === 0 ? <Crown className="h-4 w-4 text-amber-500" /> : index === 1 ? <Medal className="h-4 w-4 text-slate-500" /> : index === 2 ? <Award className="h-4 w-4 text-amber-700" /> : <span className="text-xs font-black text-slate-500">#{index + 1}</span>;
