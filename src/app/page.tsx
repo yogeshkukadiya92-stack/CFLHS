@@ -870,6 +870,20 @@ export default function Dashboard() {
         </div>
       </header>
 
+      {/* Groups section moved up for faster access */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <Groups
+          currentUser={currentUser}
+          friends={friends}
+          habits={[...myHabits, ...friendHabits]}
+          gratitudeEntries={[...myGratitudeEntries, ...friendGratitudeEntries]}
+          currentDate={currentDate}
+          onGroupChanged={loadDashboardData}
+          onCheer={handleCheer}
+          onViewDetails={setSelectedHabitId}
+        />
+      </section>
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-8 space-y-8">
           {/* Habits Section */}
@@ -1138,20 +1152,6 @@ export default function Dashboard() {
           />
           <GratitudeFeed entries={friendGratitudeEntries} />
         </div>
-      </section>
-
-      {/* Groups section */}
-      <section className="glass-panel rounded-[30px] p-6">
-        <Groups
-          currentUser={currentUser}
-          friends={friends}
-          habits={[...myHabits, ...friendHabits]}
-          gratitudeEntries={[...myGratitudeEntries, ...friendGratitudeEntries]}
-          currentDate={currentDate}
-          onGroupChanged={loadDashboardData}
-          onCheer={handleCheer}
-          onViewDetails={setSelectedHabitId}
-        />
       </section>
 
       {/* Analytics section moved below */}
