@@ -6,6 +6,7 @@ import { HeartHandshake, MessageCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { GratitudeEntry } from '@/lib/types';
+import { openWhatsAppShare } from '@/lib/whatsapp-share';
 
 interface GratitudeFeedProps {
   entries: GratitudeEntry[];
@@ -48,7 +49,7 @@ export function GratitudeFeed({ entries }: GratitudeFeedProps) {
                     size="sm"
                     onClick={() => {
                       const text = `Gratitude from ${entry.userName || 'a friend'}\n${entry.entryDate}\n\n${entry.content}`;
-                      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+                      openWhatsAppShare(text);
                     }}
                     className="rounded-full text-rose-600"
                   >

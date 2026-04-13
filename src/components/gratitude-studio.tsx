@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { GratitudeEntry, HabitShareUser, HabitShareGroup } from '@/lib/types';
 import type { ReportRange } from '@/lib/habit-reports';
 import { buildGratitudeReport, buildGratitudeShareText, getGratitudeRangeLabel } from '@/lib/gratitude-reports';
+import { openWhatsAppShare } from '@/lib/whatsapp-share';
 
 interface GratitudeStudioProps {
   entries: GratitudeEntry[];
@@ -260,7 +261,7 @@ export function GratitudeStudio({
             variant="outline"
             onClick={() => {
               const reportText = buildGratitudeShareText(entries, currentDate, range);
-              window.open(`https://wa.me/?text=${encodeURIComponent(reportText)}`, '_blank', 'noopener,noreferrer');
+              openWhatsAppShare(reportText);
             }}
             className="h-12 w-full rounded-2xl border-slate-200 bg-white/85 font-black"
           >

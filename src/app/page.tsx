@@ -12,10 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HabitCard } from '@/components/habit-card';
 import { FriendsFeed } from '@/components/friends-feed';
 import { HabitCalendarDialog } from '@/components/habit-calendar-dialog';
-import { AiCoach } from '@/components/ai-coach';
 import { Achievements } from '@/components/achievements';
 import { HabitAnalytics } from '@/components/habit-analytics';
-import { MoodTracker } from '@/components/mood-tracker';
 import { GratitudeStudio } from '@/components/gratitude-studio';
 import { GratitudeFeed } from '@/components/gratitude-feed';
 import { Groups } from '@/components/groups';
@@ -26,6 +24,7 @@ import { useAuth } from '@/components/auth-provider';
 import { supabase } from '@/lib/supabase';
 import { buildShareReportText, type ReportRange, getReportRangeLabel } from '@/lib/habit-reports';
 import { buildGratitudeShareText } from '@/lib/gratitude-reports';
+import { openWhatsAppShare } from '@/lib/whatsapp-share';
 import type { GratitudeEntry, HabitFriendRequest, HabitShareHabit, HabitShareUser, HabitShareGroup } from '@/lib/types';
 
 type HabitRow = {
@@ -662,7 +661,7 @@ export default function Dashboard() {
       // Clipboard access can fail in some browsers or contexts.
     }
 
-    window.open(`https://wa.me/?text=${encodeURIComponent(summaryText)}`, '_blank', 'noopener,noreferrer');
+    openWhatsAppShare(summaryText);
   };
 
   const reportOptions: { key: ReportRange; label: string; description: string }[] = [
@@ -805,7 +804,7 @@ export default function Dashboard() {
     const text = gratitudeDraft.trim()
       ? `Today I'm grateful for:\n${gratitudeDraft.trim()}`
       : buildGratitudeShareText(myGratitudeEntries, currentDate, gratitudeRange);
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+    openWhatsAppShare(text);
   };
 
   return (
@@ -977,20 +976,6 @@ export default function Dashboard() {
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          <MoodTracker />
-          <RankingBoard
-            habits={rankingHabits}
-            gratitudeEntries={rankingGratitude}
-            friends={friends}
-            currentUser={{
-              id: user?.id || '',
-              name: currentUser?.name || user?.email?.split('@')[0] || 'You',
-              email: user?.email || '',
-            }}
-            currentDate={currentDate}
-            onMyPointsChange={handleMyPointsChange}
-          />
-          <AiCoach habit={myHabits[0]} />
           <Achievements habits={myHabits} />
         </div>
       </div>
@@ -1176,6 +1161,27 @@ export default function Dashboard() {
           </div>
         </div>
         <HabitAnalytics habits={myHabits} currentDate={currentDate} range={reportRange} />
+      </section>
+
+      {/* Leaderboard moved to bottom */}
+      <section className="glass-panel rounded-[30px] p-6">
+        <RankingBoard
+          habits={rankingHabits}
+          gratitudeEntries={rankingGratitude}
+          friends={friends}
+          currentUser={{
+            id: user?.id || '',
+            name: currentUser?.name || user?.email?.split('@')[0] || 'You',
+            email: user?.email || '',
+          }}
+          currentDate={currentDate}
+          onMyPointsChange={handleMyPointsChange}
+          friendIds={friends.map((friend) => friend.id)}
+          pendingFriendEmails={[...incomingRequests, ...outgoingRequests].map((request) =>
+            request.requesterId === user?.id ? request.receiverEmail : request.requesterEmail,
+          )}
+          onSendFriendRequest={handleAddFriend}
+        />
       </section>
 
       <Dialog open={isAddOpen} onOpenChange={closeCreateHabitDialog}>

@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { endOfMonth, endOfYear, format, isSameDay, startOfMonth, startOfYear, subDays } from 'date-fns';
-import { Award, Crown, Flame, Medal, Sparkles, Trophy, Maximize2, Star } from 'lucide-react';
+import { Award, Crown, Flame, Medal, Sparkles, Trophy, Maximize2, Star, UserPlus, Clock3 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,6 +21,9 @@ interface RankingBoardProps {
   };
   currentDate: Date;
   onMyPointsChange?: (points: number) => void;
+  friendIds?: string[];
+  pendingFriendEmails?: string[];
+  onSendFriendRequest?: (email: string) => Promise<void> | void;
 }
 
 interface RankRow {
@@ -170,6 +173,9 @@ export function RankingBoard({
   currentUser,
   currentDate,
   onMyPointsChange,
+  friendIds = [],
+  pendingFriendEmails = [],
+  onSendFriendRequest,
 }: RankingBoardProps) {
   const [range, setRange] = React.useState<ReportRange>('weekly');
   const [isExpandedOpen, setIsExpandedOpen] = React.useState(false);
@@ -183,6 +189,20 @@ export function RankingBoard({
     const me = leaderboard.find((row) => row.userId === currentUser.id);
     onMyPointsChange(me?.totalPoints || 0);
   }, [currentUser.id, leaderboard, onMyPointsChange]);
+
+  const pendingSet = React.useMemo(
+    () => new Set(pendingFriendEmails.map((email) => email.toLowerCase())),
+    [pendingFriendEmails],
+  );
+
+  const canSendFriendRequest = (row: RankRow) => {
+    if (row.userId === currentUser.id) return false;
+    if (friendIds.includes(row.userId)) return false;
+    if (!row.email) return false;
+    return !pendingSet.has(row.email.toLowerCase());
+  };
+
+  const compactRows = leaderboard.slice(0, 5);
 
   return (
     <>
@@ -233,7 +253,7 @@ export function RankingBoard({
           </div>
         ) : (
           <div className="space-y-2">
-            {leaderboard.map((row, index) => {
+            {compactRows.map((row, index) => {
               const level = getLevel(row.totalPoints);
               const medal =
                 index === 0 ? <Crown className="h-4 w-4 text-amber-500" /> : index === 1 ? <Medal className="h-4 w-4 text-slate-500" /> : index === 2 ? <Award className="h-4 w-4 text-amber-700" /> : <span className="text-xs font-black text-slate-500">#{index + 1}</span>;
@@ -264,11 +284,45 @@ export function RankingBoard({
                     <span>Bonus {row.bonusPoints}</span>
                     <span className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] ${level.tone}`}>{level.name}</span>
                   </div>
+                  {onSendFriendRequest ? (
+                    <div className="mt-3">
+                      {canSendFriendRequest(row) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8 rounded-full border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-700 hover:bg-sky-100"
+                          onClick={() => onSendFriendRequest(row.email)}
+                        >
+                          <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                          Add friend
+                        </Button>
+                      ) : row.userId !== currentUser.id && friendIds.includes(row.userId) ? (
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                          Friend
+                        </span>
+                      ) : row.userId !== currentUser.id && row.email && pendingSet.has(row.email.toLowerCase()) ? (
+                        <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                          <Clock3 className="mr-1 h-3 w-3" />
+                          Pending
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               );
             })}
           </div>
         )}
+        {leaderboard.length > 5 ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full rounded-2xl border-slate-200 bg-white/90 font-black"
+            onClick={() => setIsExpandedOpen(true)}
+          >
+            Show all ({leaderboard.length})
+          </Button>
+        ) : null}
       </CardContent>
     </Card>
     <Dialog open={isExpandedOpen} onOpenChange={setIsExpandedOpen}>
@@ -301,6 +355,28 @@ export function RankingBoard({
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
+                        {onSendFriendRequest ? (
+                          canSendFriendRequest(row) ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-8 rounded-full border-sky-200 bg-sky-50 px-3 text-xs font-black text-sky-700 hover:bg-sky-100"
+                              onClick={() => onSendFriendRequest(row.email)}
+                            >
+                              <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                              Add friend
+                            </Button>
+                          ) : row.userId !== currentUser.id && friendIds.includes(row.userId) ? (
+                            <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">
+                              Friend
+                            </span>
+                          ) : row.userId !== currentUser.id && row.email && pendingSet.has(row.email.toLowerCase()) ? (
+                            <span className="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-amber-700">
+                              <Clock3 className="mr-1 h-3 w-3" />
+                              Pending
+                            </span>
+                          ) : null
+                        ) : null}
                         <span className={`rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.2em] ${level.tone}`}>{level.name}</span>
                         <div className="text-right">
                           <div className="text-2xl font-black text-primary">{row.totalPoints}</div>
