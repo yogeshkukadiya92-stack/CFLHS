@@ -1,7 +1,7 @@
 'use client';
 import * as React from 'react';
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
-import { Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Target, UserPlus, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -13,6 +13,7 @@ import { HabitCalendarDialog } from '@/components/habit-calendar-dialog';
 import { useAuth } from '@/components/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
+import { openWhatsAppShare } from '@/lib/whatsapp-share';
 import type { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
 
 type HabitRow = { id: string; user_id: string; user_name: string | null; user_email: string | null; name: string; description: string | null; check_ins: string[] | null; cheers: number | null; is_shared: boolean | null; shared_with_ids: string[] | null; created_at: string; updated_at: string | null; };
@@ -83,6 +84,132 @@ export default function Dashboard() {
   const monthDays = eachDayOfInterval({ start: startOfMonth(chartMonth), end: endOfMonth(chartMonth) });
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const doneTodayCount = myHabits.filter((h) => h.checkIns.includes(currentDateStr)).length;
+  const chartShareText = React.useMemo(() => {
+    const datesRow = monthDays.map((d) => format(d, 'dd')).join(' ');
+    const lines = myHabits.map((habit) => {
+      const checkSet = new Set(habit.checkIns);
+      const marks = monthDays.map((d) => (checkSet.has(format(d, 'yyyy-MM-dd')) ? '✅' : '❌')).join(' ');
+      const total = monthDays.filter((d) => checkSet.has(format(d, 'yyyy-MM-dd'))).length;
+      return `${habit.name} (${total}/${monthDays.length}): ${marks}`;
+    });
+    return [
+      `Habit Share - Monthly Habit Chart`,
+      `Month: ${format(chartMonth, 'MMMM yyyy')}`,
+      `Dates: ${datesRow}`,
+      '',
+      ...lines,
+    ].join('\n');
+  }, [chartMonth, monthDays, myHabits]);
+
+  const shareChartAsJpeg = async () => {
+    if (myHabits.length === 0) return;
+    try {
+      const firstColWidth = 220;
+      const dayColWidth = 34;
+      const totalColWidth = 90;
+      const headerHeight = 34;
+      const rowHeight = 30;
+      const topArea = 60;
+      const padding = 16;
+      const width = firstColWidth + monthDays.length * dayColWidth + totalColWidth + padding * 2;
+      const height = topArea + headerHeight + myHabits.length * rowHeight + padding * 2;
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Canvas not supported');
+
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 20px Arial';
+      ctx.fillText('Habit Share - Monthly Habit Chart', padding, 30);
+      ctx.fillStyle = '#475569';
+      ctx.font = 'bold 14px Arial';
+      ctx.fillText(format(chartMonth, 'MMMM yyyy'), padding, 50);
+
+      const drawCell = (x: number, py: number, w: number, h: number, bg: string, text: string, color: string, center = true) => {
+        ctx.fillStyle = bg;
+        ctx.fillRect(x, py, w, h);
+        ctx.strokeStyle = '#d1d5db';
+        ctx.strokeRect(x, py, w, h);
+        ctx.fillStyle = color;
+        ctx.font = 'bold 11px Arial';
+        if (center) {
+          const tw = ctx.measureText(text).width;
+          ctx.fillText(text, x + (w - tw) / 2, py + h / 2 + 4);
+        } else {
+          ctx.fillText(text, x + 8, py + h / 2 + 4);
+        }
+      };
+
+      let y = topArea;
+      const startX = padding;
+      drawCell(startX, y, firstColWidth, headerHeight, '#f1f5f9', 'Habit', '#334155', false);
+      monthDays.forEach((d, i) =>
+        drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, headerHeight, '#f8fafc', format(d, 'd'), '#64748b'),
+      );
+      drawCell(startX + firstColWidth + monthDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
+      y += headerHeight;
+
+      myHabits.forEach((habit) => {
+        const set = new Set(habit.checkIns);
+        const total = monthDays.filter((d) => set.has(format(d, 'yyyy-MM-dd'))).length;
+        drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
+        monthDays.forEach((d, i) => {
+          const ok = set.has(format(d, 'yyyy-MM-dd'));
+          drawCell(
+            startX + firstColWidth + i * dayColWidth,
+            y,
+            dayColWidth,
+            rowHeight,
+            ok ? '#ecfdf5' : '#fef2f2',
+            ok ? 'Y' : 'N',
+            ok ? '#059669' : '#dc2626',
+          );
+        });
+        drawCell(
+          startX + firstColWidth + monthDays.length * dayColWidth,
+          y,
+          totalColWidth,
+          rowHeight,
+          '#f8fafc',
+          `${total}/${monthDays.length}`,
+          '#0f172a',
+        );
+        y += rowHeight;
+      });
+
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+      if (!blob) throw new Error('Could not export JPEG');
+
+      const fileName = `habit-chart-${format(chartMonth, 'yyyy-MM')}.jpg`;
+      const file = new File([blob], fileName, { type: 'image/jpeg' });
+      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({
+          title: 'Monthly Habit Chart',
+          text: `Habit chart - ${format(chartMonth, 'MMMM yyyy')}`,
+          files: [file],
+        });
+        return;
+      }
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast({ title: 'JPEG downloaded', description: 'Now share this image on WhatsApp.' });
+    } catch (error) {
+      console.error('Failed to share chart as jpeg:', error);
+      toast({ title: 'Share failed', description: 'Could not create JPEG right now.', variant: 'destructive' });
+    }
+  };
 
   const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
     const oldHabit = myHabits.find((h) => h.id === habitId); if (!oldHabit) return;
@@ -163,7 +290,38 @@ export default function Dashboard() {
         </section>
 
         <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-2xl font-black text-slate-900">Monthly Habit Chart</h2><div className="flex items-center gap-2 rounded-2xl border px-2 py-1"><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(subMonths(d, 1)))}><ChevronLeft className="h-4 w-4" /></Button><div className="min-w-[130px] text-center text-sm font-black">{format(chartMonth, 'MMMM yyyy')}</div><Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(addMonths(d, 1)))}><ChevronRight className="h-4 w-4" /></Button></div></div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h2 className="text-2xl font-black text-slate-900">Monthly Habit Chart</h2>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-2xl border px-2 py-1">
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(subMonths(d, 1)))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <div className="min-w-[130px] text-center text-sm font-black">{format(chartMonth, 'MMMM yyyy')}</div>
+                <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(addMonths(d, 1)))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <Button
+                variant="outline"
+                className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50"
+                onClick={() => openWhatsAppShare(chartShareText)}
+                disabled={myHabits.length === 0}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Share Text
+              </Button>
+              <Button
+                variant="outline"
+                className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                onClick={shareChartAsJpeg}
+                disabled={myHabits.length === 0}
+              >
+                <Share2 className="mr-2 h-4 w-4" />
+                Share JPEG
+              </Button>
+            </div>
+          </div>
           {myHabits.length === 0 ? <div className="mt-4 text-sm text-slate-500">Chart appears after habits are created.</div> : <div className="mt-4 overflow-x-auto rounded-2xl border"><table className="min-w-[1000px] border-collapse text-sm"><thead><tr><th className="sticky left-0 z-10 min-w-[220px] border bg-slate-100 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-600">Habit</th>{monthDays.map((d) => <th key={format(d, 'yyyy-MM-dd')} className="min-w-[34px] border bg-slate-50 px-1 py-2 text-center text-[11px] font-black text-slate-500">{format(d, 'd')}</th>)}<th className="min-w-[88px] border bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-700">Total</th></tr></thead><tbody>{myHabits.map((h) => { const set = new Set(h.checkIns); const c = monthDays.filter((d) => set.has(format(d, 'yyyy-MM-dd'))).length; return <tr key={h.id}><td className="sticky left-0 z-10 border bg-white px-3 py-2"><div className="font-semibold">{h.name}</div><div className="text-[11px] text-slate-500">{h.description || 'No description'}</div></td>{monthDays.map((d) => { const k = format(d, 'yyyy-MM-dd'); const ok = set.has(k); return <td key={`${h.id}_${k}`} className={`border px-1 py-1 text-center ${ok ? 'bg-emerald-50' : 'bg-rose-50'}`}>{ok ? <Check className="mx-auto h-3.5 w-3.5 text-emerald-600" /> : <X className="mx-auto h-3.5 w-3.5 text-rose-500" />}</td>; })}<td className="border bg-slate-50 px-2 py-1 text-center font-black text-slate-800">{c}/{monthDays.length}</td></tr>; })}</tbody></table></div>}
         </section>
       </div>
@@ -184,4 +342,3 @@ export default function Dashboard() {
     </main>
   );
 }
-
