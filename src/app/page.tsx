@@ -83,6 +83,9 @@ export default function Dashboard() {
 
   const [currentDate, setCurrentDate] = React.useState(new Date());
   const [chartMonth, setChartMonth] = React.useState(startOfMonth(new Date()));
+  const [chartRange, setChartRange] = React.useState<'weekly' | 'fifteen' | 'monthly' | 'custom'>('monthly');
+  const [customStartDate, setCustomStartDate] = React.useState(format(subDays(new Date(), 6), 'yyyy-MM-dd'));
+  const [customEndDate, setCustomEndDate] = React.useState(format(new Date(), 'yyyy-MM-dd'));
 
   const [myHabits, setMyHabits] = React.useState<HabitShareHabit[]>([]);
   const [friendHabits, setFriendHabits] = React.useState<HabitShareHabit[]>([]);
@@ -161,38 +164,66 @@ export default function Dashboard() {
   if (!user) return <main className="p-6 text-sm text-slate-500">Please login to continue.</main>;
 
   const selectedHabit = selectedHabitId ? [...myHabits, ...friendHabits].find((h) => h.id === selectedHabitId) || null : null;
-  const monthDays = eachDayOfInterval({ start: startOfMonth(chartMonth), end: endOfMonth(chartMonth) });
+  const parsedCustomStart = new Date(`${customStartDate}T00:00:00`);
+  const parsedCustomEnd = new Date(`${customEndDate}T00:00:00`);
+  const isCustomValid = !Number.isNaN(parsedCustomStart.getTime()) && !Number.isNaN(parsedCustomEnd.getTime());
+  const customRangeStart = isCustomValid ? (parsedCustomStart <= parsedCustomEnd ? parsedCustomStart : parsedCustomEnd) : subDays(new Date(), 6);
+  const customRangeEnd = isCustomValid ? (parsedCustomStart <= parsedCustomEnd ? parsedCustomEnd : parsedCustomStart) : new Date();
+
+  const chartStart = chartRange === 'weekly'
+    ? subDays(new Date(), 6)
+    : chartRange === 'fifteen'
+      ? subDays(new Date(), 14)
+      : chartRange === 'monthly'
+        ? startOfMonth(chartMonth)
+        : customRangeStart;
+  const chartEnd = chartRange === 'weekly'
+    ? new Date()
+    : chartRange === 'fifteen'
+      ? new Date()
+      : chartRange === 'monthly'
+        ? endOfMonth(chartMonth)
+        : customRangeEnd;
+  const chartDays = eachDayOfInterval({ start: chartStart, end: chartEnd });
+
+  const chartRangeLabel = chartRange === 'weekly'
+    ? 'Last 7 days'
+    : chartRange === 'fifteen'
+      ? 'Last 15 days'
+      : chartRange === 'monthly'
+        ? format(chartMonth, 'MMMM yyyy')
+        : `${format(customRangeStart, 'dd MMM yyyy')} - ${format(customRangeEnd, 'dd MMM yyyy')}`;
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const ownerName = currentUser?.name || user.email?.split('@')[0] || 'User';
   const doneTodayCount = myHabits.filter((h) => h.checkIns.includes(currentDateStr)).length;
 
   const chartShareText = React.useMemo(() => {
-    const datesRow = monthDays.map((d) => format(d, 'dd')).join(' ');
+    const datesRow = chartDays.map((d) => format(d, 'dd')).join(' ');
     const lines = myHabits.map((habit) => {
       const checkSet = new Set(habit.checkIns);
-      const marks = monthDays
+      const marks = chartDays
         .map((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
           if (dateKey > todayKey) return '-';
           return checkSet.has(dateKey) ? 'YES' : 'NO';
         })
         .join(' ');
-      const total = monthDays.filter((d) => {
+      const total = chartDays.filter((d) => {
         const dateKey = format(d, 'yyyy-MM-dd');
         return dateKey <= todayKey && checkSet.has(dateKey);
       }).length;
-      return `${habit.name} (${total}/${monthDays.length}): ${marks}`;
+      return `${habit.name} (${total}/${chartDays.length}): ${marks}`;
     });
     return [
-      'Habit Share - Monthly Habit Chart',
+      'Habit Share - Habit Chart',
       `User: ${ownerName}`,
-      `Month: ${format(chartMonth, 'MMMM yyyy')}`,
+      `Range: ${chartRangeLabel}`,
       `Dates: ${datesRow}`,
       '',
       ...lines,
     ].join('\n');
-  }, [chartMonth, monthDays, myHabits, ownerName, todayKey]);
+  }, [chartDays, chartRangeLabel, myHabits, ownerName, todayKey]);
 
   const shareChartAsJpeg = async () => {
     if (myHabits.length === 0) return;
@@ -204,7 +235,7 @@ export default function Dashboard() {
       const rowHeight = 30;
       const topArea = 78;
       const padding = 16;
-      const width = firstColWidth + monthDays.length * dayColWidth + totalColWidth + padding * 2;
+      const width = firstColWidth + chartDays.length * dayColWidth + totalColWidth + padding * 2;
       const height = topArea + headerHeight + myHabits.length * rowHeight + padding * 2;
 
       const canvas = document.createElement('canvas');
@@ -218,11 +249,11 @@ export default function Dashboard() {
 
       ctx.fillStyle = '#0f172a';
       ctx.font = 'bold 20px Arial';
-      ctx.fillText('Habit Share - Monthly Habit Chart', padding, 30);
+      ctx.fillText('Habit Share - Habit Chart', padding, 30);
       ctx.fillStyle = '#475569';
       ctx.font = 'bold 14px Arial';
       ctx.fillText(`User: ${ownerName}`, padding, 50);
-      ctx.fillText(`Month: ${format(chartMonth, 'MMMM yyyy')}`, padding, 68);
+      ctx.fillText(`Range: ${chartRangeLabel}`, padding, 68);
 
       const drawCell = (
         x: number,
@@ -251,21 +282,21 @@ export default function Dashboard() {
       let y = topArea;
       const startX = padding;
       drawCell(startX, y, firstColWidth, headerHeight, '#f1f5f9', 'Habit', '#334155', false);
-      monthDays.forEach((d, i) => {
+      chartDays.forEach((d, i) => {
         drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, headerHeight, '#f8fafc', format(d, 'd'), '#64748b');
       });
-      drawCell(startX + firstColWidth + monthDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
+      drawCell(startX + firstColWidth + chartDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
       y += headerHeight;
 
       myHabits.forEach((habit) => {
         const set = new Set(habit.checkIns);
-        const total = monthDays.filter((d) => {
+        const total = chartDays.filter((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
           return dateKey <= todayKey && set.has(dateKey);
         }).length;
 
         drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
-        monthDays.forEach((d, i) => {
+        chartDays.forEach((d, i) => {
           const dateKey = format(d, 'yyyy-MM-dd');
           const isFuture = dateKey > todayKey;
           const ok = set.has(dateKey);
@@ -292,12 +323,12 @@ export default function Dashboard() {
           }
         });
         drawCell(
-          startX + firstColWidth + monthDays.length * dayColWidth,
+          startX + firstColWidth + chartDays.length * dayColWidth,
           y,
           totalColWidth,
           rowHeight,
           '#f8fafc',
-          `${total}/${monthDays.length}`,
+          `${total}/${chartDays.length}`,
           '#0f172a',
         );
         y += rowHeight;
@@ -306,14 +337,14 @@ export default function Dashboard() {
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
       if (!blob) throw new Error('Could not export JPEG');
 
-      const fileName = `habit-chart-${format(chartMonth, 'yyyy-MM')}.jpg`;
+      const fileName = `habit-chart-${chartRange}-${format(new Date(), 'yyyyMMdd')}.jpg`;
       const file = new File([blob], fileName, { type: 'image/jpeg' });
       const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
 
       if (nav.share && nav.canShare?.({ files: [file] })) {
         await nav.share({
-          title: 'Monthly Habit Chart',
-          text: `Habit chart - ${format(chartMonth, 'MMMM yyyy')}`,
+          title: 'Habit Chart',
+          text: `Habit chart - ${chartRangeLabel}`,
           files: [file],
         });
         return;
@@ -585,7 +616,7 @@ export default function Dashboard() {
               ) : myHabits.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-6 text-sm text-slate-500">No habits yet.</div>
               ) : (
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
                   {myHabits.map((h) => (
                     <div key={h.id} className="space-y-2">
                       <HabitCard habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
@@ -608,7 +639,7 @@ export default function Dashboard() {
               {friendHabits.length === 0 ? (
                 <div className="rounded-2xl border border-dashed p-6 text-sm text-slate-500">No shared habits yet.</div>
               ) : (
-                <div className="grid gap-4 lg:grid-cols-2">
+                <div className="space-y-3">
                   {friendHabits.map((h) => (
                     <HabitCard key={h.id} habit={h} isFriendView showMemberName memberName={h.userName || h.userEmail || 'Friend'} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
                   ))}
@@ -620,8 +651,25 @@ export default function Dashboard() {
 
         <section className="rounded-3xl border border-white/70 bg-white/90 p-5 shadow-sm md:p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="text-2xl font-black text-slate-900">Monthly Habit Chart</h2>
+            <h2 className="text-2xl font-black text-slate-900">Habit Chart</h2>
             <div className="flex items-center gap-2">
+              <Button variant={chartRange === 'weekly' ? 'default' : 'outline'} size="sm" className="rounded-xl" onClick={() => setChartRange('weekly')}>
+                Weekly
+              </Button>
+              <Button variant={chartRange === 'fifteen' ? 'default' : 'outline'} size="sm" className="rounded-xl" onClick={() => setChartRange('fifteen')}>
+                15 Days
+              </Button>
+              <Button variant={chartRange === 'monthly' ? 'default' : 'outline'} size="sm" className="rounded-xl" onClick={() => setChartRange('monthly')}>
+                Monthly
+              </Button>
+              <Button variant={chartRange === 'custom' ? 'default' : 'outline'} size="sm" className="rounded-xl" onClick={() => setChartRange('custom')}>
+                Custom
+              </Button>
+            </div>
+          </div>
+
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            {chartRange === 'monthly' ? (
               <div className="flex items-center gap-2 rounded-2xl border px-2 py-1">
                 <Button size="icon" variant="ghost" className="h-9 w-9 rounded-xl" onClick={() => setChartMonth((d) => startOfMonth(subMonths(d, 1)))}>
                   <ChevronLeft className="h-4 w-4" />
@@ -631,6 +679,17 @@ export default function Dashboard() {
                   <ChevronRight className="h-4 w-4" />
                 </Button>
               </div>
+            ) : chartRange === 'custom' ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <Input type="date" value={customStartDate} onChange={(e) => setCustomStartDate(e.target.value)} className="h-10 w-[160px] rounded-xl" />
+                <span className="text-sm text-slate-500">to</span>
+                <Input type="date" value={customEndDate} onChange={(e) => setCustomEndDate(e.target.value)} className="h-10 w-[160px] rounded-xl" />
+              </div>
+            ) : (
+              <div className="text-sm font-bold text-slate-600">{chartRangeLabel}</div>
+            )}
+
+            <div className="flex items-center gap-2">
               <Button variant="outline" className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={shareChartAsJpeg} disabled={myHabits.length === 0}>
                 <Share2 className="mr-2 h-4 w-4" />
                 Share JPEG
@@ -650,7 +709,7 @@ export default function Dashboard() {
                 <thead>
                   <tr>
                     <th className="sticky left-0 z-10 min-w-[220px] border bg-slate-100 px-3 py-2 text-left text-xs font-black uppercase tracking-[0.2em] text-slate-600">Habit</th>
-                    {monthDays.map((d) => (
+                    {chartDays.map((d) => (
                       <th key={format(d, 'yyyy-MM-dd')} className="min-w-[34px] border bg-slate-50 px-1 py-2 text-center text-[11px] font-black text-slate-500">{format(d, 'd')}</th>
                     ))}
                     <th className="min-w-[88px] border bg-slate-100 px-2 py-2 text-center text-xs font-black text-slate-700">Total</th>
@@ -659,7 +718,7 @@ export default function Dashboard() {
                 <tbody>
                   {myHabits.map((h) => {
                     const set = new Set(h.checkIns);
-                    const c = monthDays.filter((d) => {
+                    const c = chartDays.filter((d) => {
                       const key = format(d, 'yyyy-MM-dd');
                       return key <= todayKey && set.has(key);
                     }).length;
@@ -669,7 +728,7 @@ export default function Dashboard() {
                           <div className="font-semibold">{h.name}</div>
                           <div className="text-[11px] text-slate-500">{h.description || 'No description'}</div>
                         </td>
-                        {monthDays.map((d) => {
+                        {chartDays.map((d) => {
                           const k = format(d, 'yyyy-MM-dd');
                           const future = k > todayKey;
                           const ok = set.has(k);
@@ -679,7 +738,7 @@ export default function Dashboard() {
                             </td>
                           );
                         })}
-                        <td className="border bg-slate-50 px-2 py-1 text-center font-black text-slate-800">{c}/{monthDays.length}</td>
+                        <td className="border bg-slate-50 px-2 py-1 text-center font-black text-slate-800">{c}/{chartDays.length}</td>
                       </tr>
                     );
                   })}
