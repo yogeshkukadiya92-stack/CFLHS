@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
-import { BarChart3, Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
+import { BarChart3, Check, ChevronLeft, ChevronRight, GripVertical, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -113,6 +113,28 @@ export default function Dashboard() {
   const [chartPreviewFileName, setChartPreviewFileName] = React.useState('');
   const [chartPreviewBlob, setChartPreviewBlob] = React.useState<Blob | null>(null);
   const [chartPreviewLoading, setChartPreviewLoading] = React.useState(false);
+  const [draggedHabitId, setDraggedHabitId] = React.useState<string | null>(null);
+
+  const habitOrderStorageKey = React.useMemo(() => (user ? `habit-share-order:${user.id}` : ''), [user]);
+  const applySavedHabitOrder = React.useCallback((habits: HabitShareHabit[]) => {
+    if (!habitOrderStorageKey) return habits;
+    try {
+      const raw = localStorage.getItem(habitOrderStorageKey);
+      if (!raw) return habits;
+      const orderedIds = JSON.parse(raw) as string[];
+      if (!Array.isArray(orderedIds) || orderedIds.length === 0) return habits;
+      const byId = new Map(habits.map((habit) => [habit.id, habit] as const));
+      const ordered = orderedIds.map((id) => byId.get(id)).filter((habit): habit is HabitShareHabit => Boolean(habit));
+      const missing = habits.filter((habit) => !orderedIds.includes(habit.id));
+      return [...ordered, ...missing];
+    } catch {
+      return habits;
+    }
+  }, [habitOrderStorageKey]);
+  const persistHabitOrder = React.useCallback((habits: HabitShareHabit[]) => {
+    if (!habitOrderStorageKey) return;
+    localStorage.setItem(habitOrderStorageKey, JSON.stringify(habits.map((habit) => habit.id)));
+  }, [habitOrderStorageKey]);
 
   const loadData = React.useCallback(async () => {
     if (!user) return;
@@ -131,7 +153,7 @@ export default function Dashboard() {
         throw new Error('Load failed');
       }
 
-      setMyHabits((mine.data || []).map((r) => mapHabit(r as HabitRow)));
+      setMyHabits(applySavedHabitOrder((mine.data || []).map((r) => mapHabit(r as HabitRow))));
       setFriendHabits((shared.data || []).map((r) => mapHabit(r as HabitRow)).filter((h) => h.userId !== user.id));
       setIncoming((inc.data || []).map((r) => mapReq(r as FriendRequestRow)));
       setOutgoing((out.data || []).map((r) => mapReq(r as FriendRequestRow)));
@@ -161,7 +183,7 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]);
+  }, [applySavedHabitOrder, toast, user]);
 
   React.useEffect(() => {
     void loadData();
@@ -525,6 +547,21 @@ export default function Dashboard() {
     }
   };
 
+  const reorderHabit = (targetId: string) => {
+    if (!draggedHabitId || draggedHabitId === targetId) return;
+    setMyHabits((previous) => {
+      const fromIndex = previous.findIndex((habit) => habit.id === draggedHabitId);
+      const toIndex = previous.findIndex((habit) => habit.id === targetId);
+      if (fromIndex < 0 || toIndex < 0) return previous;
+      const next = [...previous];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      persistHabitOrder(next);
+      return next;
+    });
+    setDraggedHabitId(null);
+  };
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f3f6ff_0%,#ffffff_100%)] p-4 md:p-6">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -597,14 +634,26 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-3">
                   {myHabits.map((h) => (
-                    <HabitCard
+                    <div
                       key={h.id}
-                      habit={h}
-                      onViewDetails={(id) => setSelectedHabitId(id)}
-                      onEdit={() => openEditHabit(h)}
-                      onDelete={() => deleteHabit(h)}
-                      currentDate={currentDate}
-                    />
+                      className={`flex items-start gap-2 rounded-2xl transition ${draggedHabitId === h.id ? 'opacity-70' : ''}`}
+                      draggable
+                      onDragStart={() => setDraggedHabitId(h.id)}
+                      onDragOver={(event) => event.preventDefault()}
+                      onDrop={() => reorderHabit(h.id)}
+                      onDragEnd={() => setDraggedHabitId(null)}
+                    >
+                      <div className="mt-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400">
+                        <GripVertical className="h-4 w-4" />
+                      </div>
+                      <HabitCard
+                        habit={h}
+                        onViewDetails={(id) => setSelectedHabitId(id)}
+                        onEdit={() => openEditHabit(h)}
+                        onDelete={() => deleteHabit(h)}
+                        currentDate={currentDate}
+                      />
+                    </div>
                   ))}
                 </div>
               )}

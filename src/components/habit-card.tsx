@@ -47,6 +47,7 @@ export function HabitCard({
   }, [habit.checkIns]);
 
   const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(currentDate, 6 - i));
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
   const currentStreak = React.useMemo(() => {
     const dates = new Set(checkInStrings);
     let streak = 0;
@@ -68,6 +69,9 @@ export function HabitCard({
   }, [checkInStrings, currentDate]);
 
   const completionRate = Math.round((checkInStrings.length / Math.max(checkInStrings.length + 2, 5)) * 100);
+  const activeDateStr = format(currentDate, 'yyyy-MM-dd');
+  const activeIsDone = checkInStrings.includes(activeDateStr);
+  const activeIsFuture = activeDateStr > todayKey;
 
   const openCalendar = () => onViewDetails?.(habit.id);
 
@@ -128,6 +132,8 @@ export function HabitCard({
         <div className="flex gap-1.5 overflow-x-auto">
           {last7Days.map((date) => {
             const checked = isCheckedIn(date);
+            const dateKey = format(date, 'yyyy-MM-dd');
+            const isFuture = dateKey > todayKey;
             const label = format(date, 'EE').charAt(0);
             return (
               <button
@@ -138,7 +144,7 @@ export function HabitCard({
                   openCalendar();
                 }}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                  checked ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500'
+                  checked ? 'bg-emerald-500 text-white' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
                 } ${isFriendView ? 'pointer-events-none' : ''}`}
               >
                 {label}
@@ -156,7 +162,9 @@ export function HabitCard({
                 e.stopPropagation();
                 openCalendar();
               }}
-              className="h-9 w-9 rounded-full border border-slate-300 text-slate-500"
+              className={`h-9 w-9 rounded-full border ${
+                activeIsDone ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : activeIsFuture ? 'border-slate-200 bg-white text-slate-400' : 'border-rose-200 bg-rose-50 text-rose-500'
+              }`}
             >
               <CalendarDays className="h-5 w-5" />
             </Button>

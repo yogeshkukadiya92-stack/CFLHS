@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame } from 'lucide-react';
 import { HabitShareHabit } from '@/lib/types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 
 interface HabitCalendarDialogProps {
   habit: HabitShareHabit | null;
@@ -74,11 +74,10 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                    <div key={`empty-${i}`} className="h-10 w-full" />
                  ))}
                  
-                  {daysInMonth.map((day) => {
-                    const dateStr = format(day, 'yyyy-MM-dd');
-                    const isChecked = checkInSet.has(dateStr);
-                    const isCurrentDay = isToday(day);
-                    const isFuture = dateStr > format(new Date(), 'yyyy-MM-dd');
+                   {daysInMonth.map((day) => {
+                     const dateStr = format(day, 'yyyy-MM-dd');
+                     const isChecked = checkInSet.has(dateStr);
+                     const isFuture = dateStr > format(new Date(), 'yyyy-MM-dd');
                     
                     return (
                       <div key={dateStr} className="flex justify-center items-center">
@@ -89,15 +88,15 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                             onToggleCheckIn(habit.id, dateStr);
                           }}
                           disabled={!canEdit || isFuture}
-                          className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
-                            isChecked 
-                            ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
-                            : isCurrentDay 
-                              ? 'bg-indigo-50 text-indigo-600 ring-2 ring-indigo-200'
-                              : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                          } ${!canEdit || isFuture ? 'cursor-default opacity-80' : ''}`}
-                          title={dateStr}
-                        >
+                           className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                             isChecked 
+                             ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
+                             : isFuture
+                               ? 'bg-white text-slate-400 ring-1 ring-slate-200'
+                               : 'bg-rose-100 text-rose-500 hover:bg-rose-200'
+                           } ${!canEdit || isFuture ? 'cursor-default opacity-80' : ''}`}
+                           title={dateStr}
+                         >
                           {format(day, 'd')}
                         </button>
                       </div>
