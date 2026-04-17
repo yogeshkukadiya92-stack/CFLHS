@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { addDays, addMonths, eachDayOfInterval, endOfMonth, format, startOfMonth, subDays, subMonths } from 'date-fns';
-import { BarChart3, Check, ChevronLeft, ChevronRight, LogOut, Pencil, PlusCircle, Share2, Target, Trash2, UserPlus, X } from 'lucide-react';
+import { BarChart3, Check, ChevronLeft, ChevronRight, LogOut, PlusCircle, Share2, Target, UserPlus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog';
@@ -597,23 +597,14 @@ export default function Dashboard() {
               ) : (
                 <div className="space-y-3">
                   {myHabits.map((h) => (
-                    <div key={h.id} className="space-y-2">
-                      <HabitCard habit={h} onToggleCheckIn={toggleHabitCheckIn} onViewDetails={(id) => setSelectedHabitId(id)} currentDate={currentDate} />
-                      <div className="flex gap-2">
-                        <Button variant="outline" size="icon" className="h-8 w-8 rounded-xl" onClick={() => openEditHabit(h)} title="Edit habit">
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50"
-                          onClick={() => deleteHabit(h)}
-                          title="Delete habit"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    </div>
+                    <HabitCard
+                      key={h.id}
+                      habit={h}
+                      onViewDetails={(id) => setSelectedHabitId(id)}
+                      onEdit={() => openEditHabit(h)}
+                      onDelete={() => deleteHabit(h)}
+                      currentDate={currentDate}
+                    />
                   ))}
                 </div>
               )}
