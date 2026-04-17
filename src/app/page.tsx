@@ -106,6 +106,11 @@ export default function Dashboard() {
   const [isSavingHabit, setIsSavingHabit] = React.useState(false);
   const [editingHabitId, setEditingHabitId] = React.useState<string | null>(null);
   const [selectedHabitId, setSelectedHabitId] = React.useState<string | null>(null);
+  const [isChartPreviewOpen, setIsChartPreviewOpen] = React.useState(false);
+  const [chartPreviewUrl, setChartPreviewUrl] = React.useState('');
+  const [chartPreviewFileName, setChartPreviewFileName] = React.useState('');
+  const [chartPreviewBlob, setChartPreviewBlob] = React.useState<Blob | null>(null);
+  const [chartPreviewLoading, setChartPreviewLoading] = React.useState(false);
 
   const loadData = React.useCallback(async () => {
     if (!user) return;
@@ -225,144 +230,142 @@ export default function Dashboard() {
     ].join('\n');
   }, [chartDays, chartRangeLabel, myHabits, ownerName, todayKey]);
 
-  const shareChartAsJpeg = async () => {
-    if (myHabits.length === 0) return;
-    try {
-      const firstColWidth = 220;
-      const dayColWidth = 34;
-      const totalColWidth = 90;
-      const headerHeight = 34;
-      const rowHeight = 30;
-      const topArea = 78;
-      const padding = 16;
-      const width = firstColWidth + chartDays.length * dayColWidth + totalColWidth + padding * 2;
-      const height = topArea + headerHeight + myHabits.length * rowHeight + padding * 2;
+  const buildChartJpeg = async () => {
+    const firstColWidth = 220;
+    const dayColWidth = 34;
+    const totalColWidth = 90;
+    const headerHeight = 34;
+    const rowHeight = 30;
+    const topArea = 78;
+    const padding = 16;
+    const width = firstColWidth + chartDays.length * dayColWidth + totalColWidth + padding * 2;
+    const height = topArea + headerHeight + myHabits.length * rowHeight + padding * 2;
 
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Canvas not supported');
 
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
 
-      ctx.fillStyle = '#0f172a';
-      ctx.font = 'bold 20px Arial';
-      ctx.fillText('Habit Share - Habit Chart', padding, 30);
-      ctx.fillStyle = '#475569';
-      ctx.font = 'bold 14px Arial';
-      ctx.fillText(`User: ${ownerName}`, padding, 50);
-      ctx.fillText(`Range: ${chartRangeLabel}`, padding, 68);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = 'bold 20px Arial';
+    ctx.fillText('Habit Share - Habit Chart', padding, 30);
+    ctx.fillStyle = '#475569';
+    ctx.font = 'bold 14px Arial';
+    ctx.fillText(`User: ${ownerName}`, padding, 50);
+    ctx.fillText(`Range: ${chartRangeLabel}`, padding, 68);
 
-      const drawCell = (
-        x: number,
-        y: number,
-        w: number,
-        h: number,
-        bg: string,
-        text: string,
-        color: string,
-        center = true,
-      ) => {
-        ctx.fillStyle = bg;
-        ctx.fillRect(x, y, w, h);
-        ctx.strokeStyle = '#d1d5db';
-        ctx.strokeRect(x, y, w, h);
-        ctx.fillStyle = color;
-        ctx.font = 'bold 11px Arial';
-        if (center) {
-          const tw = ctx.measureText(text).width;
-          ctx.fillText(text, x + (w - tw) / 2, y + h / 2 + 4);
-        } else {
-          ctx.fillText(text, x + 8, y + h / 2 + 4);
-        }
-      };
-
-      let y = topArea;
-      const startX = padding;
-      drawCell(startX, y, firstColWidth, headerHeight, '#f1f5f9', 'Habit', '#334155', false);
-      chartDays.forEach((d, i) => {
-        drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, headerHeight, '#f8fafc', format(d, 'd'), '#64748b');
-      });
-      drawCell(startX + firstColWidth + chartDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
-      y += headerHeight;
-
-      myHabits.forEach((habit) => {
-        const set = new Set(habit.checkIns);
-        const total = chartDays.filter((d) => {
-          const dateKey = format(d, 'yyyy-MM-dd');
-          return dateKey <= todayKey && set.has(dateKey);
-        }).length;
-
-        drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
-        chartDays.forEach((d, i) => {
-          const dateKey = format(d, 'yyyy-MM-dd');
-          const isFuture = dateKey > todayKey;
-          const ok = set.has(dateKey);
-          if (isFuture) {
-            drawCell(
-              startX + firstColWidth + i * dayColWidth,
-              y,
-              dayColWidth,
-              rowHeight,
-              '#ffffff',
-              '',
-              '#64748b',
-            );
-          } else {
-            drawCell(
-              startX + firstColWidth + i * dayColWidth,
-              y,
-              dayColWidth,
-              rowHeight,
-              ok ? '#ecfdf5' : '#fef2f2',
-              ok ? 'Y' : 'N',
-              ok ? '#059669' : '#dc2626',
-            );
-          }
-        });
-        drawCell(
-          startX + firstColWidth + chartDays.length * dayColWidth,
-          y,
-          totalColWidth,
-          rowHeight,
-          '#f8fafc',
-          `${total}/${chartDays.length}`,
-          '#0f172a',
-        );
-        y += rowHeight;
-      });
-
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
-      if (!blob) throw new Error('Could not export JPEG');
-
-      const fileName = `habit-chart-${chartRange}-${format(new Date(), 'yyyyMMdd')}.jpg`;
-      const file = new File([blob], fileName, { type: 'image/jpeg' });
-      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
-
-      if (nav.share && nav.canShare?.({ files: [file] })) {
-        await nav.share({
-          title: 'Habit Chart',
-          text: `Habit chart - ${chartRangeLabel}`,
-          files: [file],
-        });
-        return;
+    const drawCell = (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      bg: string,
+      text: string,
+      color: string,
+      center = true,
+    ) => {
+      ctx.fillStyle = bg;
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = '#d1d5db';
+      ctx.strokeRect(x, y, w, h);
+      ctx.fillStyle = color;
+      ctx.font = 'bold 11px Arial';
+      if (center) {
+        const tw = ctx.measureText(text).width;
+        ctx.fillText(text, x + (w - tw) / 2, y + h / 2 + 4);
+      } else {
+        ctx.fillText(text, x + 8, y + h / 2 + 4);
       }
+    };
 
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-      toast({ title: 'JPEG downloaded', description: 'Now share this image on WhatsApp.' });
+    let y = topArea;
+    const startX = padding;
+    drawCell(startX, y, firstColWidth, headerHeight, '#f1f5f9', 'Habit', '#334155', false);
+    chartDays.forEach((d, i) => {
+      drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, headerHeight, '#f8fafc', format(d, 'd'), '#64748b');
+    });
+    drawCell(startX + firstColWidth + chartDays.length * dayColWidth, y, totalColWidth, headerHeight, '#f1f5f9', 'Total', '#334155');
+    y += headerHeight;
+
+    myHabits.forEach((habit) => {
+      const set = new Set(habit.checkIns.map((value) => value.slice(0, 10)));
+      const total = chartDays.filter((d) => {
+        const dateKey = format(d, 'yyyy-MM-dd');
+        return dateKey <= todayKey && set.has(dateKey);
+      }).length;
+
+      drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
+      chartDays.forEach((d, i) => {
+        const dateKey = format(d, 'yyyy-MM-dd');
+        const isFuture = dateKey > todayKey;
+        const ok = set.has(dateKey);
+        if (isFuture) {
+          drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, rowHeight, '#ffffff', '', '#64748b');
+        } else {
+          drawCell(
+            startX + firstColWidth + i * dayColWidth,
+            y,
+            dayColWidth,
+            rowHeight,
+            ok ? '#ecfdf5' : '#fef2f2',
+            ok ? 'Y' : 'N',
+            ok ? '#059669' : '#dc2626',
+          );
+        }
+      });
+      drawCell(startX + firstColWidth + chartDays.length * dayColWidth, y, totalColWidth, rowHeight, '#f8fafc', `${total}/${chartDays.length}`, '#0f172a');
+      y += rowHeight;
+    });
+
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.95));
+    if (!blob) throw new Error('Could not export JPEG');
+    const fileName = `habit-chart-${chartRange}-${format(new Date(), 'yyyyMMdd')}.jpg`;
+    const previewUrl = canvas.toDataURL('image/jpeg', 0.95);
+    return { blob, fileName, previewUrl };
+  };
+
+  const openChartPreview = async () => {
+    if (myHabits.length === 0) return;
+    setChartPreviewLoading(true);
+    try {
+      const { blob, fileName, previewUrl } = await buildChartJpeg();
+      setChartPreviewBlob(blob);
+      setChartPreviewFileName(fileName);
+      setChartPreviewUrl(previewUrl);
+      setIsChartPreviewOpen(true);
     } catch (error) {
-      console.error('Failed to share chart as jpeg:', error);
-      toast({ title: 'Share failed', description: 'Could not create JPEG right now.', variant: 'destructive' });
+      console.error('Failed to build chart preview:', error);
+      toast({ title: 'Preview failed', description: 'Could not generate chart preview.', variant: 'destructive' });
+    } finally {
+      setChartPreviewLoading(false);
     }
+  };
+
+  const shareChartPreview = async () => {
+    if (!chartPreviewBlob) return;
+    const file = new File([chartPreviewBlob], chartPreviewFileName || 'habit-chart.jpg', { type: 'image/jpeg' });
+    const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean };
+    if (nav.share && nav.canShare?.({ files: [file] })) {
+      await nav.share({
+        title: 'Habit Chart',
+        text: `Habit chart - ${chartRangeLabel}`,
+        files: [file],
+      });
+      return;
+    }
+    const url = URL.createObjectURL(chartPreviewBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = chartPreviewFileName || `habit-chart-${format(new Date(), 'yyyyMMdd')}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    toast({ title: 'JPEG downloaded', description: 'Now share this image on WhatsApp.' });
   };
 
   const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
@@ -697,9 +700,14 @@ export default function Dashboard() {
             )}
 
             <div className="flex items-center gap-2">
-              <Button variant="outline" className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50" onClick={shareChartAsJpeg} disabled={myHabits.length === 0}>
+              <Button
+                variant="outline"
+                className="rounded-2xl border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+                onClick={openChartPreview}
+                disabled={myHabits.length === 0 || chartPreviewLoading}
+              >
                 <Share2 className="mr-2 h-4 w-4" />
-                Share JPEG
+                {chartPreviewLoading ? 'Preparing...' : 'Share JPEG'}
               </Button>
               <Button variant="outline" className="rounded-2xl border-green-200 text-green-700 hover:bg-green-50" onClick={() => openWhatsAppShare(chartShareText)} disabled={myHabits.length === 0}>
                 <Share2 className="mr-2 h-4 w-4" />
@@ -822,7 +830,46 @@ export default function Dashboard() {
         </DialogContent>
       </Dialog>
 
-      <HabitCalendarDialog habit={selectedHabit} isOpen={Boolean(selectedHabit)} onClose={() => setSelectedHabitId(null)} />
+      <Dialog
+        open={isChartPreviewOpen}
+        onOpenChange={(open) => {
+          setIsChartPreviewOpen(open);
+          if (!open) {
+            setChartPreviewUrl('');
+            setChartPreviewBlob(null);
+            setChartPreviewFileName('');
+          }
+        }}
+      >
+        <DialogContent className="max-w-[95vw] rounded-2xl sm:max-w-3xl">
+          <DialogTitle className="text-xl font-black text-slate-900">Chart Preview</DialogTitle>
+          {chartPreviewUrl ? (
+            <div className="max-h-[70vh] overflow-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+              <img src={chartPreviewUrl} alt="Habit chart preview" className="mx-auto h-auto max-w-full rounded-lg" />
+            </div>
+          ) : (
+            <div className="py-8 text-center text-sm text-slate-500">Preview is not ready.</div>
+          )}
+          <DialogFooter>
+            <div className="flex w-full gap-3">
+              <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setIsChartPreviewOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="flex-1 rounded-xl" onClick={shareChartPreview} disabled={!chartPreviewBlob}>
+                Share JPEG
+              </Button>
+            </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <HabitCalendarDialog
+        habit={selectedHabit}
+        isOpen={Boolean(selectedHabit)}
+        onClose={() => setSelectedHabitId(null)}
+        canEdit={Boolean(selectedHabit && selectedHabit.userId === user.id)}
+        onToggleCheckIn={toggleHabitCheckIn}
+      />
     </main>
   );
 }

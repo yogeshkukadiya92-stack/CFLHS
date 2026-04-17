@@ -3,15 +3,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame } from 'lucide-react';
 import { HabitShareHabit } from '@/lib/types';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay, isToday } from 'date-fns';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isToday } from 'date-fns';
 
 interface HabitCalendarDialogProps {
   habit: HabitShareHabit | null;
   isOpen: boolean;
   onClose: () => void;
+  canEdit?: boolean;
+  onToggleCheckIn?: (habitId: string, dateStr: string) => void;
 }
 
-export function HabitCalendarDialog({ habit, isOpen, onClose }: HabitCalendarDialogProps) {
+export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, onToggleCheckIn }: HabitCalendarDialogProps) {
   const [viewDate, setViewDate] = React.useState<Date>(new Date());
 
   React.useEffect(() => {
@@ -22,6 +24,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose }: HabitCalendarDia
   const monthEnd = endOfMonth(monthStart);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startDayOfWeek = getDay(monthStart);
+  const checkInSet = React.useMemo(() => new Set((habit?.checkIns || []).map((value) => value.slice(0, 10))), [habit?.checkIns]);
 
   const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -71,34 +74,43 @@ export function HabitCalendarDialog({ habit, isOpen, onClose }: HabitCalendarDia
                    <div key={`empty-${i}`} className="h-10 w-full" />
                  ))}
                  
-                 {daysInMonth.map((day) => {
-                   const dateStr = format(day, 'yyyy-MM-dd');
-                   const isChecked = habit.checkIns.includes(dateStr);
-                   const isCurrentDay = isToday(day);
-                   
-                   return (
-                     <div key={dateStr} className="flex justify-center items-center">
-                       <div 
-                         className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
-                           isChecked 
-                           ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
-                           : isCurrentDay 
-                             ? 'bg-indigo-50 text-indigo-600 ring-2 ring-indigo-200'
-                             : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                         }`}
-                         title={dateStr}
-                       >
-                         {format(day, 'd')}
-                       </div>
-                     </div>
-                   );
-                 })}
-               </div>
+                  {daysInMonth.map((day) => {
+                    const dateStr = format(day, 'yyyy-MM-dd');
+                    const isChecked = checkInSet.has(dateStr);
+                    const isCurrentDay = isToday(day);
+                    const isFuture = dateStr > format(new Date(), 'yyyy-MM-dd');
+                    
+                    return (
+                      <div key={dateStr} className="flex justify-center items-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!canEdit || !onToggleCheckIn || isFuture) return;
+                            onToggleCheckIn(habit.id, dateStr);
+                          }}
+                          disabled={!canEdit || isFuture}
+                          className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                            isChecked 
+                            ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
+                            : isCurrentDay 
+                              ? 'bg-indigo-50 text-indigo-600 ring-2 ring-indigo-200'
+                              : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                          } ${!canEdit || isFuture ? 'cursor-default opacity-80' : ''}`}
+                          title={dateStr}
+                        >
+                          {format(day, 'd')}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
 
-               <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
-                 <Button variant="ghost" onClick={onClose} className="rounded-xl font-bold bg-slate-50 hover:bg-slate-100 w-full hover:text-slate-800">Close Calendar</Button>
-               </div>
-            </div>
+                <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                  <Button variant="ghost" onClick={onClose} className="rounded-xl font-bold bg-slate-50 hover:bg-slate-100 w-full hover:text-slate-800">
+                    {canEdit ? 'Close Calendar (Tap dates to update)' : 'Close Calendar'}
+                  </Button>
+                </div>
+             </div>
           </>
         )}
       </DialogContent>
