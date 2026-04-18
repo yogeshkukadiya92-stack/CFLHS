@@ -103,11 +103,15 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                                : 'bg-rose-100 text-rose-500 hover:bg-rose-200'
                            } ${!canEdit || isFuture ? 'cursor-default opacity-80' : ''}`}
                            title={dateStr}
-                         >
-                          {format(day, 'd')}
-                        </button>
-                      </div>
-                    );
+                          >
+                           {dayStatus === 'none' && !isFuture ? (
+                             <span className="text-2xl font-black leading-none">×</span>
+                           ) : (
+                             format(day, 'd')
+                           )}
+                         </button>
+                       </div>
+                     );
                   })}
                 </div>
 
