@@ -4,7 +4,7 @@ import * as React from 'react';
 import { format, subDays } from 'date-fns';
 import { CalendarDays, Heart, Share2, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
-import { getHabitDayStatus, getHabitDoneSet } from '@/lib/habit-status';
+import { HabitDayStatus, getHabitDayStatus, getHabitDoneSet } from '@/lib/habit-status';
 import type { Habit, HabitShareHabit } from '@/lib/types';
 
 type HabitCardHabit = Pick<Habit, 'id' | 'name' | 'description'> & {
@@ -17,6 +17,7 @@ interface HabitCardProps {
   habit: HabitCardHabit | HabitShareHabit;
   onCheer?: (habitId: string) => void;
   onViewDetails?: (habitId: string) => void;
+  onSetDayStatus?: (habitId: string, dateStr: string, status: HabitDayStatus) => void;
   onEdit?: (habitId: string) => void;
   onDelete?: (habitId: string) => void;
   isFriendView?: boolean;
@@ -29,6 +30,7 @@ export function HabitCard({
   habit,
   onCheer,
   onViewDetails,
+  onSetDayStatus,
   onEdit,
   onDelete,
   isFriendView = false,
@@ -36,6 +38,7 @@ export function HabitCard({
   showMemberName = false,
   memberName,
 }: HabitCardProps) {
+  const [quickPickDate, setQuickPickDate] = React.useState<string | null>(null);
   const doneSet = React.useMemo(() => getHabitDoneSet(habit.checkIns), [habit.checkIns]);
 
   const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(currentDate, 6 - i));
@@ -135,7 +138,10 @@ export function HabitCard({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  openCalendar();
+                  if (isFriendView) return;
+                  const selectedDate = format(date, 'yyyy-MM-dd');
+                  if (selectedDate > todayKey) return;
+                  setQuickPickDate(selectedDate);
                 }}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                   status === 'done' ? 'bg-emerald-500 text-white' : status === 'skipped' ? 'bg-slate-300 text-slate-700' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
@@ -184,6 +190,47 @@ export function HabitCard({
 
         </div>
       </div>
+
+      {quickPickDate && !isFriendView ? (
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-2" onClick={(e) => e.stopPropagation()}>
+          <div className="mb-2 text-xs font-bold text-slate-500">{format(new Date(`${quickPickDate}T00:00:00`), 'dd MMM yyyy')} status</div>
+          <div className="grid grid-cols-4 gap-2">
+            <Button
+              type="button"
+              className="h-8 rounded-lg bg-emerald-500 text-xs font-bold hover:bg-emerald-600"
+              onClick={() => {
+                onSetDayStatus?.(habit.id, quickPickDate, 'done');
+                setQuickPickDate(null);
+              }}
+            >
+              Green
+            </Button>
+            <Button
+              type="button"
+              className="h-8 rounded-lg bg-rose-500 text-xs font-bold hover:bg-rose-600"
+              onClick={() => {
+                onSetDayStatus?.(habit.id, quickPickDate, 'none');
+                setQuickPickDate(null);
+              }}
+            >
+              Red
+            </Button>
+            <Button
+              type="button"
+              className="h-8 rounded-lg bg-slate-500 text-xs font-bold hover:bg-slate-600"
+              onClick={() => {
+                onSetDayStatus?.(habit.id, quickPickDate, 'skipped');
+                setQuickPickDate(null);
+              }}
+            >
+              Gray
+            </Button>
+            <Button type="button" variant="outline" className="h-8 rounded-lg text-xs font-bold" onClick={() => setQuickPickDate(null)}>
+              Close
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </button>
   );
 }

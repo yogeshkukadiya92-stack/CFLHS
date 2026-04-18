@@ -658,6 +658,7 @@ export default function Dashboard() {
                         <HabitCard
                           habit={h}
                           onViewDetails={(id) => setSelectedHabitId(id)}
+                          onSetDayStatus={setHabitDayStatus}
                           onEdit={() => openEditHabit(h)}
                           onDelete={() => deleteHabit(h)}
                           currentDate={currentDate}
