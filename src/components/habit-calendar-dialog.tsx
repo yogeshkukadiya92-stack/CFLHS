@@ -16,12 +16,12 @@ interface HabitCalendarDialogProps {
 
 export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, onSetDayStatus }: HabitCalendarDialogProps) {
   const [viewDate, setViewDate] = React.useState<Date>(new Date());
-  const [selectedMode, setSelectedMode] = React.useState<HabitDayStatus>('done');
+  const [statusPickerDate, setStatusPickerDate] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (isOpen) {
       setViewDate(new Date());
-      setSelectedMode('done');
+      setStatusPickerDate(null);
     }
   }, [isOpen, habit?.id]);
 
@@ -68,35 +68,6 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                  </Button>
                </div>
 
-               {canEdit ? (
-                 <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
-                   <Button
-                     type="button"
-                     variant={selectedMode === 'done' ? 'default' : 'outline'}
-                     className={`h-9 rounded-xl ${selectedMode === 'done' ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-emerald-200 text-emerald-700'}`}
-                     onClick={() => setSelectedMode('done')}
-                   >
-                     Green
-                   </Button>
-                   <Button
-                     type="button"
-                     variant={selectedMode === 'skipped' ? 'default' : 'outline'}
-                     className={`h-9 rounded-xl ${selectedMode === 'skipped' ? 'bg-slate-500 hover:bg-slate-600' : 'border-slate-300 text-slate-700'}`}
-                     onClick={() => setSelectedMode('skipped')}
-                   >
-                     Skip
-                   </Button>
-                   <Button
-                     type="button"
-                     variant={selectedMode === 'none' ? 'default' : 'outline'}
-                     className={`h-9 rounded-xl ${selectedMode === 'none' ? 'bg-rose-500 hover:bg-rose-600' : 'border-rose-200 text-rose-700'}`}
-                     onClick={() => setSelectedMode('none')}
-                   >
-                     Missed
-                   </Button>
-                 </div>
-               ) : null}
-
                 <div className="grid grid-cols-7 gap-y-2 gap-x-1 mb-2">
                  {weekDays.map(day => (
                    <div key={day} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-2">
@@ -115,12 +86,12 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                     
                     return (
                       <div key={dateStr} className="flex justify-center items-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (!canEdit || !onSetDayStatus || isFuture) return;
-                            onSetDayStatus(habit.id, dateStr, selectedMode);
-                          }}
+                         <button
+                           type="button"
+                           onClick={() => {
+                              if (!canEdit || !onSetDayStatus || isFuture) return;
+                            setStatusPickerDate(dateStr);
+                           }}
                           disabled={!canEdit || isFuture}
                            className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
                              dayStatus === 'done'
@@ -142,10 +113,60 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <Button variant="ghost" onClick={onClose} className="rounded-xl font-bold bg-slate-50 hover:bg-slate-100 w-full hover:text-slate-800">
-                    {canEdit ? 'Close Calendar (Select Green / Skip / Missed then tap date)' : 'Close Calendar'}
+                    {canEdit ? 'Close Calendar (Tap date, then choose Green/Red/Gray)' : 'Close Calendar'}
                   </Button>
                 </div>
              </div>
+
+            {canEdit && statusPickerDate && onSetDayStatus ? (
+              <div className="absolute inset-0 z-20 flex items-end justify-center bg-slate-900/35 p-4 sm:items-center">
+                <div className="w-full max-w-xs rounded-2xl border border-slate-200 bg-white p-4 shadow-xl">
+                  <div className="mb-3 text-center text-sm font-bold text-slate-700">
+                    Choose status for {format(new Date(`${statusPickerDate}T00:00:00`), 'dd MMM yyyy')}
+                  </div>
+                  <div className="grid grid-cols-1 gap-2">
+                    <Button
+                      type="button"
+                      className="h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600"
+                      onClick={() => {
+                        onSetDayStatus(habit.id, statusPickerDate, 'done');
+                        setStatusPickerDate(null);
+                      }}
+                    >
+                      Green (Done)
+                    </Button>
+                    <Button
+                      type="button"
+                      className="h-10 rounded-xl bg-rose-500 hover:bg-rose-600"
+                      onClick={() => {
+                        onSetDayStatus(habit.id, statusPickerDate, 'none');
+                        setStatusPickerDate(null);
+                      }}
+                    >
+                      Red (Missed)
+                    </Button>
+                    <Button
+                      type="button"
+                      className="h-10 rounded-xl bg-slate-500 hover:bg-slate-600"
+                      onClick={() => {
+                        onSetDayStatus(habit.id, statusPickerDate, 'skipped');
+                        setStatusPickerDate(null);
+                      }}
+                    >
+                      Gray (Skip)
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="h-10 rounded-xl"
+                      onClick={() => setStatusPickerDate(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </DialogContent>
