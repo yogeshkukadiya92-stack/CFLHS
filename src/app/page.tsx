@@ -582,12 +582,12 @@ export default function Dashboard() {
               </div>
               <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 md:text-4xl">Habit Share</h1>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setIsChartOpen(true)} className="rounded-2xl font-bold">
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:justify-end">
+              <Button variant="outline" onClick={() => setIsChartOpen(true)} className="h-10 rounded-2xl px-3 text-sm font-bold sm:h-10">
                 <BarChart3 className="mr-2 h-4 w-4" />
                 Habit Chart
               </Button>
-              <Button variant="outline" onClick={() => setIsFriendsOpen(true)} className="rounded-2xl font-bold">
+              <Button variant="outline" onClick={() => setIsFriendsOpen(true)} className="h-10 rounded-2xl px-3 text-sm font-bold sm:h-10">
                 <UserPlus className="mr-2 h-4 w-4" />
                 Friends
               </Button>
@@ -600,12 +600,12 @@ export default function Dashboard() {
                   setSharedWithIds([]);
                   setIsCreateOpen(true);
                 }}
-                className="rounded-2xl font-bold"
+                className="h-10 rounded-2xl px-3 text-sm font-bold sm:h-10"
               >
                 <PlusCircle className="mr-2 h-4 w-4" />
                 New Habit
               </Button>
-              <Button variant="outline" onClick={async () => supabase.auth.signOut()} className="rounded-2xl font-bold">
+              <Button variant="outline" onClick={async () => supabase.auth.signOut()} className="h-10 rounded-2xl px-3 text-sm font-bold sm:h-10">
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
               </Button>
@@ -644,23 +644,25 @@ export default function Dashboard() {
                   {myHabits.map((h) => (
                     <div
                       key={h.id}
-                      className={`flex items-start gap-2 rounded-2xl transition ${draggedHabitId === h.id ? 'opacity-70' : ''}`}
+                      className={`rounded-2xl transition ${draggedHabitId === h.id ? 'opacity-70' : ''}`}
                       draggable
                       onDragStart={() => setDraggedHabitId(h.id)}
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={() => reorderHabit(h.id)}
                       onDragEnd={() => setDraggedHabitId(null)}
                     >
-                      <div className="mt-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400">
-                        <GripVertical className="h-4 w-4" />
+                      <div className="flex items-start gap-2">
+                        <div className="mt-3 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 sm:flex">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                        <HabitCard
+                          habit={h}
+                          onViewDetails={(id) => setSelectedHabitId(id)}
+                          onEdit={() => openEditHabit(h)}
+                          onDelete={() => deleteHabit(h)}
+                          currentDate={currentDate}
+                        />
                       </div>
-                      <HabitCard
-                        habit={h}
-                        onViewDetails={(id) => setSelectedHabitId(id)}
-                        onEdit={() => openEditHabit(h)}
-                        onDelete={() => deleteHabit(h)}
-                        currentDate={currentDate}
-                      />
                     </div>
                   ))}
                 </div>
