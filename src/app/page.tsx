@@ -15,6 +15,7 @@ import { useAuth } from '@/components/auth-provider';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/lib/supabase';
 import { openWhatsAppShare } from '@/lib/whatsapp-share';
+import { HabitDayStatus, getHabitDayStatus, upsertHabitDayStatus } from '@/lib/habit-status';
 import type { HabitFriendRequest, HabitShareHabit, HabitShareUser } from '@/lib/types';
 
 type HabitRow = {
@@ -225,22 +226,24 @@ export default function Dashboard() {
   const currentDateStr = format(currentDate, 'yyyy-MM-dd');
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const ownerName = currentUser?.name || user.email?.split('@')[0] || 'User';
-  const doneTodayCount = myHabits.filter((h) => h.checkIns.includes(currentDateStr)).length;
+  const doneTodayCount = myHabits.filter((h) => getHabitDayStatus(h.checkIns, currentDateStr) === 'done').length;
 
   const chartShareText = React.useMemo(() => {
     const datesRow = chartDays.map((d) => format(d, 'dd')).join(' ');
     const lines = myHabits.map((habit) => {
-      const checkSet = new Set(habit.checkIns);
       const marks = chartDays
         .map((d) => {
           const dateKey = format(d, 'yyyy-MM-dd');
           if (dateKey > todayKey) return '-';
-          return checkSet.has(dateKey) ? 'YES' : 'NO';
+          const status = getHabitDayStatus(habit.checkIns, dateKey);
+          if (status === 'done') return 'YES';
+          if (status === 'skipped') return 'SKIP';
+          return 'NO';
         })
         .join(' ');
       const total = chartDays.filter((d) => {
         const dateKey = format(d, 'yyyy-MM-dd');
-        return dateKey <= todayKey && checkSet.has(dateKey);
+        return dateKey <= todayKey && getHabitDayStatus(habit.checkIns, dateKey) === 'done';
       }).length;
       return `${habit.name} (${total}/${chartDays.length}): ${marks}`;
     });
@@ -316,28 +319,37 @@ export default function Dashboard() {
     y += headerHeight;
 
     myHabits.forEach((habit) => {
-      const set = new Set(habit.checkIns.map((value) => value.slice(0, 10)));
       const total = chartDays.filter((d) => {
         const dateKey = format(d, 'yyyy-MM-dd');
-        return dateKey <= todayKey && set.has(dateKey);
+        return dateKey <= todayKey && getHabitDayStatus(habit.checkIns, dateKey) === 'done';
       }).length;
 
       drawCell(startX, y, firstColWidth, rowHeight, '#ffffff', habit.name.slice(0, 28), '#0f172a', false);
       chartDays.forEach((d, i) => {
         const dateKey = format(d, 'yyyy-MM-dd');
         const isFuture = dateKey > todayKey;
-        const ok = set.has(dateKey);
+        const status = getHabitDayStatus(habit.checkIns, dateKey);
         if (isFuture) {
           drawCell(startX + firstColWidth + i * dayColWidth, y, dayColWidth, rowHeight, '#ffffff', '', '#64748b');
+        } else if (status === 'skipped') {
+          drawCell(
+            startX + firstColWidth + i * dayColWidth,
+            y,
+            dayColWidth,
+            rowHeight,
+            '#f1f5f9',
+            'S',
+            '#475569',
+          );
         } else {
           drawCell(
             startX + firstColWidth + i * dayColWidth,
             y,
             dayColWidth,
             rowHeight,
-            ok ? '#ecfdf5' : '#fef2f2',
-            ok ? 'Y' : 'N',
-            ok ? '#059669' : '#dc2626',
+            status === 'done' ? '#ecfdf5' : '#fef2f2',
+            status === 'done' ? 'Y' : 'N',
+            status === 'done' ? '#059669' : '#dc2626',
           );
         }
       });
@@ -392,15 +404,11 @@ export default function Dashboard() {
     toast({ title: 'JPEG downloaded', description: 'Now share this image on WhatsApp.' });
   };
 
-  const toggleHabitCheckIn = async (habitId: string, dateStr: string) => {
+  const setHabitDayStatus = async (habitId: string, dateStr: string, status: HabitDayStatus) => {
     const oldHabit = myHabits.find((h) => h.id === habitId);
     if (!oldHabit) return;
 
-    const normalized = oldHabit.checkIns.map((d) => d.slice(0, 10));
-    const hasDate = normalized.includes(dateStr);
-    const next = hasDate
-      ? normalized.filter((d) => d !== dateStr)
-      : [...normalized, dateStr];
+    const next = upsertHabitDayStatus(oldHabit.checkIns, dateStr, status);
     setMyHabits((prev) => prev.map((h) => (h.id === habitId ? { ...h, checkIns: next } : h)));
     const { error } = await supabase
       .from('habit_share_habits')
@@ -746,10 +754,9 @@ export default function Dashboard() {
                   </thead>
                   <tbody>
                     {myHabits.map((h) => {
-                      const set = new Set(h.checkIns);
                       const c = chartDays.filter((d) => {
                         const key = format(d, 'yyyy-MM-dd');
-                        return key <= todayKey && set.has(key);
+                        return key <= todayKey && getHabitDayStatus(h.checkIns, key) === 'done';
                       }).length;
                       return (
                         <tr key={h.id}>
@@ -760,10 +767,10 @@ export default function Dashboard() {
                           {chartDays.map((d) => {
                             const k = format(d, 'yyyy-MM-dd');
                             const future = k > todayKey;
-                            const ok = set.has(k);
+                            const status = getHabitDayStatus(h.checkIns, k);
                             return (
-                              <td key={`${h.id}_${k}`} className={`border px-1 py-1 text-center ${future ? 'bg-white' : ok ? 'bg-emerald-50' : 'bg-rose-50'}`}>
-                                {future ? null : ok ? <Check className="mx-auto h-3.5 w-3.5 text-emerald-600" /> : <X className="mx-auto h-3.5 w-3.5 text-rose-500" />}
+                              <td key={`${h.id}_${k}`} className={`border px-1 py-1 text-center ${future ? 'bg-white' : status === 'done' ? 'bg-emerald-50' : status === 'skipped' ? 'bg-slate-100' : 'bg-rose-50'}`}>
+                                {future ? null : status === 'done' ? <Check className="mx-auto h-3.5 w-3.5 text-emerald-600" /> : status === 'skipped' ? <span className="text-xs font-black text-slate-500">-</span> : <X className="mx-auto h-3.5 w-3.5 text-rose-500" />}
                               </td>
                             );
                           })}
@@ -924,7 +931,7 @@ export default function Dashboard() {
         isOpen={Boolean(selectedHabit)}
         onClose={() => setSelectedHabitId(null)}
         canEdit={Boolean(selectedHabit && selectedHabit.userId === user.id)}
-        onToggleCheckIn={toggleHabitCheckIn}
+        onSetDayStatus={setHabitDayStatus}
       />
     </main>
   );

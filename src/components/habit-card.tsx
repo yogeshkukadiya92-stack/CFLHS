@@ -4,6 +4,7 @@ import * as React from 'react';
 import { format, subDays } from 'date-fns';
 import { CalendarDays, Heart, Share2, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
+import { getHabitDayStatus, getHabitDoneSet } from '@/lib/habit-status';
 import type { Habit, HabitShareHabit } from '@/lib/types';
 
 type HabitCardHabit = Pick<Habit, 'id' | 'name' | 'description'> & {
@@ -35,21 +36,12 @@ export function HabitCard({
   showMemberName = false,
   memberName,
 }: HabitCardProps) {
-  const checkInStrings = React.useMemo(() => {
-    // Normalize date strings so older ISO values still match daily keys.
-    const normalized = habit.checkIns.map((checkIn) => {
-      if (typeof checkIn === 'string') {
-        return checkIn.slice(0, 10);
-      }
-      return format(new Date(checkIn), 'yyyy-MM-dd');
-    });
-    return Array.from(new Set(normalized));
-  }, [habit.checkIns]);
+  const doneSet = React.useMemo(() => getHabitDoneSet(habit.checkIns), [habit.checkIns]);
 
   const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(currentDate, 6 - i));
   const todayKey = format(new Date(), 'yyyy-MM-dd');
   const currentStreak = React.useMemo(() => {
-    const dates = new Set(checkInStrings);
+    const dates = new Set(doneSet);
     let streak = 0;
     let cursor = currentDate;
 
@@ -66,16 +58,18 @@ export function HabitCard({
       cursor = subDays(cursor, 1);
     }
     return streak;
-  }, [checkInStrings, currentDate]);
+  }, [doneSet, currentDate]);
 
-  const completionRate = Math.round((checkInStrings.length / Math.max(checkInStrings.length + 2, 5)) * 100);
+  const completionRate = Math.round((doneSet.size / Math.max(doneSet.size + 2, 5)) * 100);
   const activeDateStr = format(currentDate, 'yyyy-MM-dd');
-  const activeIsDone = checkInStrings.includes(activeDateStr);
+  const activeStatus = getHabitDayStatus(habit.checkIns, activeDateStr);
+  const activeIsDone = activeStatus === 'done';
+  const activeIsSkipped = activeStatus === 'skipped';
   const activeIsFuture = activeDateStr > todayKey;
 
   const openCalendar = () => onViewDetails?.(habit.id);
 
-  const isCheckedIn = (date: Date) => checkInStrings.includes(format(date, 'yyyy-MM-dd'));
+  const getDayStatus = (date: Date) => getHabitDayStatus(habit.checkIns, format(date, 'yyyy-MM-dd'));
 
   return (
     <button
@@ -131,7 +125,7 @@ export function HabitCard({
       <div className="mt-3 flex items-center justify-between gap-2">
         <div className="flex gap-1.5 overflow-x-auto">
           {last7Days.map((date) => {
-            const checked = isCheckedIn(date);
+            const status = getDayStatus(date);
             const dateKey = format(date, 'yyyy-MM-dd');
             const isFuture = dateKey > todayKey;
             const label = format(date, 'EE').charAt(0);
@@ -144,7 +138,7 @@ export function HabitCard({
                   openCalendar();
                 }}
                 className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                  checked ? 'bg-emerald-500 text-white' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
+                  status === 'done' ? 'bg-emerald-500 text-white' : status === 'skipped' ? 'bg-slate-300 text-slate-700' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
                 } ${isFriendView ? 'pointer-events-none' : ''}`}
               >
                 {label}
@@ -163,7 +157,13 @@ export function HabitCard({
                 openCalendar();
               }}
               className={`h-9 w-9 rounded-full border ${
-                activeIsDone ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : activeIsFuture ? 'border-slate-200 bg-white text-slate-400' : 'border-rose-200 bg-rose-50 text-rose-500'
+                activeIsDone
+                  ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
+                  : activeIsSkipped
+                    ? 'border-slate-400 bg-slate-200 text-slate-700'
+                    : activeIsFuture
+                      ? 'border-slate-200 bg-white text-slate-400'
+                      : 'border-rose-200 bg-rose-50 text-rose-500'
               }`}
             >
               <CalendarDays className="h-5 w-5" />

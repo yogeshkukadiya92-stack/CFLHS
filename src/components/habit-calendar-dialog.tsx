@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame } from 'lucide-react';
+import { HabitDayStatus, getHabitDayStatus, getHabitDoneSet } from '@/lib/habit-status';
 import { HabitShareHabit } from '@/lib/types';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths } from 'date-fns';
 
@@ -10,21 +11,25 @@ interface HabitCalendarDialogProps {
   isOpen: boolean;
   onClose: () => void;
   canEdit?: boolean;
-  onToggleCheckIn?: (habitId: string, dateStr: string) => void;
+  onSetDayStatus?: (habitId: string, dateStr: string, status: HabitDayStatus) => void;
 }
 
-export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, onToggleCheckIn }: HabitCalendarDialogProps) {
+export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, onSetDayStatus }: HabitCalendarDialogProps) {
   const [viewDate, setViewDate] = React.useState<Date>(new Date());
+  const [selectedMode, setSelectedMode] = React.useState<HabitDayStatus>('done');
 
   React.useEffect(() => {
-    if (isOpen) setViewDate(new Date());
+    if (isOpen) {
+      setViewDate(new Date());
+      setSelectedMode('done');
+    }
   }, [isOpen, habit?.id]);
 
   const monthStart = startOfMonth(viewDate);
   const monthEnd = endOfMonth(monthStart);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
   const startDayOfWeek = getDay(monthStart);
-  const checkInSet = React.useMemo(() => new Set((habit?.checkIns || []).map((value) => value.slice(0, 10))), [habit?.checkIns]);
+  const doneCount = React.useMemo(() => getHabitDoneSet(habit?.checkIns || []).size, [habit?.checkIns]);
 
   const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -41,9 +46,9 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                    <span className="flex-1 truncate pr-4">{habit.name}</span>
                    <div className="flex items-center gap-1 bg-white/20 px-3 py-1 rounded-full text-sm shrink-0">
                       <Flame className="h-4 w-4 text-orange-300" fill="currentColor" />
-                      <span>{habit.checkIns.length} total</span>
-                   </div>
-                 </DialogTitle>
+                      <span>{doneCount} done</span>
+                    </div>
+                  </DialogTitle>
                  <DialogDescription className="sr-only">Monthly Calendar for {habit.name}</DialogDescription>
                </DialogHeader>
                {habit.description && <p className="text-indigo-100 text-sm mt-1 mb-2">{habit.description}</p>}
@@ -63,7 +68,36 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                  </Button>
                </div>
 
-               <div className="grid grid-cols-7 gap-y-2 gap-x-1 mb-2">
+               {canEdit ? (
+                 <div className="mb-3 grid grid-cols-3 gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2">
+                   <Button
+                     type="button"
+                     variant={selectedMode === 'done' ? 'default' : 'outline'}
+                     className={`h-9 rounded-xl ${selectedMode === 'done' ? 'bg-emerald-500 hover:bg-emerald-600' : 'border-emerald-200 text-emerald-700'}`}
+                     onClick={() => setSelectedMode('done')}
+                   >
+                     Green
+                   </Button>
+                   <Button
+                     type="button"
+                     variant={selectedMode === 'skipped' ? 'default' : 'outline'}
+                     className={`h-9 rounded-xl ${selectedMode === 'skipped' ? 'bg-slate-500 hover:bg-slate-600' : 'border-slate-300 text-slate-700'}`}
+                     onClick={() => setSelectedMode('skipped')}
+                   >
+                     Skip
+                   </Button>
+                   <Button
+                     type="button"
+                     variant={selectedMode === 'none' ? 'default' : 'outline'}
+                     className={`h-9 rounded-xl ${selectedMode === 'none' ? 'bg-rose-500 hover:bg-rose-600' : 'border-rose-200 text-rose-700'}`}
+                     onClick={() => setSelectedMode('none')}
+                   >
+                     Missed
+                   </Button>
+                 </div>
+               ) : null}
+
+                <div className="grid grid-cols-7 gap-y-2 gap-x-1 mb-2">
                  {weekDays.map(day => (
                    <div key={day} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-2">
                      {day}
@@ -76,7 +110,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                  
                    {daysInMonth.map((day) => {
                      const dateStr = format(day, 'yyyy-MM-dd');
-                     const isChecked = checkInSet.has(dateStr);
+                     const dayStatus = getHabitDayStatus(habit.checkIns, dateStr);
                      const isFuture = dateStr > format(new Date(), 'yyyy-MM-dd');
                     
                     return (
@@ -84,13 +118,15 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                         <button
                           type="button"
                           onClick={() => {
-                            if (!canEdit || !onToggleCheckIn || isFuture) return;
-                            onToggleCheckIn(habit.id, dateStr);
+                            if (!canEdit || !onSetDayStatus || isFuture) return;
+                            onSetDayStatus(habit.id, dateStr, selectedMode);
                           }}
                           disabled={!canEdit || isFuture}
                            className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
-                             isChecked 
+                             dayStatus === 'done'
                              ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
+                             : dayStatus === 'skipped'
+                               ? 'bg-slate-300 text-slate-700 ring-1 ring-slate-400'
                              : isFuture
                                ? 'bg-white text-slate-400 ring-1 ring-slate-200'
                                : 'bg-rose-100 text-rose-500 hover:bg-rose-200'
@@ -106,7 +142,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
 
                 <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
                   <Button variant="ghost" onClick={onClose} className="rounded-xl font-bold bg-slate-50 hover:bg-slate-100 w-full hover:text-slate-800">
-                    {canEdit ? 'Close Calendar (Tap dates to update)' : 'Close Calendar'}
+                    {canEdit ? 'Close Calendar (Select Green / Skip / Missed then tap date)' : 'Close Calendar'}
                   </Button>
                 </div>
              </div>
