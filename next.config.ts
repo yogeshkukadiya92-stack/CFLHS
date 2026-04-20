@@ -1,7 +1,10 @@
 import type {NextConfig} from 'next';
 
+const isMobileBuild = process.env.MOBILE_BUILD === '1';
+
 const nextConfig: NextConfig = {
-  output: 'standalone',
+  output: isMobileBuild ? 'export' : 'standalone',
+  trailingSlash: isMobileBuild,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,6 +12,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: isMobileBuild,
     remotePatterns: [
       {
         protocol: 'https',

@@ -35,12 +35,12 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-h-[88dvh] w-[95vw] overflow-y-auto rounded-3xl border-none p-0 pb-[max(env(safe-area-inset-bottom),12px)] shadow-2xl sm:max-w-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
+      <DialogContent className="max-h-[92dvh] w-[95vw] overflow-hidden rounded-3xl border-none p-0 pb-[max(env(safe-area-inset-bottom),10px)] shadow-2xl sm:max-w-md outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]">
         {!habit ? (
           <DialogHeader><DialogTitle className="sr-only">Loading habit details</DialogTitle><DialogDescription className="sr-only">Please wait while the habit loads.</DialogDescription></DialogHeader>
         ) : (
           <>
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-6 text-white pb-10 relative">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-5 pb-8 text-white relative sm:p-6 sm:pb-10">
                <DialogHeader>
                  <DialogTitle className="text-2xl font-black text-white flex items-center justify-between shadow-sm">
                    <span className="flex-1 truncate pr-4">{habit.name}</span>
@@ -54,8 +54,8 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                {habit.description && <p className="text-indigo-100 text-sm mt-1 mb-2">{habit.description}</p>}
             </div>
 
-            <div className="px-6 pb-6 bg-white -mt-6 rounded-t-3xl relative z-10">
-               <div className="flex items-center justify-between py-4">
+            <div className="relative z-10 -mt-5 rounded-t-3xl bg-white px-4 pb-4 sm:-mt-6 sm:px-6 sm:pb-6">
+               <div className="flex items-center justify-between py-2 sm:py-4">
                  <Button variant="outline" size="icon" onClick={() => setViewDate(subMonths(viewDate, 1))} className="h-8 w-8 rounded-full border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-slate-800">
                     <ChevronLeft className="h-4 w-4" />
                  </Button>
@@ -68,16 +68,16 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                  </Button>
                </div>
 
-                <div className="grid grid-cols-7 gap-y-2 gap-x-1 mb-2">
+                <div className="mb-2 grid grid-cols-7 gap-x-1 gap-y-1.5 sm:gap-y-2">
                  {weekDays.map(day => (
-                   <div key={day} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-2">
+                   <div key={day} className="py-1 text-center text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:py-2 sm:text-xs">
                      {day}
                    </div>
                  ))}
                  
                  {Array.from({ length: startDayOfWeek }).map((_, i) => (
-                   <div key={`empty-${i}`} className="h-10 w-full" />
-                 ))}
+                    <div key={`empty-${i}`} className="h-8 w-full sm:h-10" />
+                  ))}
                  
                    {daysInMonth.map((day) => {
                      const dateStr = format(day, 'yyyy-MM-dd');
@@ -93,7 +93,7 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                             setStatusPickerDate(dateStr);
                            }}
                           disabled={!canEdit || isFuture}
-                           className={`h-10 w-10 flex items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
+                           className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold transition-all sm:h-10 sm:w-10 sm:rounded-2xl sm:text-sm ${
                              dayStatus === 'done'
                              ? 'bg-gradient-to-tr from-green-400 to-green-500 text-white shadow-md shadow-green-500/30 ring-2 ring-green-100 ring-offset-1 ring-offset-white' 
                              : dayStatus === 'skipped'
@@ -103,9 +103,9 @@ export function HabitCalendarDialog({ habit, isOpen, onClose, canEdit = false, o
                                : 'bg-rose-100 text-rose-500 hover:bg-rose-200'
                            } ${!canEdit || isFuture ? 'cursor-default opacity-80' : ''}`}
                            title={dateStr}
-                          >
+                         >
                            {dayStatus === 'none' && !isFuture ? (
-                             <span className="text-2xl font-black leading-none">×</span>
+                             <span className="text-xl font-black leading-none sm:text-2xl">×</span>
                            ) : (
                              format(day, 'd')
                            )}

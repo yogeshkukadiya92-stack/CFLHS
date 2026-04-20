@@ -64,11 +64,6 @@ export function HabitCard({
   }, [doneSet, currentDate]);
 
   const completionRate = Math.round((doneSet.size / Math.max(doneSet.size + 2, 5)) * 100);
-  const activeDateStr = format(currentDate, 'yyyy-MM-dd');
-  const activeStatus = getHabitDayStatus(habit.checkIns, activeDateStr);
-  const activeIsDone = activeStatus === 'done';
-  const activeIsSkipped = activeStatus === 'skipped';
-  const activeIsFuture = activeDateStr > todayKey;
 
   const openCalendar = () => onViewDetails?.(habit.id);
 
@@ -90,6 +85,20 @@ export function HabitCard({
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <div className="truncate text-left text-lg font-black text-slate-900">{habit.name}</div>
+            {!isFriendView ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openCalendar();
+                }}
+                title="Open calendar"
+              >
+                <CalendarDays className="h-4 w-4" />
+              </Button>
+            ) : null}
             {!isFriendView && onDelete ? (
               <Button
                 variant="ghost"
@@ -153,28 +162,8 @@ export function HabitCard({
           })}
         </div>
 
-        <div className="hidden items-center gap-2 sm:flex">
-          {!isFriendView ? (
-            <Button
-              size="icon"
-              variant="ghost"
-              onClick={(e) => {
-                e.stopPropagation();
-                openCalendar();
-              }}
-              className={`h-9 w-9 rounded-full border ${
-                activeIsDone
-                  ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
-                  : activeIsSkipped
-                    ? 'border-slate-400 bg-slate-200 text-slate-700'
-                    : activeIsFuture
-                      ? 'border-slate-200 bg-white text-slate-400'
-                      : 'border-rose-200 bg-rose-50 text-rose-500'
-              }`}
-            >
-              <CalendarDays className="h-5 w-5" />
-            </Button>
-          ) : (
+        <div className="flex items-center gap-2">
+          {isFriendView ? (
             <Button
               size="sm"
               className="h-9 rounded-xl bg-pink-100 px-3 text-pink-700 hover:bg-pink-200"
@@ -186,7 +175,7 @@ export function HabitCard({
               <Heart className="mr-1.5 h-3.5 w-3.5" />
               Cheer
             </Button>
-          )}
+          ) : null}
 
         </div>
       </div>
