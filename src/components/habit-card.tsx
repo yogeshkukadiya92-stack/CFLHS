@@ -43,6 +43,8 @@ export function HabitCard({
 
   const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(currentDate, 6 - i));
   const todayKey = format(new Date(), 'yyyy-MM-dd');
+  const todayLabel = format(new Date(), 'EEE, d MMM');
+  const todayInVisibleWeek = last7Days.some((date) => format(date, 'yyyy-MM-dd') === todayKey);
   const currentStreak = React.useMemo(() => {
     const dates = new Set(doneSet);
     let streak = 0;
@@ -135,29 +137,40 @@ export function HabitCard({
       </div>
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-[11px] font-black uppercase tracking-[0.12em] text-indigo-600">
+          Today: {todayLabel}{todayInVisibleWeek ? '' : ' (not in this week)'}
+        </div>
+      </div>
+
+      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid min-w-0 flex-1 grid-cols-7 gap-1.5 sm:flex sm:overflow-x-auto">
           {last7Days.map((date) => {
             const status = getDayStatus(date);
             const dateKey = format(date, 'yyyy-MM-dd');
             const isFuture = dateKey > todayKey;
+            const isToday = dateKey === todayKey;
             const label = format(date, 'EE').charAt(0);
             return (
-              <button
-                key={format(date, 'yyyy-MM-dd')}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (isFriendView) return;
-                  const selectedDate = format(date, 'yyyy-MM-dd');
-                  if (selectedDate > todayKey) return;
-                  setQuickPickDate(selectedDate);
-                }}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold sm:h-9 sm:w-9 sm:text-sm ${
-                  status === 'done' ? 'bg-emerald-500 text-white' : status === 'skipped' ? 'bg-slate-300 text-slate-700' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
-                } ${isFriendView ? 'pointer-events-none' : ''}`}
-              >
-                {label}
-              </button>
+              <div key={dateKey} className="flex flex-col items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (isFriendView) return;
+                    const selectedDate = format(date, 'yyyy-MM-dd');
+                    if (selectedDate > todayKey) return;
+                    setQuickPickDate(selectedDate);
+                  }}
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold sm:h-9 sm:w-9 sm:text-sm ${
+                    status === 'done' ? 'bg-emerald-500 text-white' : status === 'skipped' ? 'bg-slate-300 text-slate-700' : isFuture ? 'border border-slate-200 bg-white text-slate-400' : 'bg-rose-100 text-rose-500'
+                  } ${isToday ? 'ring-2 ring-indigo-400 ring-offset-1' : ''} ${isFriendView ? 'pointer-events-none' : ''}`}
+                >
+                  {label}
+                </button>
+                <span className={`min-h-3 text-[9px] font-black uppercase leading-none ${isToday ? 'text-indigo-600' : 'text-transparent'}`}>
+                  Today
+                </span>
+              </div>
             );
           })}
         </div>
